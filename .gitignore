@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# builds
+dist/
+build/
+out-tsc/
+.angular/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-account*.json
+gcp-credentials*.json
+
+# logs
+logs/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# testing
+coverage/
+.nyc_output/
+
+# editors / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

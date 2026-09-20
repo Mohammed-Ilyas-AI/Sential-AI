@@ -1,0 +1,27 @@
+{
+  "name": "sentinel-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SENTINEL AI - real-time fraud operations control tower for retail banking",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:api dev:web",
+    "dev:web": "npm run start --workspace @sentinel/web",
+    "dev:api": "npm run dev --workspace @sentinel/api",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "typescript": "~5.8.0"
+  }
+}
