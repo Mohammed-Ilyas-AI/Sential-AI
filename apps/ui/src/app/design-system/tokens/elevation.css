@@ -1,0 +1,4 @@
+:root {
+  --sentinel-elevation-panel: 0 1px 2px rgb(0 0 0 / 0.4);
+  --sentinel-elevation-overlay: 0 8px 24px rgb(0 0 0 / 0.5);
+}

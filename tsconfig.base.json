@@ -1,23 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [],
     "strict": true,
     "noImplicitOverride": true,
+    "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "baseUrl": ".",
+    "skipLibCheck": true,
     "paths": {
-      "@sentinel/shared": ["packages/shared/src/index.ts"]
+      "@sentinel/domain": ["./packages/domain/src/index.ts"],
+      "@sentinel/rules": ["./packages/rules/src/index.ts"],
+      "@sentinel/scenarios": ["./packages/scenarios/src/index.ts"]
     }
-  },
-  "exclude": ["node_modules", "dist"]
+  }
 }

@@ -4,24 +4,38 @@
   "private": true,
   "description": "SENTINEL AI - real-time fraud operations control tower for retail banking",
   "license": "UNLICENSED",
+  "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": "22.23.3"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/domain",
+    "packages/rules",
+    "packages/scenarios",
+    "apps/core",
+    "apps/stream",
+    "apps/simulator",
+    "apps/ui"
   ],
   "scripts": {
-    "dev": "npm-run-all --parallel dev:api dev:web",
-    "dev:web": "npm run start --workspace @sentinel/web",
-    "dev:api": "npm run dev --workspace @sentinel/api",
+    "dev": "run-p dev:core dev:stream dev:ui",
+    "dev:core": "npm run dev --workspace @sentinel/core",
+    "dev:stream": "npm run dev --workspace @sentinel/stream",
+    "dev:ui": "npm run start --workspace @sentinel/ui",
     "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test:scenario": "npm run test:scenario --workspace @sentinel/core",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "devDependencies": {
-    "npm-run-all": "^4.1.5",
-    "typescript": "~5.8.0"
+    "@eslint/js": "~10.0.1",
+    "angular-eslint": "~22.5.0",
+    "eslint": "~10.11.0",
+    "npm-run-all2": "~9.0.3",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "~8.70.1",
+    "vitest": "~5.0.2"
   }
 }

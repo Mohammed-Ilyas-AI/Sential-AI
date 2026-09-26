@@ -1,0 +1,29 @@
+{
+  "name": "@sentinel/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "sentinel-core: pre-transaction decision API, event ingest, REST API and the Gemini intelligence path.",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config ../../vitest.config.ts --project core",
+    "test:scenario": "vitest run --config ../../vitest.config.ts --project core test/scenario"
+  },
+  "dependencies": {
+    "@sentinel/domain": "0.1.0",
+    "@sentinel/rules": "0.1.0",
+    "express": "~5.2.1",
+    "mongodb": "~7.6.0",
+    "pino": "~10.3.1"
+  },
+  "devDependencies": {
+    "@sentinel/scenarios": "0.1.0",
+    "@types/express": "~5.0.6",
+    "@types/node": "~22.20.4",
+    "tsx": "~4.23.15"
+  }
+}

@@ -1,0 +1,27 @@
+@import './app/design-system/tokens/color.css';
+@import './app/design-system/tokens/spacing.css';
+@import './app/design-system/tokens/radius.css';
+@import './app/design-system/tokens/elevation.css';
+@import './app/design-system/tokens/z-index.css';
+@import './app/design-system/typography/typography.css';
+@import './app/design-system/motion/motion.css';
+@import './app/design-system/accessibility/accessibility.css';
+@import './app/design-system/themes/sentinel/sentinel-theme.css';
+@import './app/design-system/themes/bank-a/bank-a-theme.css';
+@import './app/design-system/themes/bank-b/bank-b-theme.css';
+@import './app/design-system/themes/bank-c/bank-c-theme.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--sentinel-color-background);
+  color: var(--sentinel-color-text);
+  font-family: var(--sentinel-font-family-sans);
+  font-size: var(--sentinel-font-size-body);
+  line-height: var(--sentinel-line-height-body);
+}

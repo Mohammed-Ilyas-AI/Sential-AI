@@ -1,0 +1,12 @@
+:root {
+  --sentinel-motion-duration-fast: 120ms;
+  --sentinel-motion-duration-base: 250ms;
+  --sentinel-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sentinel-motion-duration-fast: 0ms;
+    --sentinel-motion-duration-base: 0ms;
+  }
+}

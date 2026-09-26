@@ -1,70 +1,75 @@
 # SENTINEL AI
 
-A real-time fraud operations control tower for retail banking. SENTINEL AI detects
-suspicious transaction behaviour, explains the risk in analyst-readable language,
-intervenes automatically when a rapid-drain policy threshold is breached, and helps
-analysts investigate connected financial entities.
+**All data in this project is synthetic.** No real, scraped or anonymised customer data is used anywhere, and no
+identifier resembles a real account number, NRIC or card number. SENTINEL AI is a functional prototype of a
+control, with the security posture of a prototype.
 
-Built for the **AI Builder Cup 2026** (JAPAC), BFSI theme — *Intelligent Risk, Fraud &
-Financial Experiences*.
+SENTINEL AI is a real-time fraud operations control tower for retail banking: **Detect. Explain. Intervene.
+Investigate.** It implements Singapore's rapid account-draining safeguard (protected balance S$50,000; a
+transaction that, with the previous 24 hours of outflows, moves more than 50% of the balance is held) as a
+deterministic policy gate, and uses Gemini on Vertex AI to explain decisions that the rules have already made.
 
-## The problem
+**Rules decide. AI explains. Humans authorize.** No language model sits in the path of a financial decision.
 
-Singapore's Shared Responsibility Framework puts banks on the hook when a scam victim's
-account is drained and the bank failed to act on the warning signs. The signs are usually
-there — an unusual payee, an odd hour, a burst of transfers that empties half a balance in
-under an hour — but they sit in separate systems and nobody joins them in time.
-
-SENTINEL AI joins them in the transaction path, not after the fact.
-
-## What it does
-
-| Capability | Description |
-|---|---|
-| **Detect** | Streams transactions through a rules + model scoring pipeline, producing a risk score with contributing signals. |
-| **Explain** | Gemini turns the score and its signals into a short, grounded narrative an analyst can act on. |
-| **Intervene** | Breaching the rapid-drain threshold holds the transaction and triggers a customer verification step. |
-| **Investigate** | An entity graph surfaces accounts, devices and payees connected to a flagged case. |
-
-## Stack
-
-- **Web** — Angular 20 (standalone components, signals), `apps/web`
-- **API** — Node.js 22 + TypeScript on Cloud Run, `apps/api`
-- **Shared** — domain types shared across web and API, `packages/shared`
-- **Streaming** — Google Cloud Pub/Sub
-- **AI** — Gemini on Vertex AI
-
-## Layout
-
-```
-sentinel-ai/
-├── apps/
-│   ├── web/          Angular 20 control tower UI
-│   └── api/          Node.js scoring, policy and case API
-├── packages/
-│   └── shared/       Domain types shared by web and api
-├── docs/             Architecture, data model, policy notes
-├── infra/            Cloud Run / Pub/Sub deployment notes
-└── .github/workflows CI
-```
-
-## Getting started
-
-```bash
-nvm use                 # Node 22
-npm install             # installs all workspaces
-cp .env.example .env    # fill in GCP values
-npm run dev             # web on :4200, api on :8080
-```
-
-## Docs
-
-- [Product brief](docs/product-brief.md)
-- [Architecture](docs/architecture.md)
-- [Data model](docs/data-model.md)
-- [Rapid-drain policy](docs/rapid-drain-policy.md)
-- [Roadmap](docs/roadmap.md)
+Built for the AI Builder Cup 2026, theme **BFSI — Intelligent Risk, Fraud & Financial Experiences**. Designed as
+a multi-tenant platform; demonstrated as a single deployment on synthetic data.
 
 ## Status
 
-Scaffold. No detection logic implemented yet — see the roadmap for build order.
+Architecture skeleton. Contracts, boundaries, composition roots, test boundaries and deployment manifests are in
+place; business capabilities are wired but not implemented (they answer `501 not_implemented`). Nothing is
+deployed yet.
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Frontend | Angular 22 (standalone, zoneless), NgRx, Signals, RxJS, Web Workers |
+| Backend | Node.js 22.23.3, TypeScript 6, Express 5 on Cloud Run |
+| Data | MongoDB Atlas on Google Cloud (`asia-southeast1`) |
+| Messaging | Google Cloud Pub/Sub (ordered per account token) |
+| Real time | WebSocket gateway on Cloud Run, fed by MongoDB change streams |
+| AI | Gemini on Vertex AI, called only from `sentinel-core` with the service account's own credentials |
+| CI/CD | Cloud Build → Artifact Registry → Cloud Run |
+
+There are no API keys in this repository. Vertex AI is called with the service account's credentials; the only
+secret (the Atlas connection string) lives in Secret Manager.
+
+## Repository
+
+```text
+apps/ui          Angular control tower            → Cloud Run service sentinel-ui
+apps/core        decision API, ingest, Gemini     → Cloud Run service sentinel-core
+apps/stream      WebSocket gateway                → Cloud Run service sentinel-stream
+apps/simulator   synthetic bank orchestrator      → Cloud Run Job     sentinel-simulator
+packages/domain  shared contracts and constants
+packages/rules   deterministic rules (Node and browser worker)
+packages/scenarios seeded scenarios, DEMO_TAKEOVER_01
+infra/           Cloud Run, Pub/Sub, Atlas, Secret Manager, Cloud Build
+docs/            architecture, contracts, decisions (ADRs), deployment, compliance
+```
+
+Start with [docs/repository-architecture.md](docs/repository-architecture.md).
+
+## Quick start
+
+Requires Node.js **22.23.3** (`.nvmrc`; other versions are rejected by `engine-strict`).
+
+```bash
+npm install
+npm run verify
+```
+
+`npm run verify` runs typecheck, lint (including the architecture boundary rules), all tests and all builds.
+
+## Google AI usage
+
+| Model tier | Jobs | Called from |
+|---|---|---|
+| Fast (Gemini Flash-class, ID from configuration) | Risk explanation, alert enrichment, entity summary, next-step suggestion | `sentinel-core` intelligence path |
+| Deep (Gemini Pro-class, ID from configuration) | Case summary, evidence correlation, case report draft | `sentinel-core` intelligence path |
+
+Every call uses structured output against a response schema; every claim must cite a field of the evidence
+bundle it was given. The model may not add, remove or re-weight a risk contribution and may not recommend
+releasing a held transaction. Explanations are cached by assessment and the demo account's explanation is
+pre-warmed before a presentation.

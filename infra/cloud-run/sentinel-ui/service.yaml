@@ -1,0 +1,21 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: sentinel-ui
+  labels:
+    cloud.googleapis.com/location: asia-southeast1
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '1'
+    spec:
+      serviceAccountName: sentinel-ui@__PROJECT_ID__.iam.gserviceaccount.com
+      containers:
+        - image: __IMAGE__
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: '1'
+              memory: 512Mi

@@ -1,0 +1,29 @@
+# A Cloud Run Job, run on demand per scenario; jobs have no minimum instances.
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: sentinel-simulator
+  labels:
+    cloud.googleapis.com/location: asia-southeast1
+spec:
+  template:
+    spec:
+      taskCount: 1
+      template:
+        spec:
+          serviceAccountName: sentinel-simulator@__PROJECT_ID__.iam.gserviceaccount.com
+          maxRetries: 0
+          timeoutSeconds: 600
+          containers:
+            - image: __IMAGE__
+              resources:
+                limits:
+                  cpu: '1'
+                  memory: 512Mi
+              env:
+                - name: SIMULATOR_CORE_BASE_URL
+                  value: __CORE_URL__
+                - name: SIMULATOR_PUBSUB_TOPIC
+                  value: sentinel-transaction-events
+                - name: SIMULATOR_SCENARIO_ID
+                  value: DEMO_TAKEOVER_01

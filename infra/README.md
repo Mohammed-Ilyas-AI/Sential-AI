@@ -1,38 +1,49 @@
 # Infrastructure
 
-Target: Google Cloud, region `asia-southeast1` (Singapore) — the scenario is Singapore's
-Shared Responsibility Framework, so data stays in region.
+One GCP project, `sentinel-ai-prod`, in `asia-southeast1` (Singapore). No Terraform and no GKE: four
+containers do not need an orchestrator. **Nothing in this folder has been run and no cloud resource exists
+yet.**
 
-## Components
-
-| Component | Service |
+| Folder | Holds |
 |---|---|
-| API | Cloud Run (`apps/api/Dockerfile`) |
-| Transaction stream | Pub/Sub topic `sentinel-transactions` |
-| Explanations | Vertex AI (Gemini) |
-| Web | Cloud Run or static hosting, built from `apps/web` |
+| `cloud-run/` | One folder per deployable: Dockerfile plus Cloud Run manifest (`service.yaml` or `job.yaml`) |
+| `pubsub/` | The transaction-event topic and the ordered push subscription |
+| `mongodb/` | Atlas provisioning runbook (collections and indexes live in code) |
+| `secret-manager/` | The single secret, `mongodb-uri` |
+| `cloud-build/` | `cloudbuild.yaml` and the deploy scripts it calls |
+| `environments/templates/` | Each deployable's configuration surface, placeholders only |
 
-## One-time setup
+## Deployables
 
-```bash
-gcloud config set project "$GCP_PROJECT_ID"
-gcloud services enable run.googleapis.com pubsub.googleapis.com aiplatform.googleapis.com
-gcloud pubsub topics create sentinel-transactions
-gcloud pubsub subscriptions create sentinel-scoring-sub --topic sentinel-transactions
-```
+| Name | Runtime | Scaling | Notes |
+|---|---|---|---|
+| `sentinel-core` | Cloud Run service | min 1, max 10 | Decision API, Pub/Sub push consumer, REST, Vertex AI |
+| `sentinel-stream` | Cloud Run service | min 1, max 3 | WebSocket gateway, session affinity, 60-minute timeout |
+| `sentinel-ui` | Cloud Run service | min 1 | Static Angular SPA behind nginx |
+| `sentinel-simulator` | Cloud Run Job | on demand | No minimum instances |
 
-## Deploy the API
+All at 1 vCPU / 512 MiB. `min-instances=1` is set on day one and never lowered: cold starts are how demos die.
 
-```bash
-gcloud run deploy sentinel-api \
-  --source . \
-  --region "$GCP_REGION" \
-  --allow-unauthenticated=false \
-  --set-env-vars "GCP_PROJECT_ID=$GCP_PROJECT_ID,VERTEX_LOCATION=$GCP_REGION"
-```
+## Service accounts (least privilege)
 
-## Notes
+| Account | Roles |
+|---|---|
+| `sentinel-core` | `roles/aiplatform.user`; `secretAccessor` on `mongodb-uri` |
+| `sentinel-stream` | `secretAccessor` on `mongodb-uri` |
+| `sentinel-ui` | none |
+| `sentinel-simulator` | `roles/pubsub.publisher` on `sentinel-transaction-events` |
+| `sentinel-pubsub-push` | `roles/run.invoker` on `sentinel-core` |
+| Cloud Build | `roles/run.admin`, `roles/iam.serviceAccountUser`, `roles/artifactregistry.writer` |
 
-- The Cloud Run service account needs `roles/aiplatform.user` and `roles/pubsub.subscriber`.
-- No service-account key files. Use workload identity; nothing credential-shaped belongs
-  in this repo.
+C§8 lists `Pub/Sub Subscriber` for `sentinel-core`; with a push subscription the service needs no Pub/Sub
+role, and it does need `secretAccessor` for the Atlas URI. See `docs/deployment/cloud-run-deployment.md`.
+
+## One-time setup order
+
+1. Claim competition credits, set a billing budget alert, request Vertex AI quota.
+2. Enable APIs: Cloud Run, Pub/Sub, Vertex AI, Artifact Registry, Cloud Build, Secret Manager.
+3. Create the Artifact Registry repository `sentinel` in `asia-southeast1`.
+4. Provision Atlas (`mongodb/`), then the secret (`secret-manager/`).
+5. Create the service accounts above.
+6. Create the topic, deploy once, then create the push subscription (`pubsub/`).
+7. Connect the Cloud Build trigger to `main` with `infra/cloud-build/cloudbuild.yaml`.

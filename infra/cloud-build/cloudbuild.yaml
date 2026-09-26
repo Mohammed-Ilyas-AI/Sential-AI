@@ -1,0 +1,89 @@
+# Push to main: install, typecheck, lint, unit tests, DEMO_TAKEOVER_01 headless assertion, four images,
+# Artifact Registry, deploy. Everything ships from main; no manual deploys after 12 October.
+substitutions:
+  _REGION: asia-southeast1
+  _REPOSITORY: sentinel
+  _UI_ORIGIN: ''
+  _CORE_URL: ''
+  _GEMINI_FAST_MODEL: ''
+  _GEMINI_DEEP_MODEL: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
+
+steps:
+  - id: install
+    name: node:22.23.3-slim
+    entrypoint: npm
+    args: ['ci']
+
+  - id: typecheck
+    name: node:22.23.3-slim
+    entrypoint: npm
+    args: ['run', 'typecheck']
+
+  - id: lint
+    name: node:22.23.3-slim
+    entrypoint: npm
+    args: ['run', 'lint']
+
+  - id: unit-tests
+    name: node:22.23.3-slim
+    entrypoint: npm
+    args: ['test']
+
+  - id: demo-takeover-01
+    name: node:22.23.3-slim
+    entrypoint: npm
+    args: ['run', 'test:scenario']
+
+  - id: image-core
+    name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'infra/cloud-run/sentinel-core/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-core:$SHORT_SHA', '.']
+    waitFor: ['demo-takeover-01']
+
+  - id: image-stream
+    name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'infra/cloud-run/sentinel-stream/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-stream:$SHORT_SHA', '.']
+    waitFor: ['demo-takeover-01']
+
+  - id: image-ui
+    name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'infra/cloud-run/sentinel-ui/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-ui:$SHORT_SHA', '.']
+    waitFor: ['demo-takeover-01']
+
+  - id: image-simulator
+    name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'infra/cloud-run/sentinel-simulator/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-simulator:$SHORT_SHA', '.']
+    waitFor: ['demo-takeover-01']
+
+  - id: push-images
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        for image in sentinel-core sentinel-stream sentinel-ui sentinel-simulator; do
+          docker push "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/$${image}:$SHORT_SHA"
+        done
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - REGION=${_REGION}
+      - REGISTRY=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}
+      - TAG=$SHORT_SHA
+      - UI_ORIGIN=${_UI_ORIGIN}
+      - CORE_URL=${_CORE_URL}
+      - GEMINI_FAST_MODEL=${_GEMINI_FAST_MODEL}
+      - GEMINI_DEEP_MODEL=${_GEMINI_DEEP_MODEL}
+    args:
+      - -c
+      - |
+        infra/cloud-build/scripts/deploy-service.sh sentinel-core
+        infra/cloud-build/scripts/deploy-service.sh sentinel-stream
+        infra/cloud-build/scripts/deploy-service.sh sentinel-ui
+        infra/cloud-build/scripts/deploy-job.sh sentinel-simulator

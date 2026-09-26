@@ -1,0 +1,42 @@
+# Rendered by infra/cloud-build/scripts/deploy-service.sh; __TOKENS__ are substituted at deploy time.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: sentinel-core
+  labels:
+    cloud.googleapis.com/location: asia-southeast1
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/maxScale: '10'
+    spec:
+      serviceAccountName: sentinel-core@__PROJECT_ID__.iam.gserviceaccount.com
+      timeoutSeconds: 300
+      containers:
+        - image: __IMAGE__
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: '1'
+              memory: 512Mi
+          env:
+            - name: GCP_PROJECT_ID
+              value: __PROJECT_ID__
+            - name: VERTEX_LOCATION
+              value: asia-southeast1
+            - name: MONGODB_DATABASE
+              value: sentinel
+            - name: CORS_ALLOWED_ORIGIN
+              value: __UI_ORIGIN__
+            - name: GEMINI_FAST_MODEL
+              value: __GEMINI_FAST_MODEL__
+            - name: GEMINI_DEEP_MODEL
+              value: __GEMINI_DEEP_MODEL__
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-uri
+                  key: latest

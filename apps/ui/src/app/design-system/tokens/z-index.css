@@ -1,0 +1,6 @@
+:root {
+  --sentinel-z-base: 0;
+  --sentinel-z-rail: 10;
+  --sentinel-z-notification: 100;
+  --sentinel-z-performance-panel: 200;
+}

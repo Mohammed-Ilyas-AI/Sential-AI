@@ -1,0 +1,12 @@
+/*
+ * Risk-band colours carry policy meaning, so they never change per tenant. Colour is never the only signal:
+ * bands also carry a label, and flagged graph nodes carry a persistent mark.
+ */
+:root {
+  --sentinel-color-risk-low: #3fb950;
+  --sentinel-color-risk-elevated: #d29922;
+  --sentinel-color-risk-high: #f0883e;
+  --sentinel-color-risk-critical: #f85149;
+  --sentinel-color-hold: #f85149;
+  --sentinel-color-unobserved: #8b98a8;
+}

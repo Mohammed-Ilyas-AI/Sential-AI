@@ -1,0 +1,10 @@
+/* The default SENTINEL AI theme: dark, readable in a dark demo room. */
+:root {
+  color-scheme: dark;
+  --sentinel-color-background: #0b0f14;
+  --sentinel-color-surface: #141a22;
+  --sentinel-color-border: #253040;
+  --sentinel-color-text: #e6edf3;
+  --sentinel-color-text-muted: #8b98a8;
+  --sentinel-color-accent: #58a6ff;
+}

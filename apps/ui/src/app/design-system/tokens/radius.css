@@ -1,0 +1,5 @@
+:root {
+  --sentinel-radius-small: 4px;
+  --sentinel-radius-medium: 8px;
+  --sentinel-radius-pill: 999px;
+}

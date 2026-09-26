@@ -1,0 +1,22 @@
+{
+  "name": "@sentinel/rules",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SENTINEL AI deterministic risk rules, risk engine and rapid-drain gate. Pure TypeScript, zero I/O; runs in Node and in the browser Web Worker.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config ../../vitest.config.ts --project rules"
+  },
+  "dependencies": {
+    "@sentinel/domain": "0.1.0"
+  }
+}
