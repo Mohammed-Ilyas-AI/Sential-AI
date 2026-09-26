@@ -11,5 +11,10 @@ export { entityLinkRule } from './rules/entity-link.rule.js';
 export { behaviourDeviationRule } from './rules/behaviour-deviation.rule.js';
 export { coolingOffRule } from './rules/cooling-off.rule.js';
 
-export { drainGate, type DrainGate } from './policy-gate/drain-gate.js';
+export { drainGate, isProtectedAtWindowStart, type DrainGate } from './policy-gate/drain-gate.js';
 export { drainExclusionFor, type DrainExclusionFor } from './policy-gate/drain-exclusions.js';
+
+export { extractRiskFeatures, mostRecentlySeen, type RiskFeatureInputs } from './features/extract-risk-features.js';
+export { addHours, elapsedHours, isAfter } from './features/elapsed-hours.js';
+export { flaggedLinksWithinTwoHops } from './features/flagged-links.js';
+export { assessPosture, type PostureInputs } from './posture/assess-posture.js';

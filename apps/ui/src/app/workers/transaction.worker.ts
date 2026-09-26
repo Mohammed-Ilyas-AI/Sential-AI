@@ -1,10 +1,8 @@
 /// <reference lib="webworker" />
+import { processTransactionBatch } from './transaction-batch.processor';
 import type { TransactionWorkerInput } from './transaction-worker-protocol';
 
-/**
- * Normalisation, rolling velocity, optimistic 24h outflow and drain %, payee/device counters and diffing,
- * off the main thread (T§5), using @sentinel/rules for the same arithmetic as the server. Build order step 8.
- */
+/** Per-batch normalisation and diffing off the main thread (T§5). Only what changed goes back. */
 addEventListener('message', (event: MessageEvent<TransactionWorkerInput>) => {
-  void event;
+  if (event.data.kind === 'BATCH') postMessage(processTransactionBatch(event.data.batch));
 });

@@ -1,12 +1,11 @@
 import type { RecordedRiskAssessment } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
 import type { Collection } from 'mongodb';
 import type { AssessmentRepository } from '../../../../modules/risk/application/ports/assessment-repository.port.js';
 import type { MongoDatabase } from '../client/mongo-connection.js';
 import { assessmentsCollection, type AssessmentDocument } from '../collections/assessments.collection.js';
+import { fromAssessmentDocument, toAssessmentDocument } from '../serializers/assessment.serializer.js';
 
-const STEP = 'scheduled for build order step 6';
-
+/** Insert-only: there is no code path that modifies a stored contribution. */
 export class MongoAssessmentRepository implements AssessmentRepository {
   private readonly assessments: Collection<AssessmentDocument>;
 
@@ -14,11 +13,12 @@ export class MongoAssessmentRepository implements AssessmentRepository {
     this.assessments = database.collection<AssessmentDocument>(assessmentsCollection.name);
   }
 
-  insert(): Promise<void> {
-    throw new NotYetImplementedError('MongoAssessmentRepository.insert', STEP);
+  async insert(assessment: RecordedRiskAssessment): Promise<void> {
+    await this.assessments.insertOne(toAssessmentDocument(assessment));
   }
 
-  findById(): Promise<RecordedRiskAssessment | null> {
-    throw new NotYetImplementedError('MongoAssessmentRepository.findById', STEP);
+  async findById(assessmentId: string): Promise<RecordedRiskAssessment | null> {
+    const document = await this.assessments.findOne({ _id: assessmentId });
+    return document ? fromAssessmentDocument(document) : null;
   }
 }

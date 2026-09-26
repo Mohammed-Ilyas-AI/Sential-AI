@@ -1,5 +1,4 @@
-import type { RecordedRiskAssessment } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
+import type { Account, RecordedRiskAssessment, Transaction, WindowContext } from '@sentinel/domain';
 import type { AssessRisk, RiskRule } from '@sentinel/rules';
 import type { IdGenerator } from '../../../platform/ids/id-generator.js';
 import type { AssessTransactionRisk } from './assess-transaction-risk.use-case.js';
@@ -20,7 +19,15 @@ export class RiskAssessmentService implements AssessTransactionRisk {
     private readonly ids: IdGenerator,
   ) {}
 
-  assessAndRecord(): Promise<RecordedRiskAssessment> {
-    throw new NotYetImplementedError('Risk assessment', 'scheduled for build order step 6');
+  async assessAndRecord(transaction: Transaction, account: Account, window: WindowContext): Promise<RecordedRiskAssessment> {
+    const assessment = this.engine.assess(transaction, account, window, this.engine.rules);
+    const recorded: RecordedRiskAssessment = {
+      ...assessment,
+      assessmentId: this.ids.next(),
+      accountId: account.id,
+      rulesetVersion: this.engine.rulesetVersion,
+    };
+    await this.assessments.insert(recorded);
+    return recorded;
   }
 }

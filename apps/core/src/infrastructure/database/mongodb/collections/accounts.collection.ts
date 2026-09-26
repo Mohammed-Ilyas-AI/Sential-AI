@@ -1,11 +1,11 @@
-import type { Account, AccountState, IsoTimestamp, RollingWindow } from '@sentinel/domain';
+import type { Account, AccountState, TenantId } from '@sentinel/domain';
 import type { CollectionDefinition, MongoDocument } from './collection-definition.js';
 
-/** Hot state, the cached drain window (invalidated on every outflow), known devices and payees. */
+/** The bank-reported account plus its security state, which stays separate from financial transaction state. */
 export type AccountDocument = MongoDocument<
   Account & {
-    readonly securityState: AccountState;
-    readonly cachedWindow?: RollingWindow & { readonly computedAt: IsoTimestamp };
+    readonly tenantId: TenantId;
+    readonly securityState?: AccountState;
   }
 >;
 

@@ -8,6 +8,8 @@ import type { CaseRepository } from '../modules/cases/application/ports/case-rep
 import type { ExploreNetwork } from '../modules/graph/application/explore-network.use-case.js';
 import { GraphService } from '../modules/graph/application/graph.service.js';
 import type { GraphRepository } from '../modules/graph/application/ports/graph-repository.port.js';
+import { NetworkObservationController } from '../modules/graph/presentation/network-observation.controller.js';
+import { networkObservationRoutes } from '../modules/graph/presentation/network-observation.routes.js';
 import { IntelligenceService } from '../modules/intelligence/application/intelligence.service.js';
 import type { ExplanationCache } from '../modules/intelligence/application/ports/explanation-cache.port.js';
 import { ResponseSchemaValidator } from '../modules/intelligence/application/response-schema.validator.js';
@@ -36,8 +38,8 @@ export interface IntelligencePath {
 }
 
 /**
- * Wires the asynchronous, best-effort intelligence path: evidence bundle, Gemini, schema and sourceField
- * validation. Nothing here is reachable from POST /v1/decision/transactions. AI explains.
+ * Wires the asynchronous, best-effort intelligence path and the network ingest. Nothing here is reachable from
+ * POST /v1/decision/transactions. AI explains.
  */
 export function composeIntelligencePath({ persistence, vertex, ids }: IntelligencePathDependencies): IntelligencePath {
   const intelligence = new IntelligenceService({
@@ -46,10 +48,11 @@ export function composeIntelligencePath({ persistence, vertex, ids }: Intelligen
     responseSchemas: new ResponseSchemaValidator(),
     sourceFields: new SourceFieldValidator(),
   });
+  const network = new GraphService(persistence.graph);
 
   return {
-    routes: [],
+    routes: [networkObservationRoutes(new NetworkObservationController(network))],
     cases: new CaseService(persistence.cases, new EvidenceBundleCompiler(persistence.evidence), intelligence, ids),
-    network: new GraphService(persistence.graph),
+    network,
   };
 }

@@ -9,4 +9,6 @@ export interface TransactionProjection extends Transaction {
   readonly effectiveAmount: MinorUnits;
   /** An event with an older sequence updates history only, never this state. */
   readonly accountSequence: number;
+  /** Standing instructions, GIRO and designated bill payments never count toward the drain. */
+  readonly drainExcluded: boolean;
 }

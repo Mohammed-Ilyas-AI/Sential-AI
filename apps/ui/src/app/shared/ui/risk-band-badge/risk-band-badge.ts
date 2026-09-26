@@ -5,8 +5,17 @@ import type { RiskBand } from '@sentinel/domain';
 @Component({
   selector: 'sentinel-risk-band-badge',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<span [attr.data-band]="band()">{{ band() }}</span>`,
+  template: `<span class="badge" [attr.data-band]="band()">{{ band() }}</span>`,
   styles: `
+    .badge {
+      display: inline-block;
+      padding: 1px var(--sentinel-space-2);
+      border: 1px solid currentColor;
+      border-radius: var(--sentinel-radius-pill);
+      font-size: var(--sentinel-font-size-caption);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
     [data-band='LOW'] { color: var(--sentinel-color-risk-low); }
     [data-band='ELEVATED'] { color: var(--sentinel-color-risk-elevated); }
     [data-band='HIGH'] { color: var(--sentinel-color-risk-high); }

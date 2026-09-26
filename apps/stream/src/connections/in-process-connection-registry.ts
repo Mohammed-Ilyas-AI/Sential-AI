@@ -15,4 +15,8 @@ export class InProcessConnectionRegistry implements ConnectionRegistry {
   broadcast(message: StreamMessage): void {
     for (const connection of this.connections.values()) connection.send(message);
   }
+
+  size(): number {
+    return this.connections.size;
+  }
 }

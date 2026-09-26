@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { RUNTIME_CONFIG } from '../../core/config/runtime-config';
 import { DemoTimeBadge, GeminiOutageToggle } from '../../features/demo-controls';
 import { Navigation } from '../navigation/navigation';
 import { TopBar } from '../top-bar/top-bar';
@@ -11,7 +12,7 @@ import { TopBar } from '../top-bar/top-bar';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sentinel-top-bar>
-      <sentinel-demo-time-badge />
+      <sentinel-demo-time-badge [enabled]="demoTimeCompression" />
       <sentinel-gemini-outage-toggle />
     </sentinel-top-bar>
     <sentinel-navigation />
@@ -22,7 +23,11 @@ import { TopBar } from '../top-bar/top-bar';
   styles: `
     main {
       padding: var(--sentinel-space-4);
+      max-width: 1600px;
+      margin: 0 auto;
     }
   `,
 })
-export class Shell {}
+export class Shell {
+  protected readonly demoTimeCompression = inject(RUNTIME_CONFIG).demoTimeCompression;
+}

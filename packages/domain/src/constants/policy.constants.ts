@@ -20,6 +20,9 @@ export const RAPID_DRAIN_POLICY_VERSION = 'SG-RD-1.0';
 /** Demo only, labelled "demo time x3600" in the UI: 24 hours reads as 24 seconds. */
 export const DEMO_TIME_COMPRESSION_FACTOR = 3600;
 
+/** A DecisionResponse is valid for five minutes; after that the bank must ask again (HTML reference). */
+export const DECISION_VALIDITY_MINUTES = 5;
+
 export const DEFAULT_RAPID_DRAIN_POLICY: RapidDrainPolicy = {
   policyVersion: RAPID_DRAIN_POLICY_VERSION,
   protectedBalance: PROTECTED_BALANCE_MINOR,

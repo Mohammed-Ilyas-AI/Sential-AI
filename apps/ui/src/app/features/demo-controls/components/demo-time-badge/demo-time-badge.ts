@@ -7,7 +7,20 @@ import { DEMO_TIME_COMPRESSION_FACTOR } from '@sentinel/domain';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
-      <span>demo time ×{{ factor }}</span>
+      <span class="badge sentinel-figures" title="24 hours of policy time run as 24 seconds in this demo">
+        demo time ×{{ factor }}
+      </span>
+    }
+  `,
+  styles: `
+    .badge {
+      display: inline-block;
+      padding: 2px var(--sentinel-space-2);
+      border: 1px solid var(--sentinel-color-risk-elevated);
+      border-radius: var(--sentinel-radius-pill);
+      color: var(--sentinel-color-risk-elevated);
+      font-size: var(--sentinel-font-size-caption);
+      font-family: var(--sentinel-font-family-mono);
     }
   `,
 })

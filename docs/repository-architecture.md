@@ -184,9 +184,9 @@ Banned module names: `utils`, `helpers`, `common`, `misc`, `manager` (lint rule)
 | Kind | Location | Runner |
 |---|---|---|
 | Unit | Co-located `*.spec.ts` | Vitest 5 (`vitest.config.ts` projects); `ng test` for `apps/ui` |
-| Rule boundaries | `packages/rules/src/rules/*.rule.spec.ts` — documented codes and maxima asserted; curve cases `it.todo` until the HTML behavioural reference arrives | Vitest |
+| Rule boundaries | `packages/rules/src/rules/*.rule.spec.ts` — codes, maxima and the curves ported from the HTML behavioural reference (ADR-006) | Vitest |
 | Contract (LSP) | `apps/core/test/contracts/*.contract.ts`, run against every adapter | Vitest |
-| Integration | `apps/core/test/integration/` — Mongo adapters against a real cluster (requires `MONGODB_URI_INTEGRATION`) | Vitest |
+| Integration | `apps/core/test/integration/`, `apps/stream/test/integration/` — contracts, API smoke and change streams against Atlas, in a throwaway `<MONGODB_DATABASE>_it_<run>` database dropped afterwards; skipped when `.env` has no `MONGODB_URI` | `npm run test:integration` |
 | Scenario | `apps/core/test/scenario/demo-takeover-01.scenario.spec.ts` — the CI assertion that matters | `npm run test:scenario` |
 
 Synthetic identifiers only (`tok-acc-fixture-0001`); nothing that resembles an account number, NRIC or card.

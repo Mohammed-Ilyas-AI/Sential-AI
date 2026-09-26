@@ -28,9 +28,17 @@ spec:
             - name: VERTEX_LOCATION
               value: asia-southeast1
             - name: MONGODB_DATABASE
-              value: sentinel
+              value: sentinel_ai
             - name: CORS_ALLOWED_ORIGIN
               value: __UI_ORIGIN__
+            - name: PUBSUB_PUSH_VERIFICATION
+              value: google-oidc
+            - name: PUBSUB_PUSH_AUDIENCE
+              value: __CORE_PUSH_AUDIENCE__
+            - name: PUBSUB_PUSH_SERVICE_ACCOUNT
+              value: __PUSH_SERVICE_ACCOUNT__
+            - name: DESIGNATED_BILLING_PAYEE_IDS
+              value: ''
             - name: GEMINI_FAST_MODEL
               value: __GEMINI_FAST_MODEL__
             - name: GEMINI_DEEP_MODEL

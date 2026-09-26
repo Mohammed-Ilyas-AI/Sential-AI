@@ -7,6 +7,4 @@ import type { Observable } from 'rxjs';
  */
 export abstract class RealtimeConnection {
   abstract readonly messages$: Observable<StreamMessage>;
-  abstract connect(): void;
-  abstract disconnect(): void;
 }

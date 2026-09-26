@@ -11,12 +11,14 @@
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config ../../vitest.config.ts --project core",
-    "test:scenario": "vitest run --config ../../vitest.config.ts --project core test/scenario"
+    "test:scenario": "vitest run --config ../../vitest.config.ts --project core test/scenario",
+    "test:integration": "vitest run --config ../../vitest.config.ts --project core-integration"
   },
   "dependencies": {
     "@sentinel/domain": "0.1.0",
     "@sentinel/rules": "0.1.0",
     "express": "~5.2.1",
+    "google-auth-library": "~11.1.0",
     "mongodb": "~7.6.0",
     "pino": "~10.3.1"
   },

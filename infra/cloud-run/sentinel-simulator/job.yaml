@@ -27,3 +27,9 @@ spec:
                   value: sentinel-transaction-events
                 - name: SIMULATOR_SCENARIO_ID
                   value: DEMO_TAKEOVER_01
+                - name: SIMULATOR_EVENT_TRANSPORT
+                  value: pubsub
+                - name: SIMULATOR_TIMELINE
+                  value: realtime
+                - name: GCP_PROJECT_ID
+                  value: __PROJECT_ID__

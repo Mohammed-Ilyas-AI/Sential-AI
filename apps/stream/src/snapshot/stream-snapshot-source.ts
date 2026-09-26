@@ -1,0 +1,6 @@
+import type { StreamSnapshot } from '@sentinel/domain';
+
+/** Server truth replayed on (re)connect, so the gateway holds no per-connection state it cannot rebuild. */
+export interface StreamSnapshotSource {
+  currentSnapshot(): Promise<StreamSnapshot>;
+}

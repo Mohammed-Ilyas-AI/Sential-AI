@@ -1,12 +1,10 @@
 import type { DecisionRecord } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
 import type { Collection } from 'mongodb';
 import type { DecisionRepository } from '../../../../modules/decision/application/ports/decision-repository.port.js';
 import type { IdempotentWriteResult } from '../../../../platform/idempotency/idempotent-write.js';
-import type { MongoDatabase } from '../client/mongo-connection.js';
+import { isDuplicateKeyError, type MongoDatabase } from '../client/mongo-connection.js';
 import { decisionsCollection, type DecisionDocument } from '../collections/decisions.collection.js';
-
-const STEP = 'scheduled for build order step 3';
+import { fromDecisionDocument, toDecisionDocument } from '../serializers/decision.serializer.js';
 
 export class MongoDecisionRepository implements DecisionRepository {
   private readonly decisions: Collection<DecisionDocument>;
@@ -15,11 +13,19 @@ export class MongoDecisionRepository implements DecisionRepository {
     this.decisions = database.collection<DecisionDocument>(decisionsCollection.name);
   }
 
-  findByIdempotencyKey(): Promise<DecisionRecord | null> {
-    throw new NotYetImplementedError('MongoDecisionRepository.findByIdempotencyKey', STEP);
+  async findByIdempotencyKey(idempotencyKey: string): Promise<DecisionRecord | null> {
+    const document = await this.decisions.findOne({ idempotencyKey });
+    return document ? fromDecisionDocument(document) : null;
   }
 
-  record(): Promise<IdempotentWriteResult<DecisionRecord>> {
-    throw new NotYetImplementedError('MongoDecisionRepository.record', STEP);
+  async record(decision: DecisionRecord): Promise<IdempotentWriteResult<DecisionRecord>> {
+    try {
+      await this.decisions.insertOne(toDecisionDocument(decision));
+      return { outcome: 'CREATED', record: decision };
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+      const original = await this.findByIdempotencyKey(decision.idempotencyKey);
+      return { outcome: 'DUPLICATE', record: original ?? decision };
+    }
   }
 }

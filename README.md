@@ -62,6 +62,16 @@ npm run verify
 
 `npm run verify` runs typecheck, lint (including the architecture boundary rules), all tests and all builds.
 
+To run against MongoDB Atlas, copy `.env.example` to `.env` (gitignored) and set `MONGODB_URI` and
+`MONGODB_DATABASE=sentinel_ai`, then:
+
+```bash
+npm run test:integration
+```
+
+The integration suites create a throwaway database per run and drop it afterwards; they never touch
+`sentinel_ai` itself.
+
 ## Google AI usage
 
 | Model tier | Jobs | Called from |

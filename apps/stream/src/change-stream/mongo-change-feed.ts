@@ -1,17 +1,36 @@
 import type { StreamMessage } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
-import type { Db } from 'mongodb';
-import type { ChangeFeed } from './change-feed.js';
+import type { ChangeStream, ChangeStreamDocument, Db, Document } from 'mongodb';
+import { normaliseChange } from '../messages/stream-message.normalizer.js';
+import { WATCHED_COLLECTIONS, type ChangeFeed, type WatchedCollection } from './change-feed.js';
+import type { StreamCursorTracker } from '../resume/stream-cursor.js';
 
-/** One database-level change stream filtered to WATCHED_COLLECTIONS; the resume token is the global cursor. */
+const isWatched = (collection: string): collection is WatchedCollection =>
+  (WATCHED_COLLECTIONS as readonly string[]).includes(collection);
+
+/** One database-level change stream filtered to the watched collections; its resume token is the global cursor. */
 export class MongoChangeFeed implements ChangeFeed {
-  constructor(private readonly database: Db) {}
+  private stream: ChangeStream<Document, ChangeStreamDocument> | undefined;
 
-  messages(): AsyncIterable<StreamMessage> {
-    throw new NotYetImplementedError('MongoDB change feed', 'scheduled for build order step 4');
+  constructor(
+    private readonly database: Db,
+    private readonly cursors: StreamCursorTracker,
+  ) {}
+
+  async *messages(): AsyncIterable<StreamMessage> {
+    this.stream = this.database.watch(
+      [{ $match: { 'ns.coll': { $in: [...WATCHED_COLLECTIONS] }, operationType: { $in: ['insert', 'update', 'replace'] } } }],
+      { fullDocument: 'updateLookup' },
+    );
+    for await (const change of this.stream) {
+      if (!('ns' in change) || !('fullDocument' in change) || !change.fullDocument) continue;
+      const collection = change.ns.coll ?? '';
+      if (!isWatched(collection)) continue;
+      const cursor = this.cursors.advance(change._id);
+      yield normaliseChange({ collection, document: change.fullDocument, cursor }, new Date().toISOString());
+    }
   }
 
-  close(): Promise<void> {
-    throw new NotYetImplementedError('MongoDB change feed', 'scheduled for build order step 4');
+  async close(): Promise<void> {
+    await this.stream?.close();
   }
 }

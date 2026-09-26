@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { accountFixture, transactionFixture, windowFixture } from '../testing/risk-inputs.fixture.js';
 import { newDeviceRule } from './new-device.rule.js';
+
+const pointsAt = (deviceAgeHours: number | null): number | undefined =>
+  newDeviceRule.evaluate(transactionFixture(), accountFixture(), windowFixture({ features: { deviceAgeHours } }))?.points;
 
 describe('NEW_DEVICE rule', () => {
   it('declares its code and the documented maximum of 21 points', () => {
@@ -7,7 +11,14 @@ describe('NEW_DEVICE rule', () => {
     expect(newDeviceRule.maxPoints).toBe(21);
   });
 
-  it.todo('scores 21 when the device is not known and was first seen under 24 hours ago');
-  it.todo('scores nothing for a device first seen 24 hours ago or earlier');
-  it.todo('scores nothing for a device in knownDeviceIds');
+  it('scores 21 when the device was first seen under 24 hours ago', () => {
+    expect(pointsAt(0)).toBe(21);
+    expect(pointsAt(0.07)).toBe(21);
+    expect(pointsAt(23.99)).toBe(21);
+  });
+
+  it('scores nothing at 24 hours or for an established device', () => {
+    expect(pointsAt(24)).toBeUndefined();
+    expect(pointsAt(null)).toBeUndefined();
+  });
 });

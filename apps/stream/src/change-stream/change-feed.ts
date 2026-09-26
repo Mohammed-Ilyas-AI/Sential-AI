@@ -7,6 +7,6 @@ export type WatchedCollection = (typeof WATCHED_COLLECTIONS)[number];
 
 /** Normalised change events, in commit order, each carrying a resumable global cursor. */
 export interface ChangeFeed {
-  messages(resumeFrom?: string): AsyncIterable<StreamMessage>;
+  messages(): AsyncIterable<StreamMessage>;
   close(): Promise<void>;
 }

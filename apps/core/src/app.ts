@@ -22,6 +22,9 @@ export function createApp({ routes, corsAllowedOrigin, logger }: CoreHttpDepende
   app.use('/healthz', healthRouter);
   for (const { basePath, router } of routes) app.use(basePath, router);
 
+  app.use((_request, response) => {
+    response.status(404).json({ error: 'not_found' });
+  });
   app.use(createErrorHandler(logger));
   return app;
 }

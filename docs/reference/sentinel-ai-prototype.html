@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SENTINEL AI — Financial Crime Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Fallback tokens; the active tenant theme is applied from JS (THEMES) */
+:root{
+  --bg:#0C0809;--sf:#161012;--sf2:#1F1719;--ln:#33262A;--ink:#F6F0F1;--ink2:#C2B5B7;--ink3:#8C7F82;
+  --ac:#E3122F;--acInk:#fff;--acSoft:rgba(227,18,47,.14);--ok:#2BC46A;--warn:#F5A524;--hi:#FB7A2E;--crit:#FF3D52;--info:#4C8DF6;
+  --glow:rgba(227,18,47,.35);--shadow:0 1px 0 rgba(255,255,255,.03) inset;
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r-lg:16px;--r-md:11px;--r-sm:8px;
+  --top:env(safe-area-inset-top,0px);--bot:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0C0809;--sf:#161012;--ink:#F6F0F1}}
+:root[data-theme="dark"]{--bg:#0C0809;--sf:#161012;--ink:#F6F0F1}
+*{box-sizing:border-box}
+html{height:100%;scroll-padding-top:calc(var(--top) + 70px);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased;
+  padding-top:var(--top);transition:background .25s,color .25s}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:6px}
+.m{font-family:var(--mono);font-feature-settings:"tnum"}
+.muted{color:var(--ink3)} .ink2{color:var(--ink2)}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- shell ---------- */
+.app{display:flex;min-height:100vh}
+.rail{display:none}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--ln);padding:10px 16px 10px}
+.top .row{display:flex;align-items:center;gap:10px}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
+.brand .mk{width:34px;height:34px;flex:none}
+.brand .nm{font-weight:700;font-size:17px;letter-spacing:.02em;line-height:1}
+.brand .nm span{color:var(--ac)}
+.brand .sub{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.spacer{flex:1}
+.iconbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;position:relative;border:1px solid var(--ln);background:var(--sf)}
+.iconbtn .dot{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;border-radius:9px;background:var(--ac);color:var(--acInk);font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.top .row2{display:flex;gap:8px;margin-top:10px}
+.tenantbtn{flex:1;min-width:0;display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid var(--ln);border-radius:var(--r-md);background:var(--sf);text-align:left}
+.tmark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;flex:none}
+.tenantbtn b{display:block;font-size:13.5px;line-height:1.1}
+.tenantbtn small{display:block;font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{display:flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid var(--ln);border-radius:var(--r-md);background:var(--sf);font-size:12px;white-space:nowrap}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.live b{font-family:var(--mono);font-weight:500;font-size:12px}
+#view{flex:1;padding:14px 14px calc(96px + var(--bot));max-width:1240px;width:100%;margin:0 auto}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(6,1fr);
+  background:color-mix(in srgb,var(--sf) 94%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--ln);padding:6px 4px calc(6px + var(--bot))}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;font-size:10.5px;color:var(--ink3);border-radius:10px;position:relative}
+.tab svg{width:21px;height:21px}
+.tab[aria-current="page"]{color:var(--ac);font-weight:600}
+.tab[aria-current="page"]::before{content:"";position:absolute;top:-6px;left:28%;right:28%;height:2px;border-radius:2px;background:var(--ac)}
+.tab .bdg{position:absolute;top:0;right:calc(50% - 20px);min-width:15px;height:15px;border-radius:8px;background:var(--ac);color:var(--acInk);font-size:9.5px;font-weight:700;display:grid;place-items:center;padding:0 3px}
+
+@media (min-width:960px){
+  .rail{display:flex;flex-direction:column;width:232px;flex:none;position:sticky;top:0;height:100vh;border-right:1px solid var(--ln);background:var(--sf);padding:18px 12px}
+  .rail .brand{padding:0 6px 18px}
+  .rail .nav{display:flex;flex-direction:column;gap:3px}
+  .rail .nav button{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--ink2);font-size:14px;text-align:left;position:relative}
+  .rail .nav button:hover{background:var(--sf2)}
+  .rail .nav button[aria-current="page"]{background:var(--acSoft);color:var(--ac);font-weight:600}
+  .rail .nav .bdg{margin-left:auto;background:var(--ac);color:var(--acInk);font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px}
+  .rail .foot{margin-top:auto;font-size:11.5px;color:var(--ink3);padding:0 8px;line-height:1.5}
+  .tabs{display:none}
+  .top .brand{display:none}
+  .top .row2{margin-top:0}
+  .top{padding:12px 24px}
+  .top .row{display:none}
+  #view{padding:22px 24px 40px}
+}
+
+/* ---------- primitives ---------- */
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow)}
+.card+.card,.stack>*+*{margin-top:12px}
+.hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.hd h2{margin:0;font-size:15px;font-weight:600;letter-spacing:.005em}
+.hd h2 small{font-weight:400;color:var(--ink3);font-size:12.5px;margin-left:4px}
+.hd .aside{margin-left:auto;font-size:12px;color:var(--ink3)}
+.link{color:var(--ac);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:3px}
+h1.page{font-size:21px;margin:2px 0 2px;font-weight:600;letter-spacing:-.005em}
+.pagehd{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+.pagehd .sub{font-size:12.5px;color:var(--ink3)}
+.back{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--ln);background:var(--sf);flex:none}
+.grid{display:grid;gap:12px}
+@media (min-width:960px){.g2{grid-template-columns:1.25fr 1fr}.g2e{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;border:1px solid var(--ln);background:var(--sf2);color:var(--ink);min-height:44px}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:var(--acInk)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,var(--ln));background:transparent}
+.btn.block{width:100%}
+.btn:disabled{opacity:.55}
+.btn small{display:block;font-weight:400;font-size:10.5px;opacity:.8}
+.btn .col{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.p-crit{color:var(--crit);background:color-mix(in srgb,var(--crit) 13%,transparent);border-color:color-mix(in srgb,var(--crit) 35%,transparent)}
+.p-hi{color:var(--hi);background:color-mix(in srgb,var(--hi) 13%,transparent);border-color:color-mix(in srgb,var(--hi) 35%,transparent)}
+.p-warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,transparent);border-color:color-mix(in srgb,var(--warn) 35%,transparent)}
+.p-ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent);border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.p-info{color:var(--info);background:color-mix(in srgb,var(--info) 13%,transparent);border-color:color-mix(in srgb,var(--info) 35%,transparent)}
+.p-mute{color:var(--ink2);background:var(--sf2);border-color:var(--ln)}
+.seg{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.seg::-webkit-scrollbar{display:none}
+.seg button{padding:8px 13px;border-radius:10px;border:1px solid var(--ln);background:var(--sf);font-size:13px;color:var(--ink2);white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+.seg button[aria-pressed="true"]{background:var(--ac);border-color:var(--ac);color:var(--acInk);font-weight:600}
+.seg button .n{font-family:var(--mono);font-size:11px;opacity:.85;border:1px solid currentColor;border-radius:5px;padding:0 4px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media (min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--sf);border:1px solid var(--ln);border-radius:var(--r-md);padding:11px 12px;min-width:0}
+.kpi .l{font-size:12px;color:var(--ink3)}
+.kpi .v{font-size:24px;font-weight:600;font-family:var(--mono);letter-spacing:-.02em;margin-top:3px;line-height:1.1}
+.kpi .v small{font-size:12px;color:var(--ink3);font-family:var(--sans);font-weight:400;margin-left:3px}
+.kpi .d{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.empty{padding:22px 10px;text-align:center;color:var(--ink3);font-size:13px}
+.empty .btn{margin-top:12px}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:13px}
+.dl dt{color:var(--ink3)} .dl dd{margin:0;text-align:right;font-family:var(--mono);font-size:12.5px;word-break:break-word}
+.hr{height:1px;background:var(--ln);margin:12px 0}
+.note{font-size:12px;color:var(--ink3);line-height:1.5;margin:10px 0 0}
+
+/* ---------- stream ---------- */
+.stream{margin:0 -4px}
+.srow{display:grid;grid-template-columns:62px 22px minmax(0,1fr) 78px 34px;align-items:center;gap:8px;padding:9px 6px;border-radius:9px;font-size:12.5px;cursor:pointer}
+.srow:hover{background:var(--sf2)}
+.srow .t{font-family:var(--mono);color:var(--ink3);font-size:11.5px}
+.srow .who{font-family:var(--mono);font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .who .to{color:var(--ink3)}
+.srow .am{font-family:var(--mono);text-align:right;font-size:12px}
+.srow .st{grid-column:3/-1;font-size:10.5px;color:var(--ink3);margin-top:-5px}
+.srow.held{background:color-mix(in srgb,var(--crit) 10%,transparent);box-shadow:inset 2px 0 0 var(--crit)}
+.srow.fresh{animation:fresh .9s ease-out}
+@keyframes fresh{from{background:color-mix(in srgb,var(--info) 16%,transparent)}}
+.bk{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:700;color:#fff}
+.rs{font-family:var(--mono);font-size:12px;font-weight:600;border-radius:6px;text-align:center;padding:2px 0;border:1px solid}
+.rs.LOW{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,transparent)}
+.rs.ELEVATED{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
+.rs.HIGH{color:var(--hi);border-color:color-mix(in srgb,var(--hi) 55%,transparent)}
+.rs.CRITICAL{color:var(--crit);border-color:var(--crit);background:color-mix(in srgb,var(--crit) 14%,transparent)}
+.shd{display:grid;grid-template-columns:62px 22px minmax(0,1fr) 78px 34px;gap:8px;padding:0 6px 6px;font-size:11px;color:var(--ink3);border-bottom:1px solid var(--ln);margin-bottom:4px}
+.shd span:nth-child(4){text-align:right}
+
+/* ---------- incident hero ---------- */
+.hero{position:relative;overflow:hidden;border-radius:var(--r-lg);padding:16px;border:1px solid color-mix(in srgb,var(--crit) 55%,var(--ln));
+  background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--crit) 22%,transparent),transparent 60%),var(--sf)}
+.hero.calm{border-color:var(--ln);background:var(--sf)}
+.hero .eyebrow{font-size:12px;color:var(--ink3)}
+.hero h3{margin:3px 0 2px;font-size:19px;font-weight:600}
+.hero p{margin:0;color:var(--ink2);font-size:13.5px}
+.hero .row{display:flex;gap:14px;align-items:flex-end;margin-top:12px;flex-wrap:wrap}
+.hero .score{font-family:var(--mono);font-size:40px;font-weight:600;line-height:.9;color:var(--crit)}
+.hero .acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.hero .acts .btn{flex:1 1 150px}
+
+/* ---------- policy gate (the one bold element) ---------- */
+.gate{position:relative;border-radius:18px;padding:16px;border:1px solid var(--ln);background:var(--sf2);overflow:hidden}
+.gate.hold{border-color:var(--crit);background:
+  radial-gradient(90% 120% at 0% 0%,color-mix(in srgb,var(--crit) 26%,transparent),transparent 62%),
+  linear-gradient(180deg,color-mix(in srgb,var(--crit) 9%,var(--sf)),var(--sf));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--crit) 30%,transparent),0 14px 40px -18px var(--glow)}
+.gate.arm{animation:arm 1.6s ease-out 1}
+@keyframes arm{0%{transform:scale(.985);box-shadow:0 0 0 0 var(--glow)}40%{box-shadow:0 0 0 14px transparent}100%{transform:none}}
+.gate .cap{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink3)}
+.gate.hold .cap{color:color-mix(in srgb,var(--crit) 80%,var(--ink))}
+.gate .cap .pill{margin-left:auto}
+.gate .state{font-size:30px;font-weight:700;letter-spacing:.01em;margin:6px 0 4px;display:flex;align-items:center;gap:10px;line-height:1.05}
+.gate.hold .state{color:var(--crit)}
+.gate .state .lk{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,currentColor 16%,transparent);flex:none}
+.gate .why{font-size:13.5px;color:var(--ink2)}
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 12px;margin-top:12px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--ink3) 25%,transparent)}
+@media (min-width:520px){.facts{grid-template-columns:repeat(4,1fr)}}
+.facts div{font-size:11.5px;color:var(--ink3)}
+.facts b{display:block;font-family:var(--mono);font-size:15px;color:var(--ink);font-weight:500;margin-top:2px}
+.meter{margin-top:12px}
+.meter .track{position:relative;height:10px;border-radius:6px;background:color-mix(in srgb,var(--ink3) 22%,transparent);overflow:visible}
+.meter .fill{position:absolute;inset:0 auto 0 0;border-radius:6px;background:var(--ok);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.meter .fill.near{background:var(--warn)} .meter .fill.over{background:linear-gradient(90deg,var(--hi),var(--crit))}
+.meter .thr{position:absolute;left:50%;top:-4px;bottom:-4px;width:2px;background:var(--ink);border-radius:2px}
+.meter .lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);margin-top:6px;font-family:var(--mono)}
+
+/* ---------- contributions ---------- */
+.contrib{display:flex;flex-direction:column;gap:2px}
+.crow{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 4px;border-radius:10px;text-align:left;width:100%}
+.crow:hover{background:var(--sf2)}
+.crow .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--sf2);border:1px solid var(--ln)}
+.crow .lb{font-size:13.5px;font-weight:500}
+.crow .dt{font-size:11.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .bar{height:4px;border-radius:3px;background:color-mix(in srgb,var(--ink3) 20%,transparent);margin-top:5px;overflow:hidden}
+.crow .bar i{display:block;height:100%;border-radius:3px}
+.crow .pts{font-family:var(--mono);font-size:15px;font-weight:600}
+.total{display:flex;justify-content:space-between;align-items:baseline;padding:10px 4px 0;border-top:1px solid var(--ln);margin-top:6px;font-size:12.5px;color:var(--ink3)}
+.total b{font-family:var(--mono);font-size:22px;color:var(--ink)}
+
+/* ---------- decision trace stepper ---------- */
+.trace{display:flex;gap:0;overflow-x:auto;padding:4px 2px 2px;scrollbar-width:thin}
+.tstep{flex:1 0 108px;text-align:center;position:relative;font-size:11.5px;color:var(--ink3);padding:0 4px}
+.tstep::after{content:"";position:absolute;top:19px;left:calc(50% + 22px);right:calc(-50% + 22px);height:1px;background:var(--ln)}
+.tstep:last-child::after{display:none}
+.tstep .o{width:38px;height:38px;border-radius:50%;margin:0 auto 7px;display:grid;place-items:center;border:1px solid var(--ln);background:var(--sf2);color:var(--ink2)}
+.tstep.hot .o{background:var(--crit);border-color:var(--crit);color:#fff;box-shadow:0 0 16px -2px var(--glow)}
+.tstep.done .o{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,var(--ln))}
+.tstep b{display:block;color:var(--ink);font-size:12px;font-weight:600}
+.tstep .v{font-family:var(--mono);font-size:11px}
+.noai{display:flex;align-items:center;gap:8px;margin-top:12px;padding:9px 11px;border-radius:10px;border:1px solid color-mix(in srgb,var(--ok) 35%,var(--ln));background:color-mix(in srgb,var(--ok) 8%,transparent);font-size:12.5px}
+.noai b{color:var(--ok)}
+
+/* ---------- action bar ---------- */
+.actbar{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media (min-width:640px){.actbar{grid-template-columns:repeat(4,1fr)}}
+.actbar .btn{padding:10px 10px;font-size:13.5px}
+.lockline{font-size:12px;color:var(--ink3);margin-top:9px;display:flex;gap:7px;align-items:flex-start}
+.lockline b{color:var(--warn);font-weight:600}
+.restrict{margin-top:10px;padding:10px 12px;border:1px dashed var(--ln);border-radius:10px;font-size:12.5px;color:var(--ink3)}
+
+/* ---------- json / code ---------- */
+details.json{border:1px solid var(--ln);border-radius:12px;background:var(--sf)}
+details.json summary{list-style:none;padding:12px 14px;display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:600;font-size:14px}
+details.json summary::-webkit-details-marker{display:none}
+details.json summary .aside{margin-left:auto;font-weight:400;font-size:12px;color:var(--ink3);font-family:var(--mono)}
+details.json[open] summary{border-bottom:1px solid var(--ln)}
+.jcols{display:grid;gap:10px;padding:12px}
+@media (min-width:720px){.jcols{grid-template-columns:1fr 1fr}}
+.jcols .cap{font-size:11.5px;color:var(--ink3);margin-bottom:5px}
+pre.code{margin:0;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--ink2);background:var(--sf2);border:1px solid var(--ln);border-radius:9px;padding:10px 11px;overflow:auto;max-height:280px;white-space:pre}
+pre.code .k{color:var(--ink3)} pre.code .s{color:var(--ok)} pre.code .n{color:var(--warn)} pre.code .h{color:var(--crit);font-weight:600} pre.code .a{color:var(--ok);font-weight:600}
+.jnote{padding:0 12px 12px;font-size:12px;color:var(--ink2);line-height:1.55}
+
+/* ---------- simulator ---------- */
+.scen{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+@media (min-width:720px){.scen{grid-template-columns:repeat(4,1fr)}}
+.scard{text-align:left;padding:12px;border-radius:13px;border:1px solid var(--ln);background:var(--sf);display:flex;flex-direction:column;gap:6px;min-height:112px}
+.scard .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--sf2);color:var(--ac)}
+.scard b{font-size:14px} .scard span{font-size:12px;color:var(--ink3);line-height:1.35}
+.scard[aria-pressed="true"]{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac),0 10px 30px -18px var(--glow);background:linear-gradient(180deg,var(--acSoft),var(--sf))}
+.opt{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--ln);font-size:13.5px}
+.opt:first-child{border-top:0}
+.opt .d{font-size:11.5px;color:var(--ink3)}
+.sw{margin-left:auto;width:44px;height:26px;border-radius:13px;background:color-mix(in srgb,var(--ink3) 35%,transparent);position:relative;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw[aria-checked="true"]{background:var(--ac)} .sw[aria-checked="true"]::after{transform:translateX(18px)}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:grid;grid-template-columns:22px 62px 1fr;gap:8px;align-items:start;padding:7px 0;font-size:13px;border-top:1px dashed var(--ln)}
+.steps li:first-child{border-top:0}
+.steps .n{width:20px;height:20px;border-radius:50%;background:var(--ac);color:var(--acInk);font-size:10.5px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.steps .n.sec{background:var(--warn);color:#1a1200}
+.steps .t{font-family:var(--mono);font-size:11.5px;color:var(--ink3);padding-top:2px}
+.steps li.gate-step{background:color-mix(in srgb,var(--crit) 10%,transparent);border-radius:8px;border-top-color:transparent;padding-left:4px}
+.steps li.gate-step .x{color:var(--crit);font-size:11.5px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--ln);border-radius:10px;padding:7px 10px;font-size:11.5px;min-width:92px;background:var(--sf2)}
+.chip b{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.02em}
+.chip span{font-family:var(--mono);font-size:14px;font-weight:600}
+.outcome{display:flex;gap:14px;align-items:center;padding:14px;border-radius:14px;border:1px solid var(--ln);background:var(--sf2)}
+.outcome.hold{border-color:var(--crit);background:color-mix(in srgb,var(--crit) 9%,var(--sf))}
+.outcome .big{font-size:24px;font-weight:700}
+.outcome .sc{margin-left:auto;text-align:right;padding-left:14px;border-left:1px solid var(--ln)}
+.outcome .sc b{display:block;font-family:var(--mono);font-size:30px;line-height:1}
+.speed{display:flex;gap:6px}
+.speed button{flex:1;padding:8px 0;border-radius:9px;border:1px solid var(--ln);background:var(--sf2);font-family:var(--mono);font-weight:600}
+.speed button[aria-pressed="true"]{background:var(--ac);color:var(--acInk);border-color:var(--ac)}
+.acct{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--ln);border-radius:12px;background:var(--sf2)}
+.acct .ic{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--acSoft);color:var(--ac)}
+.acct b{font-family:var(--mono);font-size:15px}
+.acct .r{margin-left:auto;text-align:right;font-size:11.5px;color:var(--ink3)}
+.acct .r b{display:block;font-size:14px;color:var(--ink)}
+
+/* ---------- lists ---------- */
+.lrow{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--ln);border-radius:13px;background:var(--sf);width:100%;text-align:left}
+.lrow+.lrow{margin-top:8px}
+.lrow:hover{border-color:color-mix(in srgb,var(--ink3) 50%,var(--ln))}
+.lrow .bar{width:4px;align-self:stretch;border-radius:3px}
+.lrow .main{flex:1;min-width:0}
+.lrow b{font-family:var(--mono);font-size:14px}
+.lrow .s{font-size:12px;color:var(--ink3);margin-top:2px}
+.lrow .r{text-align:right}
+.lrow .r .sc{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1}
+
+/* ---------- workspace ---------- */
+.tabsin{display:flex;gap:4px;border-bottom:1px solid var(--ln);margin:0 0 12px;overflow-x:auto;scrollbar-width:none}
+.tabsin button{padding:10px 12px;font-size:13.5px;color:var(--ink3);border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.tabsin button[aria-selected="true"]{color:var(--ac);border-color:var(--ac);font-weight:600}
+.facts4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media (min-width:720px){.facts4{grid-template-columns:repeat(4,1fr)}}
+.fact{border:1px solid var(--ln);border-radius:12px;padding:10px 11px;background:var(--sf2);display:flex;gap:9px;align-items:center}
+.fact .ic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none}
+.fact small{display:block;font-size:11px;color:var(--ink3)}
+.fact b{font-size:14px}
+.gem{border:1px solid color-mix(in srgb,#8b5cf6 40%,var(--ln));border-radius:14px;padding:14px;background:linear-gradient(180deg,color-mix(in srgb,#8b5cf6 9%,var(--sf)),var(--sf))}
+.gem .hd h2{display:flex;align-items:center;gap:8px}
+.gem .star{width:22px;height:22px}
+.gem p{margin:0 0 8px;color:var(--ink2);font-size:13.5px;line-height:1.55}
+.claims{list-style:none;margin:8px 0 0;padding:0}
+.claims li{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:8px 0;border-top:1px solid var(--ln);font-size:13px}
+.claims .n{font-family:var(--mono);font-size:11px;color:var(--ink3);padding-top:2px}
+.src{display:inline-block;margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--info);border:1px dashed color-mix(in srgb,var(--info) 55%,transparent);border-radius:5px;padding:1px 6px}
+.evc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (min-width:720px){.evc{grid-template-columns:repeat(6,1fr)}}
+.evc div{border:1px solid var(--ln);border-radius:10px;padding:8px;text-align:center;font-size:11px;color:var(--ink3);background:var(--sf2)}
+.evc b{display:block;font-family:var(--mono);font-size:18px;color:var(--ink)}
+.pipe{list-style:none;margin:10px 0 0;padding:0}
+.pipe li{display:flex;gap:9px;align-items:center;padding:6px 0;font-size:13px;color:var(--ink3)}
+.pipe li .mk{width:18px;text-align:center}
+.pipe li.run{color:var(--ink)} .pipe li.done{color:var(--ink2)} .pipe li.done .mk{color:var(--ok)}
+.aimeta{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ln);font-size:11px;color:var(--ink3)}
+@media (min-width:720px){.aimeta{grid-template-columns:repeat(4,1fr)}}
+.aimeta b{display:block;font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:500;word-break:break-all}
+.tl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--ln)}
+.tl li{position:relative;padding:0 0 12px 12px;font-size:13px}
+.tl li::before{content:"";position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--ink3);border:2px solid var(--sf)}
+.tl li.sec::before{background:var(--warn)} .tl li.tx::before{background:var(--info)} .tl li.hold::before{background:var(--crit)} .tl li.act::before{background:var(--ok)}
+.tl .t{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.tl code{font-family:var(--mono);font-size:10.5px;color:var(--info)}
+.bundle .grp{border:1px solid var(--ln);border-radius:12px;overflow:hidden}
+.bundle .grp+.grp{margin-top:10px}
+.bundle .gh{padding:9px 12px;background:var(--sf2);font-family:var(--mono);font-size:11.5px;color:var(--ink3);border-bottom:1px solid var(--ln)}
+.bundle .fr{display:flex;justify-content:space-between;gap:10px;padding:7px 12px;font-size:12.5px;border-top:1px solid color-mix(in srgb,var(--ln) 60%,transparent)}
+.bundle .fr:first-of-type{border-top:0}
+.bundle .fr span:first-child{color:var(--ink3);font-family:var(--mono);font-size:11.5px}
+.bundle .fr span:last-child{font-family:var(--mono);font-size:12px;text-align:right;word-break:break-word}
+
+/* ---------- network ---------- */
+.gwrap{position:relative;border-radius:14px;border:1px solid var(--ln);background:
+  radial-gradient(circle at 1px 1px,color-mix(in srgb,var(--ink3) 22%,transparent) 1px,transparent 0) 0 0/18px 18px,var(--sf2);overflow:hidden}
+canvas#graph{display:block;width:100%;height:380px;touch-action:manipulation}
+@media (min-width:960px){canvas#graph{height:460px}}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3);margin-top:10px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.bound{margin-top:12px;padding:11px 12px;border:1px dashed var(--warn);border-radius:11px;font-size:13px;color:var(--warn);background:color-mix(in srgb,var(--warn) 9%,transparent);display:flex;gap:9px;align-items:flex-start}
+.path{list-style:none;margin:0;padding:0;font-size:12.5px}
+.path li{padding:4px 0}
+.path .lk{color:var(--ink3);font-size:11.5px;padding-left:14px}
+
+/* ---------- sheet / toast ---------- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:86vh;overflow:auto;background:var(--sf);border-top:1px solid var(--ln);
+  border-radius:20px 20px 0 0;padding:8px 16px calc(18px + var(--bot));transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+.sheet.on{transform:none}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--ln);margin:4px auto 12px}
+.sheet h3{margin:0 0 4px;font-size:17px}
+@media (min-width:960px){.sheet{left:auto;right:24px;bottom:24px;width:440px;border-radius:18px;border:1px solid var(--ln);max-height:80vh}}
+.toasts{position:fixed;z-index:70;left:12px;right:12px;top:calc(var(--top) + 10px);display:flex;flex-direction:column;gap:8px;pointer-events:none}
+@media (min-width:960px){.toasts{left:auto;right:24px;width:360px}}
+.toast{pointer-events:auto;background:var(--sf);border:1px solid var(--ln);border-left:3px solid var(--ac);border-radius:12px;padding:11px 13px;font-size:13px;box-shadow:0 12px 30px -12px rgba(0,0,0,.45);animation:tin .3s ease-out}
+.toast b{display:block;font-size:13.5px;margin-bottom:2px}
+.toast.crit{border-left-color:var(--crit)} .toast.ok{border-left-color:var(--ok)} .toast.warn{border-left-color:var(--warn)}
+@keyframes tin{from{transform:translateY(-8px);opacity:0}}
+.field{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--ln);font-size:12.5px}
+.field span:first-child{color:var(--ink3);font-family:var(--mono);font-size:11.5px}
+.field span:last-child{font-family:var(--mono);text-align:right;word-break:break-word}
+.chart svg{width:100%;height:150px;display:block}
+.bands{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.bands div{font-size:11px;color:var(--ink3);border:1px solid var(--ln);border-radius:9px;padding:7px 8px;background:var(--sf2)}
+.bands b{display:block;font-family:var(--mono);font-size:16px;color:var(--ink)}
+.health .hrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--ln);font-size:13px}
+.health .hrow:first-child{border-top:0}
+.health .hrow .v{margin-left:auto;font-family:var(--mono);font-size:12.5px}
+.dotst{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.dotst.bad{background:var(--crit)} .dotst.warn{background:var(--warn)}
+.log{list-style:none;margin:0;padding:0;font-size:12.5px}
+.log li{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:7px 0;border-top:1px solid var(--ln)}
+.log li:first-child{border-top:0}
+.log .t{font-family:var(--mono);font-size:11.5px;color:var(--ink3)}
+.log b{font-size:11px;letter-spacing:.03em;margin-right:5px}
+.tcards{display:grid;gap:9px}
+@media (min-width:720px){.tcards{grid-template-columns:repeat(3,1fr)}}
+.tcard{border:1px solid var(--ln);border-radius:14px;padding:12px;text-align:left;background:var(--sf2)}
+.tcard[aria-pressed="true"]{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.tcard .sw4{display:flex;gap:5px;margin-top:9px}
+.tcard .sw4 i{width:22px;height:22px;border-radius:6px;border:1px solid rgba(128,128,128,.3)}
+.report h4{margin:14px 0 5px;font-size:12.5px;color:var(--ink3);font-weight:600}
+.report p{margin:0;color:var(--ink2);font-size:13.5px;line-height:1.55}
+.report ul{margin:0;padding-left:18px;color:var(--ink2);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-tenant="A">
+<div class="app">
+  <aside class="rail" aria-label="Primary">
+    <div class="brand"><svg class="mk" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 5 8.5v10.3C5 28 11.4 34.6 20 37c8.6-2.4 15-9 15-18.2V8.5L20 3Z" fill="var(--ac)"/><path d="M20 12l7 4v6.2c0 3.8-2.8 6.9-7 8.1-4.2-1.2-7-4.3-7-8.1V16l7-4Z" fill="var(--bg)" opacity=".92"/><circle cx="20" cy="21" r="3" fill="var(--ac)"/></svg>
+      <div><div class="nm">SENTINEL <span>AI</span></div><div class="sub">Financial crime operations</div></div></div>
+    <nav class="nav" id="railnav"></nav>
+    <div class="foot">Rules decide. AI explains. Humans authorize.<br><span style="opacity:.8">Synthetic data · designed as a multi-tenant platform, demonstrated as a single deployment.</span></div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <div class="row">
+        <div class="brand"><svg class="mk" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 5 8.5v10.3C5 28 11.4 34.6 20 37c8.6-2.4 15-9 15-18.2V8.5L20 3Z" fill="var(--ac)"/><path d="M20 12l7 4v6.2c0 3.8-2.8 6.9-7 8.1-4.2-1.2-7-4.3-7-8.1V16l7-4Z" fill="var(--bg)" opacity=".92"/><circle cx="20" cy="21" r="3" fill="var(--ac)"/></svg>
+          <div><div class="nm">SENTINEL <span>AI</span></div><div class="sub">Financial crime operations</div></div></div>
+        <span class="spacer"></span>
+        <button class="iconbtn" id="bellBtn" aria-label="Open alerts"></button>
+      </div>
+      <div class="row2">
+        <button class="tenantbtn" id="tenantBtn" aria-label="Switch institution"></button>
+        <div class="live" title="Synthetic, controlled demo"><i></i><span>Live</span><b id="clock">--:--:--</b></div>
+      </div>
+    </header>
+    <main id="view" tabindex="-1"></main>
+  </div>
+</div>
+<nav class="tabs" id="tabs" aria-label="Primary"></nav>
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Details"></section>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+/* =====================================================================
+   SENTINEL AI — prototype app. Everything runs in the browser:
+   the rule engine, policy gate and decision contract below stand in
+   for the Cloud Run services; the data is synthetic.
+   ===================================================================== */
+const $=id=>document.getElementById(id);
+const el=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e};
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const SGD=c=>"S$"+Math.round(c/100).toLocaleString("en-SG");
+const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=rng(20260924), lrnd=rng(7);
+function tok(prefix,id){let h=2166136261;for(let i=0;i<id.length;i++){h^=id.charCodeAt(i);h=Math.imul(h,16777619)}return prefix+"_tok_"+(h>>>0).toString(16).padStart(8,"0")}
+
+/* ---------------- icons ---------------- */
+const P={
+ home:'<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+ flask:'<path d="M9 3h6"/><path d="M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+ graph:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M10.8 7.2 6.3 15.8M13.2 7.2l4.5 8.6M7.5 18h9"/>',
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+ dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+ bell:'<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4Z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+ back:'<path d="M15 5 8 12l7 7"/>', chev:'<path d="m9 6 6 6-6 6"/>', down:'<path d="m6 9 6 6 6-6"/>',
+ lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ unlock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/>',
+ phone:'<path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+ alert:'<path d="M12 3 2 20h20Z"/><path d="M12 10v4M12 17h.01"/>',
+ play:'<path d="M7 4v16l13-8Z"/>', check:'<path d="m5 12 5 5 9-10"/>', x:'<path d="M6 6l12 12M18 6 6 18"/>',
+ bolt:'<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>', device:'<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+ userplus:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/>',
+ bars:'<path d="M5 20V10M10 20V4M15 20v-7M20 20v-4"/>', link:'<circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 16.5 16 7.5M8.5 18h7"/>',
+ wave:'<path d="M3 17h3l2-6 3 9 3-12 2 7 1-3h4"/>', doc:'<path d="M6 2h9l5 5v15H6Z"/><path d="M14 2v6h6M9 13h7M9 17h7"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
+ shield:'<path d="M12 3 4 6v6c0 5 3.4 8.4 8 9.5 4.6-1.1 8-4.5 8-9.5V6Z"/>',
+ bank:'<path d="M3 10 12 4l9 6"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',
+ mask:'<path d="M4 8c3-2 13-2 16 0-1 7-4 10-8 10S5 15 4 8Z"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/>',
+ repeat:'<path d="M4 9h13l-3-3M20 15H7l3 3"/>', globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', msg:'<path d="M4 5h16v11H9l-5 4Z"/>', cog:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+ star:'<path d="M12 2c.6 5 4.9 9.4 10 10-5.1.6-9.4 5-10 10-.6-5-4.9-9.4-10-10 5.1-.6 9.4-5 10-10Z"/>',
+ export:'<path d="M12 3v12M7 8l5-5 5 5M4 15v5h16v-5"/>', eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+ kill:'<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>', up:'<path d="M12 19V5M6 11l6-6 6 6"/>'
+};
+const I=(n,extra)=>`<svg class="i"${extra?" "+extra:""} viewBox="0 0 24 24" aria-hidden="true">${P[n]||""}</svg>`;
+
+/* ---------------- tenants & themes (generic institutions — no real bank marks) ---------------- */
+const TENANTS={
+ A:{key:"A",name:"Bank A",city:"Singapore",mark:"#D81230",demo:"ACC-10291",mule:"ACC-20441",connector:"Pre-transaction decision API",net:"DECISION_API",fallback:"QUEUE",policy:"SG-RD-1.0"},
+ B:{key:"B",name:"Bank B",city:"Singapore",mark:"#E0101E",demo:"ACC-31760",mule:"ACC-55902",connector:"Event stream",net:"EVENT_STREAM",fallback:"LOCAL_RULE",policy:"SG-RD-1.0"},
+ C:{key:"C",name:"Bank C",city:"Singapore",mark:"#1D44B8",demo:"ACC-20150",mule:"ACC-47219",connector:"Batch files",net:"BATCH",fallback:"QUEUE",policy:"SG-RD-1.0"}
+};
+const THEMES={
+ A:{dark:{bg:"#0D090A",sf:"#171113",sf2:"#20181A",ln:"#34272B",ink:"#F7F1F2",ink2:"#C7BABC",ink3:"#8F8285",ac:"#E3142F",acInk:"#FFFFFF",acSoft:"rgba(227,20,47,.14)",ok:"#2BC46A",warn:"#F5A524",hi:"#FB7A2E",crit:"#FF3D52",info:"#4C8DF6",glow:"rgba(255,61,82,.45)"},
+    light:{bg:"#F7F3F3",sf:"#FFFFFF",sf2:"#FBF7F7",ln:"#E9DFE0",ink:"#1C1315",ink2:"#4D3F42",ink3:"#7E6F72",ac:"#C8102E",acInk:"#FFFFFF",acSoft:"rgba(200,16,46,.09)",ok:"#138A4E",warn:"#B96A00",hi:"#D2561A",crit:"#D6183A",info:"#2461D8",glow:"rgba(214,24,58,.3)"}},
+ B:{light:{bg:"#F5F3F3",sf:"#FFFFFF",sf2:"#FAF6F6",ln:"#E8DFDF",ink:"#1A1415",ink2:"#4B4042",ink3:"#7C7072",ac:"#D8081C",acInk:"#FFFFFF",acSoft:"rgba(216,8,28,.08)",ok:"#0F9960",warn:"#B96A00",hi:"#D2561A",crit:"#DC1F2E",info:"#2563EB",glow:"rgba(220,31,46,.28)"},
+    dark:{bg:"#111012",sf:"#1A181B",sf2:"#221F23",ln:"#353036",ink:"#F4F1F2",ink2:"#C3BDC0",ink3:"#8D878A",ac:"#FF2B3D",acInk:"#FFFFFF",acSoft:"rgba(255,43,61,.13)",ok:"#2BC46A",warn:"#F5A524",hi:"#FB7A2E",crit:"#FF4557",info:"#5B93F7",glow:"rgba(255,69,87,.4)"}},
+ C:{light:{bg:"#F1F4F9",sf:"#FFFFFF",sf2:"#F6F8FC",ln:"#DAE1EC",ink:"#0F1828",ink2:"#38455A",ink3:"#6A778B",ac:"#1D44B8",acInk:"#FFFFFF",acSoft:"rgba(29,68,184,.08)",ok:"#0E9F6E",warn:"#B97A00",hi:"#D2561A",crit:"#E0283A",info:"#1D6FE0",glow:"rgba(224,40,58,.25)"},
+    dark:{bg:"#0A0F1A",sf:"#111827",sf2:"#172033",ln:"#26324A",ink:"#EEF2F9",ink2:"#B5C0D3",ink3:"#7F8BA1",ac:"#4F7BFF",acInk:"#FFFFFF",acSoft:"rgba(79,123,255,.15)",ok:"#2BC46A",warn:"#F5A524",hi:"#FB7A2E",crit:"#FF4B5C",info:"#5EA0FF",glow:"rgba(255,75,92,.4)"}}
+};
+function resolveMode(){
+  if(S.appearance==="light"||S.appearance==="dark") return S.appearance;
+  const attr=document.documentElement.getAttribute("data-theme");
+  if(attr==="light"||attr==="dark") return attr;
+  if(S.tenant==="A") return "dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
+}
+function applyTheme(){
+  const t=THEMES[S.tenant][resolveMode()], r=document.documentElement.style;
+  Object.keys(t).forEach(k=>r.setProperty("--"+k,t[k]));
+  document.body.dataset.tenant=S.tenant;
+  let m=document.querySelector('meta[name="theme-color"]'); if(!m){m=el("meta");m.name="theme-color";document.head.appendChild(m)} m.content=t.bg;
+}
+
+/* ---------------- world ---------------- */
+const INST={"ACC-10291":"A","ACC-20441":"A","ACC-40118":"A","ACC-61284":"A",
+  "ACC-31760":"B","ACC-55902":"B","ACC-70337":"B","ACC-66104":"B",
+  "ACC-20150":"C","ACC-47219":"C","ACC-82015":"C","ACC-93370":"C"};
+const ACCOUNTS={
+ "ACC-10291":{bal:5200000,seg:"Retail · personal savings",opened:"12 Jan 2021"},
+ "ACC-31760":{bal:6100000,seg:"Retail · personal savings",opened:"03 Aug 2019"},
+ "ACC-20150":{bal:5800000,seg:"Retail · personal savings",opened:"21 Mar 2022"},
+ "ACC-20441":{bal:940000,seg:"Retail · everyday account",opened:"09 Feb 2024"},
+ "ACC-55902":{bal:880000,seg:"Retail · everyday account",opened:"17 Nov 2023"},
+ "ACC-47219":{bal:910000,seg:"Retail · everyday account",opened:"30 May 2024"}
+};
+const BG_ACCTS=["ACC-40118","ACC-61284","ACC-20441","ACC-70337","ACC-55902","ACC-66104","ACC-82015","ACC-93370","ACC-47219"];
+const PAYEES=["PAYEE-1104","PAYEE-2251","SP-UTILITIES","SP-TELCO","PAYEE-6630","PAYEE-4417","PAYEE-3208","SP-INSURER"];
+const RULESET="2026.09.24", POLICYV="SG-RD-1.0";
+const PROTECTED_BALANCE=5000000, GATE_PCT=50, FLOOR_PCT=25, P95=300000, VEL_BASE=3;
+const LINK_W={DIRECT:3,NETWORK_REFERENCE:3,NETWORK_TOKEN:2,CORRELATED:0,UNOBSERVED:0};
+const LINK_SCORING={DIRECT:"Confirmed · 3 pts",NETWORK_REFERENCE:"Confirmed · 3 pts",NETWORK_TOKEN:"Strong · 2 pts",CORRELATED:"Candidate · 0 pts (shown, not scored)",UNOBSERVED:"None · 0 pts"};
+
+/* ---------------- rule engine (deterministic) ---------------- */
+const RULES=[
+ {code:"RAPID_DRAIN",label:"Rapid account depletion",icon:"bars",max:30,fn:c=>{
+   if(!c.isProtected||c.drainPct<=FLOOR_PCT) return null;
+   const p=clamp(Math.round((c.drainPct-FLOOR_PCT)/(GATE_PCT-FLOOR_PCT)*30),0,30);
+   return p?{points:p,detail:c.drainPct.toFixed(1)+"% of opening balance in 24h"}:null}},
+ {code:"NEW_DEVICE",label:"New device",icon:"device",max:21,fn:c=>c.newDeviceHrs==null||c.newDeviceHrs>=24?null:{points:21,detail:c.deviceId+", first seen "+Math.max(1,Math.round(c.newDeviceHrs*60))+" min ago"}},
+ {code:"NEW_PAYEE",label:"New beneficiary",icon:"userplus",max:16,fn:c=>{
+   if(c.payeeAgeHrs==null) return null;
+   if(c.payeeAgeHrs<24) return {points:16,detail:c.payeeId+", added "+age(c.payeeAgeHrs)+" ago"};
+   if(c.payeeAgeHrs<168) return {points:8,detail:c.payeeId+", added "+age(c.payeeAgeHrs)+" ago"};
+   return null}},
+ {code:"VELOCITY",label:"Transaction velocity",icon:"bolt",max:12,fn:c=>{
+   if(c.velocityRatio<=VEL_BASE) return null;
+   const p=clamp(Math.round((c.velocityRatio-VEL_BASE)*6),0,12);
+   return p?{points:p,detail:c.velocityRatio.toFixed(1)+"× account baseline"}:null}},
+ {code:"ENTITY_LINK",label:"Suspicious entity relationship",icon:"link",max:9,fn:c=>{
+   const links=c.flaggedLinks||[]; if(!links.length) return null;
+   let pts=0,conf=0,tokn=0,cand=0;
+   links.forEach(l=>{const w=LINK_W[l]||0;pts+=w;if(w===3)conf++;else if(w===2)tokn++;else cand++});
+   pts=clamp(pts,0,9); if(!pts) return null;
+   return {points:pts,detail:(conf?conf+" flagged via confirmed links":"")+(tokn?(conf?", ":"")+tokn+" via network device token":"")+(cand?", "+cand+" candidate not scored":"")}}},
+ {code:"BEHAVIOUR_DEV",label:"Behavioural deviation",icon:"wave",max:7,fn:c=>{
+   if(!c.amount||c.amount<=P95) return null;
+   const p=clamp(Math.round((c.amount-P95)/P95*7),0,7);
+   return p?{points:p,detail:SGD(c.amount)+", above the 95th percentile of "+SGD(P95)}:null}},
+ {code:"COOLING_OFF",label:"Cooling-off period active",icon:"clock",max:5,fn:c=>c.coolingOff?{points:5,detail:"high-risk account change within 12h"}:null}
+];
+function age(h){return h<1?Math.max(0,Math.round(h*60))+" min":h<24?Math.round(h)+" h":Math.round(h/24)+" d"}
+function band(score){return score>=85?"CRITICAL":score>=65?"HIGH":score>=40?"ELEVATED":"LOW"}
+function assess(ctx){
+  const c=Object.assign({},ctx);
+  c.isProtected=c.balanceAtWindowStart>=PROTECTED_BALANCE;
+  c.drainPct=c.balanceAtWindowStart>0?(c.outflow24h/c.balanceAtWindowStart)*100:0;
+  const contributions=[];
+  RULES.forEach(r=>{const x=r.fn(c); if(x&&x.points>0) contributions.push({code:r.code,label:r.label,icon:r.icon,max:r.max,points:x.points,detail:x.detail})});
+  contributions.sort((a,b)=>b.points-a.points);
+  const score=clamp(contributions.reduce((s,x)=>s+x.points,0),0,100);
+  let gate;
+  if(!c.isProtected) gate={state:"NOT PROTECTED",hold:false,why:"Opening balance "+SGD(c.balanceAtWindowStart)+" is below the "+SGD(PROTECTED_BALANCE)+" protected threshold, so the rapid-drain safeguard does not apply."};
+  else if(c.drainPct>GATE_PCT) gate={state:"HOLD ACTIVE",hold:true,why:c.drainPct.toFixed(1)+"% exceeds the 50% gate — this and subsequent outflows held for 24 hours."};
+  else gate={state:"GATE NOT MET",hold:false,why:c.drainPct.toFixed(1)+"% is at or below the 50% gate — no policy action is mandated."};
+  const b=band(score);
+  const handling=gate.hold?"Policy hold":b==="CRITICAL"||b==="HIGH"?"Review required":b==="ELEVATED"?"Monitor":"No action";
+  return {score,band:b,contributions,gate,handling,drainPct:c.drainPct,isProtected:c.isProtected,
+    balance:c.balanceAtWindowStart,outflow:c.outflow24h,ctx:c};
+}
+const bandCls=b=>b==="CRITICAL"?"p-crit":b==="HIGH"?"p-hi":b==="ELEVATED"?"p-warn":"p-ok";
+const bandVar=b=>b==="CRITICAL"?"var(--crit)":b==="HIGH"?"var(--hi)":b==="ELEVATED"?"var(--warn)":"var(--ok)";
+const ruleColor=code=>code==="RAPID_DRAIN"?"var(--crit)":code==="NEW_DEVICE"||code==="NEW_PAYEE"?"var(--warn)":code==="ENTITY_LINK"?"#8b5cf6":"var(--info)";
+
+/* ---------------- state + persistence ---------------- */
+const STORE="sentinel.app.v2";
+const S={tenant:"A",appearance:"auto",gemDown:false,incidents:{},incidentOrder:[],cases:{},caseOrder:[],audit:[],
+  stream:[],events:0,tps:[],lats:[],dups:0,life:0,decisions:0,batches:0,seq:{},seqN:0,
+  sim:{scenario:"phishing",speed:1,opts:{cross:true,security:true,notify:true}},running:null,
+  ui:{towerTab:"stream",filter:"all",wsTab:"overview",netTab:"graph",netInc:null,caseFilter:"open"}};
+function save(){
+  try{localStorage.setItem(STORE,JSON.stringify({tenant:S.tenant,appearance:S.appearance,gemDown:S.gemDown,incidents:S.incidents,
+    incidentOrder:S.incidentOrder,cases:S.cases,caseOrder:S.caseOrder,audit:S.audit.slice(0,120),sim:S.sim,
+    decisions:S.decisions,dups:S.dups,life:S.life,lats:S.lats.slice(-200)}))}catch(e){}
+}
+function load(){
+  try{const raw=localStorage.getItem(STORE); if(!raw) return false; const d=JSON.parse(raw); Object.assign(S,d); return true}catch(e){return false}
+}
+
+/* ---------------- clock ---------------- */
+let t0=new Date(); t0.setHours(19,30,32,0);
+const stamp=()=>t0.toTimeString().slice(0,8);
+function isoNow(addH){const d=new Date(t0.getTime()+(addH||0)*3600000);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"T"+d.toTimeString().slice(0,8)+"+08:00"}
+const dateTag=()=>{const d=t0;return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")};
+
+/* ---------------- visibility (field-level, per tenant) ---------------- */
+const own=inst=>inst===S.tenant;
+const last4=id=>id.replace(/\D/g,"").slice(-4);
+function disp(id,inst){ if(!inst||inst==="—"||own(inst)) return id; return "Bank "+inst+" ••••"+last4(id) }
+function dshort(id,inst){ if(!inst||inst==="—"||own(inst)) return id; return inst+" ••••"+last4(id) }
+
+/* ---------------- audit + toasts ---------------- */
+function audit(actor,text,incId){
+  S.audit.unshift({t:stamp(),actor,text,inc:incId||null,id:"AUD-"+(92800+S.audit.length)});
+  if(S.audit.length>200) S.audit.length=200; save();
+  if(route.name==="more"&&route.sub==="audit") render();
+}
+function toast(title,body,kind){
+  const t=el("div","toast"+(kind?" "+kind:""),"<b>"+title+"</b>"+body);
+  $("toasts").appendChild(t); while($("toasts").children.length>3) $("toasts").firstChild.remove();
+  setTimeout(()=>t.remove(),reduced?6000:6500);
+}
+
+/* ---------------- decision contract (v1.2) ---------------- */
+function txEvent(src,srcInst,dst,dstInst,amt,status,opts){
+  S.seq[src]=(S.seq[src]||0)+1; S.seqN++;
+  const txId=(opts&&opts.txId)||"TX-"+(90000+S.seqN);
+  const ev={schemaVersion:"1.0",tenantId:"BANK_"+srcInst,eventId:"EVT-"+(700000+S.seqN),idempotencyKey:"idem-"+txId,
+    accountSequence:S.seq[src],transactionId:txId,status:status,sourceAccountToken:tok("acct",src),
+    destinationInstitutionId:"BANK_"+dstInst,destinationAccountToken:tok("acct",dst),networkReference:"FAST-"+txId.slice(3)+"-"+srcInst+dstInst,
+    amount:amt,currency:"SGD",channel:"APP",type:"TRANSFER",occurredAt:isoNow()};
+  if(opts&&opts.device) ev.deviceToken=tok("dev",opts.device);
+  return ev;
+}
+function decide(ev,a,caseId){
+  S.decisions++; const n=String(93800+S.decisions), hold=a.gate.hold;
+  const res={decisionId:"DEC-"+n,tenantId:ev.tenantId,transactionId:ev.transactionId,idempotencyKey:ev.idempotencyKey,
+    decision:hold?"HOLD":"ALLOW",riskScore:a.score,policyCodes:hold?["RAPID_DRAIN"]:[],
+    reasonCodes:hold?["SG-RD-50_THRESHOLD_EXCEEDED"]:[a.isProtected?"SG-RD-50_GATE_NOT_MET":"NOT_PROTECTED_BALANCE"],
+    assessmentId:"ASM-"+n,rulesetVersion:RULESET,policyVersion:POLICYV};
+  if(hold){res.caseId=caseId;res.holdUntil=isoNow(24)}
+  res.decidedAt=isoNow(); res.expiresAt=isoNow(1/12); res.traceId="TRACE-"+tok("t",ev.transactionId).slice(-8);
+  const lat=Math.round(22+lrnd()*24); S.lats.push(lat); if(S.lats.length>400) S.lats.shift();
+  return {res,lat};
+}
+const pct=(arr,p)=>{if(!arr.length)return 0;const x=arr.slice().sort((a,b)=>a-b);return x[Math.min(x.length-1,Math.floor(p/100*x.length))]};
+function jsonHtml(o){
+  return esc(JSON.stringify(o,null,2))
+    .replace(/"(\w+)":/g,"<span class='k'>\"$1\"</span>:")
+    .replace(/: "(HOLD|REJECT)"/g,": <span class='h'>\"$1\"</span>")
+    .replace(/: "(ALLOW)"/g,": <span class='a'>\"$1\"</span>")
+    .replace(/: "([^"]*)"/g,": <span class='s'>\"$1\"</span>")
+    .replace(/: (-?\d+(\.\d+)?)/g,": <span class='n'>$1</span>");
+}
+
+/* ---------------- live traffic: three institutions, three connector modes ---------------- */
+function pushStream(row){
+  S.stream.unshift(row); if(S.stream.length>80) S.stream.length=80;
+  S.events++; S.tps.push(Date.now());
+  if(route.name==="tower") towerLive(row);
+}
+function baseline(){
+  if(S.running&&S.running.fast) return;
+  const src=BG_ACCTS[Math.floor(rnd()*BG_ACCTS.length)], inst=INST[src];
+  if(inst==="C") return; // Bank C arrives in batch files, below
+  const dst=PAYEES[Math.floor(rnd()*PAYEES.length)], amt=Math.floor(1500+rnd()*rnd()*420000);
+  const ctx={balanceAtWindowStart:1800000+Math.floor(rnd()*2600000),outflow24h:amt,velocityRatio:+(0.7+rnd()*rnd()*5.2).toFixed(1),amount:amt,
+    payeeId:dst,payeeAgeHrs:rnd()<.22?rnd()*20:rnd()<.3?30+rnd()*100:null,newDeviceHrs:rnd()<.05?rnd()*10:null,deviceId:"DEV-"+Math.floor(rnd()*9e3+1e3).toString(16),coolingOff:rnd()<.04,flaggedLinks:[]};
+  const a=assess(ctx);
+  const status=inst==="A"?"ALLOWED":"MONITORED";
+  pushStream({t:stamp(),src,inst,dst,amt,score:a.score,band:a.band,status,mode:inst==="A"?"decision API":"event stream"});
+  if(inst==="A"){ const ev=txEvent(src,"A",dst,"A",amt,"PENDING"); decide(ev,a) }
+}
+function batchC(){
+  S.batches++; const n=4+Math.floor(lrnd()*3);
+  for(let i=0;i<n;i++){
+    const src=["ACC-82015","ACC-93370","ACC-47219"][i%3], dst=PAYEES[Math.floor(rnd()*PAYEES.length)], amt=Math.floor(900+rnd()*190000);
+    const a=assess({balanceAtWindowStart:2600000,outflow24h:amt,velocityRatio:+(0.8+rnd()*2.6).toFixed(1),amount:amt,payeeId:dst,payeeAgeHrs:rnd()<.2?rnd()*20:null,newDeviceHrs:null,deviceId:"DEV-c",coolingOff:false,flaggedLinks:[]});
+    pushStream({t:stamp(),src,inst:"C",dst,amt,score:a.score,band:a.band,status:"RECONCILED",mode:"batch file"});
+  }
+  audit("SYSTEM","Bank C batch "+String(S.batches).padStart(3,"0")+" ingested — "+n+" events reconciled against stream, variance 0");
+}
+
+/* ---------------- scenarios: built per tenant, all driven by the same engine ---------------- */
+const SCENARIOS={
+ phishing:{name:"Phishing takeover",icon:"mask",blurb:"New device, new payees, rapid drain",role:"demo"},
+ mule:{name:"Mule account",icon:"repeat",blurb:"Receive and forward across banks",role:"mule"},
+ smurf:{name:"Smurfing",icon:"bars",blurb:"Many small transfers to fresh payees",role:"demo"},
+ replay:{name:"Credential replay",icon:"globe",blurb:"Password reset, unseen device, one large transfer",role:"demo"}
+};
+function others(t){return ["A","B","C"].filter(x=>x!==t)}
+function buildScenario(key,t,opts){
+  const sc=SCENARIOS[key], acct=sc.role==="mule"?TENANTS[t].mule:TENANTS[t].demo;
+  const bal=ACCOUNTS[acct].bal, f=sc.role==="mule"?1:bal/5200000, amt=v=>Math.round(v*f/100)*100;
+  const [o1,o2]=opts.cross?others(t):[t,t], sec=opts.security;
+  const base={balanceAtWindowStart:bal,outflow24h:0,velocityRatio:1,amount:0,payeeId:null,payeeAgeHrs:null,newDeviceHrs:null,deviceId:"DEV-7f3a",coolingOff:false,flaggedLinks:[]};
+  const L=[]; const tx=(label,to,toInst,a,patch,ms)=>L.push({kind:"tx",label,to,toInst,amt:a,patch,ms});
+  const se=(type,label,patch,ms,extra)=>{ if(sec) L.push({kind:"sec",type,label,patch,ms,extra}) };
+  const po=(label,ms)=>L.push({kind:"policy",label,ms});
+  if(key==="phishing"){
+    base.outflow24h=amt(800000);
+    se("NEW_DEVICE","Login from unseen device <b>DEV-7f3a</b>",{newDeviceHrs:0.07},400,{deviceToken:tok("dev","DEV-7f3a")});
+    se("PAYEE_ADDED","Beneficiary <b>PAYEE-9281</b> created",{payeeId:"PAYEE-9281",payeeAgeHrs:0.011},1300,{beneficiaryToken:tok("ben","PAYEE-9281")});
+    tx("Transfer to PAYEE-9281","PAYEE-9281",o1,amt(240000),{velocityRatio:1.8,payeeId:"PAYEE-9281"},1100);
+    tx("Transfer to PAYEE-9281","PAYEE-9281",o1,amt(490000),{velocityRatio:3.5},1100);
+    tx("Transfer to PAYEE-3821","PAYEE-3821",o1,amt(720000),Object.assign({velocityRatio:4.5,payeeId:"PAYEE-3821"},sec?{payeeAgeHrs:0.003}:{}),1100);
+    tx("Transfer to PAYEE-7742","PAYEE-7742",o2,amt(1150000),Object.assign({velocityRatio:5.5,payeeId:"PAYEE-7742",
+      flaggedLinks:["NETWORK_REFERENCE","NETWORK_REFERENCE","NETWORK_REFERENCE","NETWORK_TOKEN","CORRELATED"]},sec?{payeeAgeHrs:0.001}:{}),1100);
+    tx("Further transfer to PAYEE-7742","PAYEE-7742",o2,amt(300000),{},900);
+  } else if(key==="mule"){
+    base.outflow24h=amt(20000);
+    L.push({kind:"in",label:"Inbound <b>"+SGD(amt(880000))+"</b> from "+(o1===t?"a local account":"Bank "+o1),ms:400});
+    se("NEW_DEVICE","Login from unseen device <b>DEV-19ce</b>",{newDeviceHrs:0.3,deviceId:"DEV-19ce"},900,{deviceToken:tok("dev","DEV-19ce")});
+    se("MOBILE_NUMBER_CHANGED","Registered mobile number changed",{coolingOff:true},900,{});
+    se("PAYEE_ADDED","Beneficiary <b>PAYEE-5120</b> created",{payeeId:"PAYEE-5120",payeeAgeHrs:0.05},900,{beneficiaryToken:tok("ben","PAYEE-5120")});
+    tx("Forward to PAYEE-5120","PAYEE-5120",o2,amt(420000),{velocityRatio:3.8,payeeId:"PAYEE-5120"},1100);
+    tx("Forward to PAYEE-5121","PAYEE-5121",o2,amt(430000),{velocityRatio:5.2,payeeId:"PAYEE-5121",flaggedLinks:["NETWORK_REFERENCE","NETWORK_REFERENCE","NETWORK_REFERENCE","CORRELATED"]},1100);
+  } else if(key==="smurf"){
+    base.outflow24h=amt(900000);
+    se("PAYEE_ADDED","Beneficiary <b>PAYEE-6613</b> created",{payeeId:"PAYEE-6613",payeeAgeHrs:2},500,{beneficiaryToken:tok("ben","PAYEE-6613")});
+    const ps=["PAYEE-6613","PAYEE-2251","PAYEE-6613","PAYEE-4417","PAYEE-6613","PAYEE-2251","PAYEE-6613","PAYEE-4417"];
+    ps.forEach((p,i)=>tx("Small transfer to "+p,p,i%2?o1:t,amt(110000+((i*37)%5)*6000),Object.assign({velocityRatio:+(1.4+i*0.5).toFixed(1),payeeId:p},i===7?{flaggedLinks:["NETWORK_TOKEN","CORRELATED"]}:{}),650));
+  } else {
+    base.outflow24h=amt(200000);
+    se("PASSWORD_CHANGED","Password reset from an unrecognised session",{coolingOff:true},500,{});
+    se("NEW_DEVICE","Login from unseen device <b>DEV-a4d2</b> (new country)",{newDeviceHrs:0.2,deviceId:"DEV-a4d2"},1000,{deviceToken:tok("dev","DEV-a4d2")});
+    se("PAYEE_ADDED","Beneficiary <b>PAYEE-8830</b> created",{payeeId:"PAYEE-8830",payeeAgeHrs:0.02},1000,{beneficiaryToken:tok("ben","PAYEE-8830")});
+    tx("Transfer to PAYEE-8830","PAYEE-8830",o1,amt(1800000),{velocityRatio:2,payeeId:"PAYEE-8830"},1200);
+  }
+  if(opts.notify) po("Customer notification <b>sent</b>",600);
+  po("Audit event <b>recorded</b>",400);
+  return {key,acct,inst:t,o1,o2,base,steps:L};
+}
+/* Deterministic dry run: the preview is the engine, not a guess */
+function dryRun(key,t,opts){
+  const sc=buildScenario(key,t,opts), ctx=Object.assign({},sc.base); let hold=false, a=assess(ctx), holdStep=-1, held=0;
+  sc.steps.forEach((s,i)=>{
+    if(s.kind==="sec") Object.assign(ctx,s.patch);
+    if(s.kind==="tx"){
+      if(hold){held+=s.amt;return}
+      Object.assign(ctx,s.patch,{amount:s.amt,outflow24h:ctx.outflow24h+s.amt});
+      a=assess(ctx); if(a.gate.hold){hold=true;holdStep=i;held+=s.amt}
+    }
+  });
+  return {sc,a,holdStep,held};
+}
+
+/* ---------------- incidents ---------------- */
+function newIncident(sc){
+  const n=S.incidentOrder.length+1;
+  const inc={id:"INC-"+String(4400+n),txn:"TXN-"+dateTag()+"-"+(7720+n),scenario:sc.key,acct:sc.acct,inst:sc.inst,o1:sc.o1,o2:sc.o2,
+    ctx:Object.assign({},sc.base),timeline:[],traj:[],txs:[],sec:[],last:null,lastSec:null,dupNote:null,lifeNote:null,
+    status:"LIVE",hold:false,holdAt:null,holdStep:null,heldValue:0,verify:null,caseId:null,ai:null,createdAt:stamp(),gateAt:null,notified:false};
+  inc.traj.push(assess(inc.ctx).score);
+  S.incidents[inc.id]=inc; S.incidentOrder.unshift(inc.id);
+  return inc;
+}
+const incAssess=inc=>assess(inc.ctx);
+const activeHolds=()=>S.incidentOrder.map(id=>S.incidents[id]).filter(i=>i&&i.status==="HOLD");
+const openIncidents=()=>S.incidentOrder.map(id=>S.incidents[id]).filter(i=>i&&["LIVE","HOLD","REVIEW","MONITOR"].includes(i.status));
+function tl(inc,kind,html,code){inc.timeline.push({t:stamp(),kind,html,code:code||null})}
+
+function runSimulation(){
+  if(S.running) return;
+  const {scenario,speed,opts}=S.sim, sc=buildScenario(scenario,S.tenant,opts), inc=newIncident(sc);
+  S.running={id:inc.id,fast:speed>=5};
+  inc.caseRef="CASE-2026-00"+(17+S.caseOrder.filter(c=>!S.cases[c].seed).length);
+  audit("SYSTEM","scenario "+SCENARIOS[scenario].name+" armed on "+inc.acct+" ("+TENANTS[inc.inst].name+")",inc.id);
+  tl(inc,"base","Baseline — <b>"+inc.acct+"</b> nominal");
+  go("#/tower");
+  let delay=0;
+  sc.steps.forEach((st,i)=>{
+    delay+=reduced?120:st.ms/speed;
+    timers.push(setTimeout(()=>runStep(inc,st,i,sc.steps.length),delay));
+  });
+}
+let timers=[];
+function runStep(inc,st,i,total){
+  if(st.kind==="sec"){
+    Object.assign(inc.ctx,st.patch);
+    const ev=Object.assign({schemaVersion:"1.0",tenantId:"BANK_"+inc.inst,eventId:"SEC-"+(510000+S.seqN+i),idempotencyKey:"idem-SEC-"+(510000+S.seqN+i),
+      accountToken:tok("acct",inc.acct),eventType:st.type,occurredAt:isoNow()},st.extra||{});
+    inc.sec.push(ev); inc.lastSec=ev;
+    tl(inc,"sec",st.label,st.type==="NEW_DEVICE"?"NEW_DEVICE":st.type==="PAYEE_ADDED"?"NEW_PAYEE":"COOLING_OFF");
+    audit("SYSTEM","security event "+st.type+" ingested for "+inc.acct+" — account state updated",inc.id);
+    pushStream({t:stamp(),src:inc.acct,inst:inc.inst,dst:st.type.replace(/_/g," ").toLowerCase(),amt:0,score:incAssess(inc).score,band:incAssess(inc).band,status:"SECURITY",mode:"security event",inc:inc.id});
+  } else if(st.kind==="in"){
+    tl(inc,"tx",st.label);
+  } else if(st.kind==="tx"){
+    if(inc.hold){
+      inc.heldValue+=st.amt;
+      const a=incAssess(inc);
+      const ev=txEvent(inc.acct,inc.inst,st.to,st.toInst,st.amt,"PENDING",{device:inc.ctx.deviceId});
+      const d=decide(ev,a,inc.caseRef); inc.last={req:ev,res:d.res,lat:d.lat};
+      inc.txs.push({id:ev.transactionId,to:st.to,toInst:st.toInst,amt:st.amt,status:"HELD",t:stamp()});
+      tl(inc,"hold","Further transfer <b>"+SGD(st.amt)+"</b> to "+st.to+" — held under the active hold","RAPID_DRAIN");
+      pushStream({t:stamp(),src:inc.acct,inst:inc.inst,dst:st.to,amt:st.amt,score:a.score,band:a.band,status:"HELD",mode:"decision API",inc:inc.id});
+    } else {
+      Object.assign(inc.ctx,st.patch,{amount:st.amt,outflow24h:inc.ctx.outflow24h+st.amt});
+      const a=incAssess(inc); inc.traj.push(a.score);
+      const ev=txEvent(inc.acct,inc.inst,st.to,st.toInst,st.amt,"PENDING",{device:inc.ctx.deviceId});
+      const d=decide(ev,a,inc.caseRef); inc.last={req:ev,res:d.res,lat:d.lat};
+      const held=a.gate.hold;
+      inc.txs.push({id:ev.transactionId,to:st.to,toInst:st.toInst,amt:st.amt,status:held?"HELD":"ALLOWED",t:stamp(),req:ev});
+      pushStream({t:stamp(),src:inc.acct,inst:inc.inst,dst:st.to,amt:st.amt,score:a.score,band:a.band,status:held?"HELD":"ALLOWED",mode:"decision API",inc:inc.id});
+      const top=a.contributions[0];
+      if(held){
+        inc.hold=true; inc.status="HOLD"; inc.holdAt=stamp(); inc.heldValue+=st.amt; inc.gateAt=stamp();
+        tl(inc,"hold","Transfer <b>"+SGD(st.amt)+"</b> to "+st.to+" — gate tripped, <b>HOLD</b> returned before commit","RAPID_DRAIN");
+        tl(inc,"policy","Policy gate applied <b>HOLD</b> to this and subsequent outflows");
+        audit("SYSTEM","HOLD "+d.res.decisionId+" — "+a.drainPct.toFixed(1)+"% exceeds the 50% gate on protected account "+inc.acct,inc.id);
+        toast("Hold active · "+disp(inc.acct,inc.inst),a.drainPct.toFixed(1)+"% of a protected balance crossed the 50% gate. "+SGD(st.amt)+" held before it moved.","crit");
+        const first=inc.txs[0];
+        timers.push(setTimeout(()=>{S.dups++; inc.dupNote="Retry received with <span class='m'>"+ev.idempotencyKey+"</span> — duplicate suppressed, stored <b>HOLD</b> "+d.res.decisionId+" returned. No second hold, no double count.";
+          audit("SYSTEM","duplicate suppressed by idempotency key "+ev.idempotencyKey+" — stored "+d.res.decisionId+" returned",inc.id); refresh(inc.id)},reduced?100:900));
+        timers.push(setTimeout(()=>{if(!first)return; S.life++; inc.lifeNote="Lifecycle update: <span class='m'>"+first.id+"</span> SETTLED ("+SGD(first.amt)+"). Same transactionId → projection updated, effectiveAmount unchanged. Counted once, not twice.";
+          audit("SYSTEM","lifecycle SETTLED for "+first.id+" — projection updated, outflow counted once",inc.id); refresh(inc.id)},reduced?200:1800));
+      } else {
+        tl(inc,"tx","Transfer <b>"+SGD(st.amt)+"</b> to "+st.to+" — scored "+a.score+", <b>ALLOW</b>",top?top.code:null);
+      }
+    }
+  } else if(st.kind==="policy"){
+    tl(inc,"policy",st.label);
+    if(/notification/i.test(st.label)&&inc.hold){inc.notified=true;audit("SYSTEM","customer notification sent for "+inc.acct,inc.id)}
+    if(/Audit/.test(st.label)) audit("SYSTEM","audit event recorded for "+inc.id,inc.id);
+  }
+  if(i===total-1) finishSimulation(inc);
+  save(); refresh(inc.id,st.kind==="tx"&&inc.hold&&inc.gateAt===stamp());
+}
+function finishSimulation(inc){
+  const a=incAssess(inc);
+  if(!inc.hold) inc.status=a.handling==="Review required"?"REVIEW":a.handling==="Monitor"?"MONITOR":"CLEARED";
+  S.running=null;
+  if(!inc.hold) toast(inc.status==="REVIEW"?"Review required":inc.status==="MONITOR"?"Added to monitoring":"No action needed",
+    disp(inc.acct,inc.inst)+" scored "+a.score+" ("+a.band.toLowerCase()+"). "+a.gate.why,inc.status==="REVIEW"?"warn":"");
+  audit("SYSTEM","scenario complete — "+inc.id+" status "+inc.status,inc.id); save();
+}
+function refresh(incId,arm){
+  if(["tower","inc","ws","net","inv"].includes(route.name)) render(arm);
+  updateChrome();
+}
+
+/* ---------------- cases ---------------- */
+function seedCases(){
+  if(S.caseOrder.length) return;
+  [{id:"CASE-2026-0011",title:"Mule network — forwarding chain",acct:"ACC-66104",inst:"B",score:71,band:"HIGH",gate:"NOT PROTECTED",heldValue:9640000,status:"CLOSED_FRAUD",created:"08:14:09"},
+   {id:"CASE-2026-0014",title:"Smurfing — small transfers to new payees",acct:"ACC-93370",inst:"C",score:44,band:"ELEVATED",gate:"GATE NOT MET",heldValue:3470000,status:"CLOSED_LEGITIMATE",created:"11:52:40"}]
+  .forEach(c=>{c.seed=true;c.incId=null;c.signed=true;S.cases[c.id]=c;S.caseOrder.push(c.id)});
+}
+function createCase(inc){
+  if(inc.caseId) return S.cases[inc.caseId];
+  const a=incAssess(inc);
+  const c={id:inc.caseRef||("CASE-2026-00"+(17+S.caseOrder.length)),incId:inc.id,title:SCENARIOS[inc.scenario].name+(inc.hold?" — rapid drain held":" — "+a.handling.toLowerCase()),
+    acct:inc.acct,inst:inc.inst,score:a.score,band:a.band,gate:a.gate.state,heldValue:inc.heldValue,status:"OPEN",created:stamp(),signed:false};
+  S.cases[c.id]=c; S.caseOrder.unshift(c.id); inc.caseId=c.id;
+  audit("ANALYST","case "+c.id+" opened from "+inc.id,inc.id); save(); return c;
+}
+const valueHeld=()=>S.caseOrder.map(id=>S.cases[id]).filter(c=>c.seed).reduce((s,c)=>s+c.heldValue,0)+S.incidentOrder.map(id=>S.incidents[id]).reduce((s,i)=>s+(i.status==="RELEASED"?0:i.heldValue),0);
+
+/* ---------------- network graph model (built from the incident's own events) ---------------- */
+const DOWN=["ACC-55210","ACC-63914","ACC-71508","ACC-44817"];
+function buildGraph(inc){
+  const N=[],E=[],add=n=>{N.push(n);return N.length-1};
+  const flagged=inc.scenario==="phishing"||inc.scenario==="mule";
+  const s=add({id:inc.acct,k:"subject",inst:inc.inst,x:.07,y:.5,tx:inc.txs.length+19,band:incAssess(inc).band,f:["Subject of "+inc.id]});
+  let dev=-1;
+  if(inc.sec.some(e=>e.eventType==="NEW_DEVICE")){ dev=add({id:inc.ctx.deviceId,k:"device",inst:"—",x:.22,y:.1,tx:null,band:"HIGH",f:["Network device relationship","First seen during this incident"]});
+    E.push({a:dev,b:s,type:"Device session",amt:"—",sig:"NEW_DEVICE",src:inc.inst,ev:"AUTH_EVENT",ref:"—",link:"DIRECT",tm:inc.createdAt}) }
+  const payees=[];
+  inc.txs.forEach(t=>{if(!payees.find(p=>p.to===t.to)) payees.push({to:t.to,inst:t.toInst,amt:0,first:t}); payees.find(p=>p.to===t.to).amt+=t.amt});
+  const P2=payees.slice(0,4), pIdx=[];
+  P2.forEach((p,i)=>{
+    const y=P2.length===1?.5:.18+i*(.66/(P2.length-1));
+    const idx=add({id:p.to,k:flagged||i===P2.length-1?"mule":"acct",inst:p.inst,x:.31,y,tx:6+i*4,band:flagged?"HIGH":"ELEVATED",f:flagged?["Rapid fund movement"]:["Recently added beneficiary"]});
+    pIdx.push(idx);
+    E.push({a:s,b:idx,type:p.first.status==="HELD"&&inc.txs.filter(t=>t.to===p.to).every(t=>t.status==="HELD")?"Transfer (held)":"Transfer",amt:SGD(p.amt),sig:p.first.status==="HELD"?"RAPID_DRAIN":"—",
+      src:inc.inst,ev:"PAYMENT_EVENT",ref:p.first.req?p.first.req.networkReference:"—",link:p.inst===inc.inst?"DIRECT":"NETWORK_REFERENCE",tm:p.first.t});
+  });
+  if(dev>=0&&pIdx.length){E.push({a:dev,b:pIdx[0],type:"Network device relationship",amt:"—",sig:"ENTITY_LINK",src:N[pIdx[0]].inst,ev:"NETWORK_DEVICE_RELATIONSHIP",ref:"—",link:"NETWORK_TOKEN",tm:"prior"});
+    if(pIdx.length>2) E.push({a:dev,b:pIdx[pIdx.length-1],type:"Network device relationship",amt:"—",sig:"ENTITY_LINK",src:N[pIdx[pIdx.length-1]].inst,ev:"NETWORK_DEVICE_RELATIONSHIP",ref:"—",link:"NETWORK_TOKEN",tm:"prior"})}
+  const cons=add({id:"ACC-88120",k:flagged?"mule":"acct",inst:inc.o2,x:.76,y:.52,tx:48,band:flagged?"CRITICAL":"ELEVATED",f:flagged?["Consolidation point","Linked to 3 flagged entities"]:["Receives from several accounts"]});
+  const dIdx=[];
+  pIdx.slice(0,3).forEach((pi,i)=>{
+    const d=add({id:DOWN[i],k:flagged&&i!==1?"mule":"acct",inst:N[pi].inst,x:.54,y:.2+i*.3,tx:14+i*3,band:flagged&&i!==1?"HIGH":"LOW",f:flagged&&i!==1?["Repeated high-value transfers"]:[]});
+    dIdx.push(d);
+    E.push({a:pi,b:d,type:"Onward transfer",amt:SGD(Math.round(P2[i].amt*0.9/100)*100),sig:"—",src:N[pi].inst,ev:"PAYMENT_EVENT",ref:"—",link:"DIRECT",tm:"prior"});
+    E.push({a:d,b:cons,type:"Consolidation",amt:SGD(Math.round(P2[i].amt*0.85/100)*100),sig:"—",src:i===1?inc.o2:N[d].inst,ev:i===1?"BENEFICIARY_MATCH":"PAYMENT_EVENT",
+      ref:i===1?"—":"FAST-3H8P-77"+(19+i),link:i===1?"CORRELATED":(N[d].inst===inc.o2?"DIRECT":"NETWORK_REFERENCE"),tm:"prior"});
+  });
+  const bd=add({id:"UNOBSERVED",k:"boundary",inst:"—",x:.95,y:.52,tx:null,band:null,f:["Destination institution not participating","No valid linkage — hop not asserted"]});
+  E.push({a:cons,b:bd,type:"Outbound transfer",amt:SGD(Math.round(inc.heldValue>0?inc.txs.reduce((s,t)=>s+t.amt,0)*1.3:inc.txs.reduce((s,t)=>s+t.amt,0))),sig:"—",src:inc.o2,ev:"PAYMENT_EVENT",ref:"—",link:"UNOBSERVED",tm:"prior"});
+  const trace=pIdx.length?[s,pIdx[0],dIdx[0]!=null?dIdx[0]:pIdx[0],cons]:[s];
+  return {N,E,trace:trace.filter((v,i,a)=>a.indexOf(v)===i),boundary:bd};
+}
+
+/* ---------------- Gemini investigation (simulated in this prototype) ---------------- */
+function analyse(inc){
+  const a=incAssess(inc), g=buildGraph(inc), k=disp(inc.acct,inc.inst);
+  const hyp={phishing:"Behaviour is consistent with a phishing-driven account takeover and rapid-drain event. The session comes from a device never seen on this account, creates beneficiaries seconds before use, and moves "+a.drainPct.toFixed(1)+"% of a protected balance inside the 24-hour window.",
+    mule:"Behaviour is consistent with a mule account: funds arrive from another institution and are forwarded within minutes to new beneficiaries linked to flagged entities. The account is below the protected threshold, so the rapid-drain safeguard does not apply; escalation relies on case handling.",
+    smurf:"Behaviour is consistent with structuring: many small transfers to a recently added payee and repeat beneficiaries. Velocity is well above baseline, but at "+a.drainPct.toFixed(1)+"% the drain stays below the 50% gate, so no policy action is mandated.",
+    replay:"Behaviour is consistent with credential replay: a password reset from an unrecognised session, an unseen device in a new country, then a single large transfer to a new payee. The drain is "+a.drainPct.toFixed(1)+"%, below the gate, so the case needs review rather than a policy hold."}[inc.scenario];
+  const claims=a.contributions.map(c=>({text:c.label+" contributed <b>+"+c.points+"</b> — "+esc(c.detail),src:"assessment.contributions[] · "+c.code,code:c.code}));
+  claims.push({text:"Opening balance "+SGD(a.balance)+"; "+SGD(a.outflow)+" moved in the 24-hour window ("+a.drainPct.toFixed(1)+"%).",src:"drain · DrainState",code:"RAPID_DRAIN"});
+  if(inc.sec.length) claims.push({text:inc.sec.length+" account security event"+(inc.sec.length>1?"s":"")+" preceded the first transfer ("+inc.sec.map(e=>e.eventType).join(", ")+").",src:"security_events[]",code:"NEW_DEVICE"});
+  claims.push({text:"The trace reaches "+(g.trace.length-1)+" observed hops across "+new Set(g.trace.map(i=>g.N[i].inst)).size+" institutions and stops at an unobserved boundary.",src:"neighbourhood · EdgeEvidence",code:"ENTITY_LINK"});
+  const recs=inc.hold?["Keep the hold in place until the customer verifies or the 24h period ends","Contact the customer through a verified channel","Review the linked destination accounts","Escalate for cross-institution reporting"]
+    :a.band==="CRITICAL"||a.band==="HIGH"?["Contact the customer through a verified channel","Review linked accounts and recent payees","Escalate if the customer does not confirm"]
+    :["Keep the account under monitoring for 24 hours","Re-assess if outflow accelerates"];
+  return {hyp,claims,recs,meta:{model:"gemini-3.5-flash",runtime:"simulated in prototype · Vertex AI in production",prompt:"inv-v3",schema:"CaseSummary-1.2",
+    hash:tok("sha",inc.id+a.score+inc.timeline.length).slice(8),gen:"GEN-"+tok("g",inc.id+stamp()).slice(-6),at:stamp()}};
+}
+function evidenceCounts(inc){
+  const g=buildGraph(inc);
+  return {tx:inc.txs.length+9,dev:inc.sec.some(e=>e.eventType==="NEW_DEVICE")?2:1,sec:inc.sec.length,alerts:openIncidents().length,links:g.E.filter(e=>e.a===0||e.b===0).length,iv:inc.hold?1:0};
+}
+
+/* =====================================================================
+   ROUTER + CHROME
+   ===================================================================== */
+let route={name:"tower",id:null};
+function parse(){const h=location.hash.replace(/^#\/?/,"")||"tower";const [n,id]=h.split("/");route={name:n||"tower",id:id||null,sub:id||null}}
+function go(h){ if(location.hash===h) render(); else location.hash=h }
+const NAV=[{r:"tower",l:"Control Tower",s:"Tower",i:"home"},{r:"sim",l:"Attack Simulator",s:"Simulator",i:"flask"},{r:"inv",l:"Investigations",s:"Investigate",i:"search"},
+  {r:"net",l:"Network",s:"Network",i:"graph"},{r:"cases",l:"Cases",s:"Cases",i:"folder"},{r:"more",l:"More",s:"More",i:"dots"}];
+const navOf=n=>n==="inc"||n==="ws"?"inv":n==="case"?"cases":n;
+function visibleOpen(){return openIncidents().filter(i=>own(i.inst))}
+function updateChrome(){
+  const t=TENANTS[S.tenant], open=visibleOpen().length, cur=navOf(route.name);
+  $("tenantBtn").innerHTML=`<span class="tmark" style="background:${t.mark}">${t.key}</span><span style="min-width:0"><b>${t.name}</b><small>${t.city} · signed in as analyst</small></span><span style="margin-left:auto">${I("down")}</span>`;
+  $("bellBtn").innerHTML=I("bell")+(open?`<span class="dot">${open}</span>`:"");
+  const item=(n,rail)=>`<button data-go="#/${n.r}" ${cur===n.r?'aria-current="page"':""}>${I(n.i)}<span>${rail?n.l:n.s}</span>${n.r==="inv"&&open?`<span class="bdg">${open}</span>`:""}</button>`;
+  $("railnav").innerHTML=NAV.map(n=>item(n,true)).join("");
+  $("tabs").innerHTML=NAV.map(n=>item(n,false).replace("<button ",'<button class="tab" ')).join("");
+}
+
+/* =====================================================================
+   SCREENS
+   ===================================================================== */
+function render(arm){
+  applyTheme(); updateChrome();
+  const v=$("view"); let html="";
+  switch(route.name){
+    case "sim": html=vSim(); break;
+    case "inc": html=vInc(route.id); break;
+    case "inv": html=vInv(); break;
+    case "ws": html=vWs(route.id); break;
+    case "net": html=vNet(); break;
+    case "cases": html=vCases(); break;
+    case "case": html=vCase(route.id); break;
+    case "more": html=vMore(route.sub); break;
+    default: route.name="tower"; html=vTower();
+  }
+  v.innerHTML=html;
+  if(route.name==="net") mountGraph();
+  if(arm){const g=document.querySelector(".gate.hold");if(g){g.classList.add("arm")}}
+}
+
+/* ---------- shared bits ---------- */
+const pageHd=(title,sub,back)=>`<div class="pagehd">${back?`<button class="back" data-go="${back}" aria-label="Back">${I("back")}</button>`:""}<div><h1 class="page">${title}</h1>${sub?`<div class="sub">${sub}</div>`:""}</div></div>`;
+function meter(a){const cls=a.drainPct>50?"over":a.drainPct>35?"near":"";
+  return `<div class="meter"><div class="track"><div class="fill ${cls}" style="width:${Math.min(100,a.drainPct).toFixed(1)}%"></div><div class="thr" title="50% gate"></div></div>
+  <div class="lbl"><span>${SGD(a.outflow)} out</span><span>50% gate</span><span>${SGD(a.balance)} opening</span></div></div>`}
+function contribList(a,compact){
+  if(!a.contributions.length) return `<div class="empty">No rule contributed points yet.</div>`;
+  return `<div class="contrib">${a.contributions.map(c=>`<button class="crow" data-act="ev" data-arg="${c.code}">
+    <span class="ic" style="color:${ruleColor(c.code)}">${I(c.icon)}</span>
+    <span style="min-width:0"><span class="lb">${c.label}</span><div class="dt">${esc(c.detail)}</div>${compact?"":`<div class="bar"><i style="width:${Math.round(c.points/c.max*100)}%;background:${ruleColor(c.code)}"></i></div>`}</span>
+    <span class="pts" style="color:${ruleColor(c.code)}">+${c.points}</span></button>`).join("")}</div>
+    <div class="total"><span>Total — the sum of contributions, by construction</span><b style="color:${bandVar(a.band)}">${a.score}<span class="muted" style="font-size:13px"> / 100</span></b></div>`;
+}
+function srow(r){
+  const held=r.status==="HELD";
+  return `<div class="srow${held?" held":""}${r.fresh?" fresh":""}" data-act="row" data-arg="${r.id}">
+   <span class="t">${r.t}</span><span class="bk" style="background:${TENANTS[r.inst].mark}" title="Bank ${r.inst}">${r.inst}</span>
+   <span class="who">${esc(dshort(r.src,r.inst))}</span>
+   <span class="am">${r.amt?SGD(r.amt):"—"}</span><span class="rs ${r.band}">${r.score}</span>
+   <span class="st">→ ${esc(r.dst)} · ${held?'<b style="color:var(--crit)">Held</b>':r.status==="SECURITY"?'<b style="color:var(--warn)">Security event</b>':r.status.charAt(0)+r.status.slice(1).toLowerCase()} · ${r.mode}</span></div>`}
+function passFilter(r){const f=S.ui.filter; return f==="all"||(f==="high"&&r.score>=65)||(f==="holds"&&r.status==="HELD")||(f==="own"&&r.inst===S.tenant)}
+const tpsNow=()=>{const now=Date.now();S.tps=S.tps.filter(x=>now-x<5000);return (S.tps.length/5).toFixed(1)};
+
+/* ---------- 1. Control Tower ---------- */
+function vTower(){
+  const holds=activeHolds(), hold=holds[0], run=S.running&&S.incidents[S.running.id];
+  let hero;
+  if(run&&!run.hold){
+    const a=incAssess(run);
+    hero=`<section class="hero calm"><div class="eyebrow">Simulation running · ${SCENARIOS[run.scenario].name}</div>
+      <h3>${esc(disp(run.acct,run.inst))} is being scored in real time</h3><p>${a.contributions.length} signals so far · drain ${a.drainPct.toFixed(1)}% of the 50% gate</p>
+      <div class="row"><div class="score" style="color:${bandVar(a.band)}">${a.score}</div><div style="flex:1;min-width:200px">${meter(a)}</div></div>
+      <div class="acts"><button class="btn" data-go="#/inc/${run.id}">Watch the intervention</button></div></section>`;
+  } else if(hold){
+    const a=incAssess(hold), mine=own(hold.inst);
+    hero=`<section class="hero"><div class="eyebrow">${mine?"What's happening now":"Network alert from another institution"}</div>
+      <h3>${mine?"Rapid drain held on "+esc(hold.acct):esc(disp(hold.acct,hold.inst))+" — hold active at Bank "+hold.inst}</h3>
+      <p>${mine?esc(a.gate.why):"Visible to you as a masked network projection. Identity, history and actions stay with Bank "+hold.inst+"."}</p>
+      <div class="row"><div><div class="score">${mine?a.score:a.band}</div><div class="muted" style="font-size:11.5px;margin-top:4px">${mine?"advisory risk score":"risk band"}</div></div>
+        <div style="flex:1;min-width:200px">${meter(a)}</div></div>
+      <div class="acts">${mine?`<button class="btn pri" data-go="#/inc/${hold.id}">${I("shield")}Open intervention</button><button class="btn" data-go="#/ws/${hold.id}">${I("search")}Investigate</button>`
+        :`<button class="btn pri" data-go="#/net">${I("graph")}View network trace</button>`}</div></section>`;
+  } else {
+    hero=`<section class="hero calm"><div class="eyebrow">What's happening now</div><h3>No active holds</h3>
+      <p>Three institutions are connected and every payment is scored before it moves. Run a scenario to see detection, intervention and investigation end to end.</p>
+      <div class="acts"><button class="btn pri" data-go="#/sim">${I("play")}Simulate an attack</button><button class="btn" data-go="#/net">${I("graph")}Network view</button></div></section>`;
+  }
+  const high=S.stream.filter(r=>r.score>=65).length, heldN=S.stream.filter(r=>r.status==="HELD").length;
+  const tab=S.ui.towerTab;
+  let panel="";
+  if(tab==="stream"){
+    const rows=S.stream.filter(passFilter).slice(0,30);
+    panel=`<div class="seg" style="margin-bottom:10px">
+      ${[["all","All",""],["high","High risk",high],["holds","Held",heldN],["own","Own bank",""]].map(([k,l,n])=>`<button data-act="filter" data-arg="${k}" aria-pressed="${S.ui.filter===k}">${l}${n!==""?` <span class="n">${n}</span>`:""}</button>`).join("")}</div>
+      <div class="shd"><span>Time</span><span></span><span>From account</span><span>Amount</span><span>Risk</span></div>
+      <div class="stream" id="streamList">${rows.map(srow).join("")||`<div class="empty">No events match this filter yet.</div>`}</div>`;
+  } else if(tab==="pulse"){
+    const inc=S.incidents[S.incidentOrder[0]];
+    const b={LOW:0,ELEVATED:0,HIGH:0,CRITICAL:0}; S.stream.forEach(r=>b[r.band]++);
+    panel=`<div class="chart">${trajSvg(inc?inc.traj:[4,6,5,8,6,7])}</div>
+      <div class="muted" style="font-size:12px">${inc?"Risk score across "+esc(disp(inc.acct,inc.inst))+"'s latest incident · bands at 40 / 65 / 85":"Baseline traffic · run a scenario to see an incident trajectory"}</div>
+      <div class="bands">${[["LOW","Low 0–39"],["ELEVATED","Elevated 40–64"],["HIGH","High 65–84"],["CRITICAL","Critical 85+"]].map(([k,l])=>`<div><span style="color:${bandVar(k)}">●</span> ${l}<b>${b[k]}</b></div>`).join("")}</div>`;
+  } else {
+    panel=`<div class="health">
+      ${hrow("Bank A · pre-transaction decision API","p50 "+pct(S.lats,50)+" ms · p95 "+pct(S.lats,95)+" ms")}
+      ${hrow("Bank B · event stream","lag 1.2 s · monitored")}
+      ${hrow("Bank C · batch files","batch "+String(S.batches).padStart(3,"0")+" · variance 0")}
+      ${hrow("Rule engine","ruleset "+RULESET)}${hrow("Policy gate","SRF rapid drain · "+POLICYV)}
+      ${hrow("Gemini investigation",S.gemDown?"unavailable — control path unaffected":"available",S.gemDown?"bad":"")}
+      ${hrow("Decisions today",S.decisions.toLocaleString())}${hrow("Duplicates suppressed",S.dups)}${hrow("Lifecycle updates counted once",S.life)}</div>`;
+  }
+  return `<div class="stack">${hero}
+    <div class="kpis"><div class="kpi"><div class="l">Live events</div><div class="v"><span id="kTps">${tpsNow()}</span><small>/ sec</small></div><div class="d">3 institutions</div></div>
+      <div class="kpi"><div class="l">Active holds</div><div class="v" style="color:${holds.length?"var(--crit)":"inherit"}">${holds.length}</div><div class="d">policy gate · SRF</div></div>
+      <div class="kpi"><div class="l">Value held today</div><div class="v" style="color:var(--ok)">${SGD(valueHeld()).replace("S$","S$")}</div><div class="d">before it left accounts</div></div>
+      <div class="kpi"><div class="l">Open alerts</div><div class="v">${visibleOpen().length}</div><div class="d">awaiting an analyst</div></div></div>
+    <section class="card"><div class="seg" style="margin-bottom:12px">
+      ${[["stream","Live stream","wave"],["pulse","Threat pulse","bars"],["health","System health","cog"]].map(([k,l,i])=>`<button data-act="ttab" data-arg="${k}" aria-pressed="${tab===k}">${I(i)}${l}</button>`).join("")}</div>${panel}</section>
+    <section class="card"><div class="hd"><h2>Recent activity</h2><button class="aside link" data-go="#/more/audit">Audit trail ${I("chev")}</button></div>
+      <ul class="log">${S.audit.slice(0,5).map(logLi).join("")||`<li><span></span><span class="muted">Nothing recorded yet.</span></li>`}</ul></section></div>`;
+}
+const hrow=(k,v,st)=>`<div class="hrow"><span class="dotst ${st||""}"></span><span>${k}</span><span class="v">${v}</span></div>`;
+const logLi=e=>`<li><span class="t">${e.t}</span><span><b style="color:${e.actor==="ANALYST"?"var(--info)":e.actor==="CUSTOMER"?"var(--warn)":"var(--ink3)"}">${e.actor}</b>${esc(e.text)}</span></li>`;
+function trajSvg(v){
+  const W=320,H=120,pad=8,max=100,n=Math.max(2,v.length);
+  const x=i=>pad+i*(W-pad*2)/(n-1), y=s=>H-pad-(s/max)*(H-pad*2);
+  const pts=v.map((s,i)=>x(i)+","+y(s)).join(" ");
+  const bands=[40,65,85].map(b=>`<line x1="0" x2="${W}" y1="${y(b)}" y2="${y(b)}" stroke="var(--ln)" stroke-dasharray="3 4"/>`).join("");
+  const last=v[v.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Risk score trajectory, latest ${last}">${bands}
+   <polyline points="${pts}" fill="none" stroke="${bandVar(band(last))}" stroke-width="2.2" vector-effect="non-scaling-stroke"/>
+   ${v.map((s,i)=>`<circle cx="${x(i)}" cy="${y(s)}" r="3" fill="${bandVar(band(s))}"/>`).join("")}</svg>`;
+}
+function towerLive(row){
+  row.fresh=!reduced;
+  const k=$("kTps"); if(k) k.textContent=tpsNow();
+  if(S.ui.towerTab!=="stream"||!passFilter(row)) return;
+  const list=$("streamList"); if(!list) return;
+  const e=el("div"); e.innerHTML=srow(row); const node=e.firstElementChild;
+  const emp=list.querySelector(".empty"); if(emp) emp.remove();
+  list.insertBefore(node,list.firstChild); while(list.children.length>30) list.lastChild.remove();
+  row.fresh=false;
+}
+
+/* ---------- 2. Attack Simulator ---------- */
+function vSim(){
+  const {scenario,speed,opts}=S.sim, dr=dryRun(scenario,S.tenant,opts), sc=dr.sc, a=dr.a, acct=sc.acct, info=ACCOUNTS[acct];
+  const pre=assess(sc.base);
+  let n=0; const steps=sc.steps.map((s,i)=>{
+    if(s.kind==="policy") return "";
+    n++; const gateStep=i===dr.holdStep, afterHold=dr.holdStep>=0&&i>dr.holdStep&&s.kind==="tx";
+    const lbl=s.kind==="tx"?`${s.label.replace(/ to /," <b>"+SGD(s.amt)+"</b> to ")}${s.toInst!==sc.inst?` <span class="muted">(Bank ${s.toInst})</span>`:""}`:s.label;
+    return `<li class="${gateStep?"gate-step":""}"><span class="n ${s.kind==="sec"?"sec":""}">${n}</span><span class="t">+${(sc.steps.slice(0,i+1).reduce((t,x)=>t+x.ms,0)/1000/speed).toFixed(1)}s</span>
+      <span>${s.kind==="sec"?"Security event · ":s.kind==="in"?"":""}${lbl}${gateStep?`<span class="x">Triggers the rapid-drain gate — held before commit</span>`:afterHold?`<span class="muted" style="display:block;font-size:11.5px">Held under the active hold</span>`:""}</span></li>`}).join("");
+  const running=!!S.running;
+  return pageHd("Attack simulator","Run a realistic fraud scenario against "+TENANTS[S.tenant].name+"'s synthetic accounts")+
+  `<div class="grid g2"><div class="stack">
+    <section class="card"><div class="hd"><h2>Scenario</h2></div><div class="scen">
+      ${Object.keys(SCENARIOS).map(k=>`<button class="scard" data-act="scen" data-arg="${k}" aria-pressed="${scenario===k}"><span class="ic">${I(SCENARIOS[k].icon)}</span><b>${SCENARIOS[k].name}</b><span>${SCENARIOS[k].blurb}</span></button>`).join("")}</div></section>
+    <section class="card"><div class="hd"><h2>Target account</h2><span class="aside">${TENANTS[S.tenant].name}</span></div>
+      <div class="acct"><span class="ic">${I("bank")}</span><div><b>${acct}</b><div class="muted" style="font-size:12px">${info.seg}</div></div>
+        <div class="r">Opening balance<b class="m">${SGD(info.bal)}</b><span class="pill ${pre.isProtected?"p-ok":"p-mute"}" style="margin-top:5px">${pre.isProtected?"Protected ≥ S$50k":"Not protected"}</span></div></div>
+      <div class="hr"></div>
+      <div class="hd" style="margin-bottom:8px"><h2 style="font-size:13.5px">Speed</h2></div>
+      <div class="speed">${[1,2,5].map(s=>`<button data-act="speed" data-arg="${s}" aria-pressed="${speed===s}">${s}×</button>`).join("")}</div>
+      <div class="hr"></div>
+      ${[["cross","Include cross-bank transfers","Destinations at the other two institutions"],["security","Generate device and payee events","Account security events feed NEW_DEVICE and NEW_PAYEE"],["notify","Send customer notifications","Simulated in-app and SMS notice"]]
+        .map(([k,l,d])=>`<div class="opt"><div>${l}<div class="d">${d}</div></div><button class="sw" role="switch" aria-checked="${opts[k]}" aria-label="${l}" data-act="opt" data-arg="${k}"></button></div>`).join("")}</section>
+  </div><div class="stack">
+    <section class="card"><div class="hd"><h2>Attack timeline</h2><span class="aside">${n} events</span></div><ol class="steps">${steps}</ol></section>
+    <section class="card"><div class="hd"><h2>Expected rule triggers <small>deterministic</small></h2></div>
+      <div class="chips">${a.contributions.map(c=>`<div class="chip" style="border-color:color-mix(in srgb,${ruleColor(c.code)} 45%,var(--ln))"><b style="color:${ruleColor(c.code)}">${c.code}</b><span>+${c.points}</span> <span class="muted" style="font-size:11px;font-weight:400">pts</span></div>`).join("")||`<span class="muted">No rules would fire.</span>`}</div></section>
+    <section class="outcome ${a.gate.hold?"hold":""}"><div><div class="muted" style="font-size:12px">Policy outcome preview</div>
+      <div class="big" style="color:${a.gate.hold?"var(--crit)":"var(--ink)"}">${a.gate.hold?"HOLD · 24 hours":a.gate.state==="NOT PROTECTED"?"Not protected":"No policy hold"}</div>
+      <div style="font-size:12.5px;color:var(--ink2)">${esc(a.gate.why)}${!a.gate.hold?" Case handling: <b>"+a.handling.toLowerCase()+"</b>.":dr.held?" "+SGD(dr.held)+" would be held.":""}</div></div>
+      <div class="sc"><span class="muted" style="font-size:11px">Advisory score</span><b style="color:${bandVar(a.band)}">${a.score}</b><span class="pill ${bandCls(a.band)}">${a.band}</span></div></section>
+    <button class="btn pri block" data-act="run" ${running?"disabled":""} style="min-height:52px;font-size:15.5px">${I("play")}${running?"Simulation running…":"Run simulation"}</button>
+    <p class="note">The preview is a dry run of the same rule engine that scores the live run, so the result will match. All accounts and payees are synthetic.</p>
+  </div></div>`;
+}
+
+/* ---------- 3. Policy intervention ---------- */
+function vInc(id){
+  const inc=S.incidents[id]; if(!inc) return pageHd("Policy intervention","",'#/inv')+`<div class="card empty">This incident no longer exists. Reset data or run a new simulation.</div>`;
+  const a=incAssess(inc), mine=own(inc.inst), hold=a.gate.hold&&inc.hold;
+  let gs=a.gate.state, gc=hold?"hold":"", why=a.gate.why, gcol="";
+  if(inc.verify==="RELEASED"){gs="RELEASED · CUSTOMER VERIFIED";why="Gate tripped at "+a.drainPct.toFixed(1)+"%. The customer verified with the bank and the hold was released early through the published route.";gc="";gcol="var(--ok)"}
+  if(inc.verify==="SCAM"){gs="CANCELLED · SCAM CONFIRMED";why="Gate tripped at "+a.drainPct.toFixed(1)+"%. The customer confirmed the scam and cancelled; "+SGD(inc.heldValue)+" never left the account."}
+  const last=inc.txs.filter(t=>t.status==="HELD")[0]||inc.txs[inc.txs.length-1];
+  const trace=[["doc","Transaction",last?last.t:"—",last?SGD(last.amt):"—",last?last.to:""],["cog","Risk engine",inc.gateAt||stamp(),"Score "+a.score,"v"+RULESET],
+    ["shield","Policy gate",inc.gateAt||"—",hold||inc.hold?"HOLD":"not met",POLICYV],["msg","Customer notice",inc.notified?inc.gateAt:"—",inc.notified?"Sent":"—","in-app / SMS"],["doc","Audit",inc.gateAt||"—","Recorded",S.audit.find(e=>e.inc===inc.id)?S.audit.find(e=>e.inc===inc.id).id:"—"]];
+  const lockTxt=!mine?"":!inc.hold?`Release <b>not applicable</b> — no active policy hold.`:inc.verify==="VERIFIED"?`<span style="color:var(--ok)">Customer verified with the bank.</span> Expedited release permitted.`
+    :inc.verify==="SCAM"?`Held transfers <b>cancelled</b> by the customer. Nothing to release.`:inc.verify==="RELEASED"?`<span style="color:var(--ok)">Released</span> after customer verification. Recorded in the audit trail.`
+    :`Release <b>locked</b> — customer verification required. Otherwise the hold auto-releases when the 24-hour period ends.`;
+  const relOk=mine&&inc.hold&&inc.verify==="VERIFIED";
+  return pageHd("Policy intervention",`<span class="m">${inc.txn}</span> · ${SCENARIOS[inc.scenario].name}`,"#/inv")+
+  `<div class="grid g2"><div class="stack">
+    <section class="card"><div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="min-width:0"><div class="m" style="font-size:20px;font-weight:600">${esc(disp(inc.acct,inc.inst))}</div>
+        <div class="muted" style="font-size:12.5px;margin:2px 0 8px">${TENANTS[inc.inst].name} · ${mine?ACCOUNTS[inc.acct].seg:"network projection"}</div>
+        <span class="pill ${a.isProtected?"p-ok":"p-mute"}">${a.isProtected?"Protected account":"Not protected"}</span> <span class="pill p-mute">Bank ${inc.inst}</span></div>
+      <div style="margin-left:auto;text-align:right"><div class="muted" style="font-size:11.5px">Advisory risk score</div>
+        <div class="m" style="font-size:38px;font-weight:600;line-height:1;color:${bandVar(a.band)}">${mine?a.score:"—"}</div><span class="pill ${bandCls(a.band)}">${a.band}</span></div></div></section>
+    <section class="gate ${gc}"><div class="cap">${I("shield")}Policy gate · SRF rapid drain<span class="pill ${hold?"p-crit":"p-mute"}">Mandatory control</span></div>
+      <div class="state" style="${gcol?"color:"+gcol:""}"><span class="lk">${I(hold&&!inc.verify?"lock":inc.verify==="RELEASED"?"unlock":"shield")}</span>${gs}</div>
+      <div class="why">${esc(why)}</div>
+      <div class="facts"><div>Drain vs gate<b style="color:${a.drainPct>50?"var(--crit)":"inherit"}">${a.drainPct.toFixed(1)}% / 50%</b></div><div>Protected<b>${a.isProtected?"Yes":"No"}</b></div>
+        <div>Opening balance<b>${SGD(a.balance)}</b></div><div>${inc.hold?"Auto-release":"Outflow 24h"}<b>${inc.hold?inc.holdAt+" +24h":SGD(a.outflow)}</b></div></div>
+      ${meter(a)}</section>
+    <div class="muted" style="font-size:12.5px;padding:0 4px">${inc.hold?`Case handling: <span class="pill p-crit">Policy hold</span> · applied automatically by the gate, not by an analyst or the model.`:`Case handling: <span class="pill ${bandCls(a.band)}">${a.handling}</span> · advisory, set by the score band — not a policy action.`}</div>
+    <section class="card"><div class="hd"><h2>Actions</h2><span class="aside">${mine?"you can act":"read only"}</span></div>
+      <div class="actbar">
+        <button class="btn pri" data-act="contact" ${mine?"":"disabled"}>${I("phone")}Contact customer</button>
+        <button class="btn" data-act="release" ${relOk?"":"disabled"}>${I(relOk?"unlock":"lock")}<span class="col">Release<small>${relOk?"verified":"verification required"}</small></span></button>
+        <button class="btn danger" data-act="kill" ${mine&&!inc.killed?"":"disabled"}>${I("kill")}${inc.killed?"Kill switch on":"Kill switch"}</button>
+        <button class="btn" data-go="#/ws/${inc.id}" ${mine?"":"disabled"}>${I("search")}Investigate</button></div>
+      ${lockTxt?`<div class="lockline">${I(relOk?"unlock":"lock")}<span>${lockTxt}</span></div>`:""}
+      ${mine?"":`<div class="restrict">Cross-tenant view. You are signed in as <b>${TENANTS[S.tenant].name}</b>; this account belongs to <b>Bank ${inc.inst}</b>. You see the policy outcome and risk band. Identity, history and interventions stay with the owning institution.</div>`}</section>
+  </div><div class="stack">
+    <section class="card"><div class="hd"><h2>Risk contribution <small>deterministic rule engine</small></h2></div>${mine?contribList(a):`<div class="empty">Contribution detail stays with Bank ${inc.inst}. Risk band: <b>${a.band}</b>.</div>`}</section>
+    <section class="card"><div class="hd"><h2>Decision trace</h2><span class="aside">versioned, replayable</span></div>
+      <div class="trace">${trace.map(([ic,l,t,v,x],i)=>`<div class="tstep ${i===2&&(hold||inc.hold)?"hot":t!=="—"?"done":""}"><div class="o">${I(ic)}</div><b>${l}</b><div class="v">${t}</div><div class="v" style="${i===2&&inc.hold?"color:var(--crit);font-weight:600":""}">${v}</div><div class="v">${esc(x)}</div></div>`).join("")}</div>
+      <div class="noai">${I("check")}<span>Decision source: deterministic policy engine · ruleset ${RULESET} · policy ${POLICYV} · <b>AI involved in decision: No</b></span></div></section>
+    ${inc.last?`<details class="json"><summary>${I("doc")}Decision API exchange<span class="aside">POST /v1/decision/transactions</span></summary>
+      <div class="jcols"><div><div class="cap">Request · TransactionEvent from Bank ${inc.inst}</div><pre class="code">${jsonHtml(inc.last.req)}</pre></div>
+      <div><div class="cap">Response · DecisionResponse in ${inc.last.lat} ms</div><pre class="code">${jsonHtml(inc.last.res)}</pre></div></div>
+      <div class="jnote">${inc.dupNote?"<b style='color:var(--warn)'>Retry.</b> "+inc.dupNote+"<br>":""}${inc.lifeNote?"<b style='color:var(--ok)'>Lifecycle.</b> "+inc.lifeNote:"Identifiers arrive tokenised; the bank keeps the real account numbers."}</div></details>`:""}
+    ${inc.lastSec?`<details class="json"><summary>${I("device")}Latest account security event<span class="aside">${inc.lastSec.eventType}</span></summary>
+      <div class="jcols"><div><div class="cap">AccountSecurityEvent</div><pre class="code">${jsonHtml(inc.lastSec)}</pre></div>
+      <div><div class="cap">Effect</div><pre class="code">${jsonHtml({accountStateUpdate:"AccountState",affects:inc.sec.map(e=>e.eventType),paymentDecision:"none — not a payment"})}</pre></div></div></details>`:""}
+  </div></div>`;
+}
+
+/* ---------- Investigations list ---------- */
+function vInv(){
+  const all=S.incidentOrder.map(id=>S.incidents[id]);
+  const rows=all.map(inc=>{const a=incAssess(inc);const st=inc.status;
+    return `<button class="lrow" data-go="#/${st==="HOLD"&&own(inc.inst)?"inc":"ws"}/${inc.id}"><span class="bar" style="background:${bandVar(a.band)}"></span>
+      <span class="main"><b>${esc(disp(inc.acct,inc.inst))}</b><div class="s">${SCENARIOS[inc.scenario].name} · ${inc.id} · ${inc.createdAt}</div>
+      <div style="margin-top:6px"><span class="pill ${st==="HOLD"?"p-crit":st==="REVIEW"?"p-hi":st==="MONITOR"?"p-warn":st==="LIVE"?"p-info":"p-mute"}">${statusLabel(st)}</span> ${inc.caseId?`<span class="pill p-mute">${inc.caseId}</span>`:""}</div></span>
+      <span class="r"><div class="sc" style="color:${bandVar(a.band)}">${own(inc.inst)?a.score:a.band.slice(0,4)}</div><div class="s">${a.band.toLowerCase()}</div></span></button>`}).join("");
+  return pageHd("Investigations","Every scenario run becomes an incident you can work")+
+    (rows||`<div class="card empty">No incidents yet. The live stream is clean.<br><button class="btn pri" data-go="#/sim">${I("play")}Run a simulation</button></div>`);
+}
+const statusLabel=s=>({LIVE:"Live",HOLD:"Hold active",REVIEW:"Review required",MONITOR:"Monitoring",CLEARED:"No action",CANCELLED:"Cancelled by customer",RELEASED:"Released after verification"}[s]||s);
+
+/* ---------- 4. Investigation workspace ---------- */
+function vWs(id){
+  const inc=S.incidents[id]; if(!inc) return pageHd("Investigation","","#/inv")+`<div class="card empty">Incident not found.</div>`;
+  const a=incAssess(inc), mine=own(inc.inst), tab=S.ui.wsTab, g=buildGraph(inc), evc=evidenceCounts(inc);
+  if(!mine) return pageHd("Investigation workspace",esc(disp(inc.acct,inc.inst)),"#/inv")+`<div class="card"><div class="restrict">Investigations stay with the owning institution. Bank ${inc.inst} can open this workspace; you can follow the masked network trace.</div><div style="margin-top:12px"><button class="btn pri" data-go="#/net">${I("graph")}View network trace</button></div></div>`;
+  let body="";
+  if(tab==="overview"){
+    body=`<div class="facts4">
+      <div class="fact"><span class="ic" style="background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)">${I("shield")}</span><div><small>Account status</small><b>${a.isProtected?"Protected":"Not protected"}</b></div></div>
+      <div class="fact"><span class="ic" style="background:color-mix(in srgb,var(--crit) 14%,transparent);color:${bandVar(a.band)}">${I("bars")}</span><div><small>Risk score</small><b style="color:${bandVar(a.band)}">${a.score} · ${a.band.toLowerCase()}</b></div></div>
+      <div class="fact"><span class="ic" style="background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)">${I("bell")}</span><div><small>Open alerts</small><b>${visibleOpen().length}</b></div></div>
+      <div class="fact"><span class="ic" style="background:color-mix(in srgb,var(--info) 14%,transparent);color:var(--info)">${I("link")}</span><div><small>Linked entities</small><b>${g.N.length-2}</b></div></div></div>
+    <div class="grid g2e" style="margin-top:12px"><section class="card"><div class="hd"><h2>Risk contribution <small>rule engine</small></h2></div>${contribList(a,true)}</section>
+    <div class="stack"><section class="gem"><div class="hd"><h2><svg class="i star" viewBox="0 0 24 24" style="fill:#8b5cf6;stroke:none">${P.star}</svg>Gemini investigation <small>advisory</small></h2></div>
+      ${inc.ai?`<p>${inc.ai.hyp}</p><button class="btn block" data-act="wstab" data-arg="ai">View full analysis</button>`:`<p>Gemini reads the evidence bundle and explains it. It cannot change the score or the policy decision.</p><button class="btn block" data-act="wstab" data-arg="ai">${I("star")}Run investigation</button>`}</section>
+      <section class="card"><div class="hd"><h2>Evidence sources</h2></div>${evcHtml(evc)}</section>
+      <section class="card"><div class="hd"><h2>Case</h2>${inc.caseId?`<span class="pill p-warn" style="margin-left:auto">${S.cases[inc.caseId].status.replace("_"," ").toLowerCase()}</span>`:""}</div>
+        ${inc.caseId?`<button class="btn block" data-go="#/case/${inc.caseId}">${I("folder")}Open ${inc.caseId}</button>`:`<button class="btn pri block" data-act="mkcase" data-arg="${inc.id}">${I("folder")}Create case</button>`}
+        ${inc.hold?`<button class="btn block ghost" style="margin-top:8px" data-go="#/inc/${inc.id}">${I("shield")}Open intervention</button>`:""}</section></div></div>`;
+  } else if(tab==="evidence"){
+    const grp=(h,rows)=>`<div class="grp"><div class="gh">${h}</div>${rows.map(([k,v])=>`<div class="fr"><span>${k}</span><span>${esc(v)}</span></div>`).join("")||`<div class="fr"><span>—</span><span>none</span></div>`}</div>`;
+    const links={};g.E.forEach(e=>links[e.link]=(links[e.link]||0)+1);
+    body=`<div class="bundle">${grp("assessment.contributions[] · written once by the engine, never updated",a.contributions.map(c=>[c.code,"+"+c.points+" · "+c.detail]))}
+      ${grp("drain · DrainState",[["balanceAtWindowStart",SGD(a.balance)],["outflow24h",SGD(a.outflow)],["drainPct",a.drainPct.toFixed(1)],["protected",String(a.isProtected)],["thresholdMet",String(a.gate.hold)],["policyVersion",POLICYV]])}
+      ${grp("security_events[] · AccountSecurityEvent",inc.sec.map(e=>[e.eventType,e.occurredAt.slice(11,19)+" · "+(e.deviceToken||e.beneficiaryToken||e.accountToken)]))}
+      ${grp("transactions · projection (one row per transactionId)",inc.txs.map(t=>[t.id,SGD(t.amt)+" → "+t.to+" · Bank "+t.toInst+" · "+t.status]))}
+      ${inc.last?grp("decisions · latest DecisionResponse",[["decisionId",inc.last.res.decisionId],["decision",inc.last.res.decision],["reasonCodes",inc.last.res.reasonCodes.join(", ")],["rulesetVersion",RULESET],["traceId",inc.last.res.traceId]]):""}
+      ${grp("neighbourhood · EdgeEvidence",[["nodes",String(g.N.length)],["edges",String(g.E.length)]].concat(Object.keys(links).map(k=>["linkage."+k,links[k]+" · "+LINK_SCORING[k]])))}</div>
+      <p class="note">Gemini receives exactly this bundle, passed as untrusted evidence rather than instructions. Model involvement in these fields: none.</p>`;
+  } else if(tab==="timeline"){
+    body=`<section class="card"><ul class="tl">${inc.timeline.map(e=>`<li class="${e.kind==="policy"?"hold":e.kind==="act"?"act":e.kind}"><span class="t">${e.t}</span><div>${e.html}</div>${e.code?`<code>rule ${e.code}</code>`:""}</li>`).join("")}</ul></section>`;
+  } else {
+    body=aiPanel(inc,a,evc);
+  }
+  return pageHd("Investigation workspace",`<span class="m">${inc.acct}</span> · ${TENANTS[inc.inst].name} · ${inc.id}`,"#/inv")+
+    `<div class="tabsin" role="tablist">${[["overview","Overview"],["evidence","Evidence"],["timeline","Timeline"],["ai","AI analysis"]].map(([k,l])=>`<button role="tab" aria-selected="${tab===k}" data-act="wstab" data-arg="${k}">${l}</button>`).join("")}</div>`+body;
+}
+const evcHtml=e=>`<div class="evc"><div><b>${e.tx}</b>transactions</div><div><b>${e.dev}</b>devices</div><div><b>${e.sec}</b>security events</div><div><b>${e.alerts}</b>alerts</div><div><b>${e.links}</b>graph links</div><div><b>${e.iv}</b>interventions</div></div>`;
+function aiPanel(inc,a,evc){
+  if(S.gemDown) return `<section class="gem"><div class="hd"><h2>Intelligence path unavailable</h2><span class="pill p-crit" style="margin-left:auto">Gemini down</span></div>
+    <p>The evidence bundle for ${esc(inc.acct)} is assembled and stored. The narrative will be generated when the model returns.</p>
+    <dl class="dl"><dt>Policy gate</dt><dd>${a.gate.state}</dd><dt>Risk score (rule engine)</dt><dd>${a.score} / 100</dd><dt>Holds in force</dt><dd>${inc.hold?1:0}</dd><dt>Audit trail</dt><dd>recording</dd></dl>
+    <p class="note">Nothing about the payment decision depended on this call. AI failure never equals payment-control failure.</p></section>`;
+  if(!inc.ai) return `<section class="gem"><div class="hd"><h2>Evidence assembled before any model call</h2></div>${evcHtml(evc)}
+    <p style="margin-top:12px">Gemini will read this bundle as untrusted evidence, correlate it and write a schema-validated summary. It has no tools and cannot touch the payment.</p>
+    <ul class="pipe" id="pipe"></ul><button class="btn pri block" data-act="airun" data-arg="${inc.id}" id="aiRun">${I("star")}Run investigation</button></section>`;
+  const x=inc.ai;
+  return `<section class="gem"><div class="hd"><h2><svg class="i star" viewBox="0 0 24 24" style="fill:#8b5cf6;stroke:none">${P.star}</svg>Gemini investigation <small>advisory</small></h2><span class="pill p-info" style="margin-left:auto">Schema validated</span></div>
+    <p>${x.hyp}</p><div class="muted" style="font-size:12px">Every claim cites a bundle field. Tap a field to inspect it.</div>
+    <ul class="claims">${x.claims.map((c,i)=>`<li><span class="n">${String(i+1).padStart(2,"0")}</span><span>${c.text}<br><button class="src" data-act="ev" data-arg="${c.code}">${c.src}</button></span></li>`).join("")}</ul>
+    <div class="hd" style="margin:12px 0 6px"><h2 style="font-size:13.5px">Recommended analyst actions</h2></div><ul style="margin:0;padding-left:18px;font-size:13px;color:var(--ink2)">${x.recs.map(r=>`<li>${r}</li>`).join("")}</ul>
+    <p class="note">The model may not add, remove or re-weight a contribution, and cannot recommend releasing a held transaction.</p>
+    <div class="aimeta"><div>Claims, evidence-backed<b>${x.claims.length} / ${x.claims.length}</b></div><div>Model<b>${x.meta.model}</b></div><div>Prompt / schema<b>${x.meta.prompt} · ${x.meta.schema}</b></div><div>Evidence hash<b>${x.meta.hash}</b></div>
+      <div>Generation<b>${x.meta.gen}</b></div><div>Validation<b style="color:var(--ok)">schema ✓ · source fields ✓</b></div><div>Tools available to model<b>none</b></div><div>AI in payment decision<b style="color:var(--ok)">No</b></div>
+      <div style="grid-column:1/-1">Runtime<b>${x.meta.runtime}</b></div></div></section>`;
+}
+function runAI(id){
+  const inc=S.incidents[id]; if(!inc||S.gemDown) return;
+  const steps=["Evidence bundle assembled","Account history retrieved","Device relationships correlated","Entity neighbourhood analysed","Reasoning over correlated evidence","Schema validation","Draft prepared"];
+  const ul=$("pipe"), btn=$("aiRun"); if(btn) btn.disabled=true;
+  if(ul) ul.innerHTML=steps.map(s=>`<li><span class="mk">◌</span>${s}</li>`).join("");
+  audit("ANALYST","investigation opened on "+inc.acct,inc.id);
+  let i=0;
+  (function nxt(){
+    if(ul){ if(i>0){ul.children[i-1].className="done";ul.children[i-1].firstChild.textContent="✓"} if(i<steps.length){ul.children[i].className="run";ul.children[i].firstChild.textContent="◉"} }
+    if(i>=steps.length){ inc.ai=analyse(inc); tl(inc,"act","Gemini summary generated and schema-validated"); audit("SYSTEM","Gemini summary "+inc.ai.meta.gen+" validated for "+inc.id,inc.id); save(); if(route.name==="ws"&&route.id===id) render(); return }
+    i++; setTimeout(nxt,reduced?60:320);
+  })();
+}
+
+/* ---------- 5. Network intelligence ---------- */
+let G=null, pick={n:-1,e:-1}, traceT=-1, showBound=false, raf=0;
+function vNet(){
+  const ids=S.incidentOrder; if(!ids.length) return pageHd("Network intelligence","Entity graph across institutions")+`<div class="card empty">The graph is built from an incident's own events. Run a scenario to build one.<br><button class="btn pri" data-go="#/sim">${I("play")}Run a simulation</button></div>`;
+  if(!S.ui.netInc||!S.incidents[S.ui.netInc]) S.ui.netInc=ids[0];
+  const inc=S.incidents[S.ui.netInc], tab=S.ui.netTab; G=buildGraph(inc);
+  let side="";
+  if(tab==="trace") side=traceSummary(false);
+  else if(tab==="related"){
+    const rel=S.caseOrder.map(c=>S.cases[c]);
+    side=`<section class="card"><div class="hd"><h2>Related cases</h2><span class="aside">share linked entities</span></div>${rel.map(c=>`<button class="lrow" data-go="#/case/${c.id}"><span class="main"><b>${c.id}</b><div class="s">${esc(c.title)} · ${esc(disp(c.acct,c.inst))}</div></span><span class="pill ${c.status==="OPEN"?"p-warn":"p-mute"}">${c.status.replace("_"," ").toLowerCase()}</span></button>`).join("")}</section>`;
+  } else side=`<section class="card" id="gdetail"><div class="hd"><h2>Entity detail</h2></div><p class="muted" style="margin:0;font-size:13px">Tap a node or a connecting line. Every line shows which bank reported it and why it exists.</p></section>`;
+  return pageHd("Network intelligence","Entity graph · cross-institution · tokenised")+
+    `<div class="seg" style="margin-bottom:10px">${ids.slice(0,6).map(id=>{const i=S.incidents[id];return `<button data-act="netinc" data-arg="${id}" aria-pressed="${id===S.ui.netInc}">${esc(dshort(i.acct,i.inst))}</button>`}).join("")}</div>
+    <div class="tabsin">${[["graph","Entity graph"],["trace","Trace funds"],["related","Related cases"]].map(([k,l])=>`<button aria-selected="${tab===k}" data-act="nettab" data-arg="${k}">${l}</button>`).join("")}</div>
+    <div class="grid g2"><div><div class="gwrap"><canvas id="graph" aria-label="Entity graph for ${esc(inc.acct)}"></canvas></div>
+      <div class="legend"><span><i style="background:var(--info)"></i>Subject</span><span><i style="background:var(--crit)"></i>Flagged</span><span><i style="background:var(--ink3)"></i>Clear</span><span><i style="border:1.5px dashed var(--warn)"></i>Unobserved</span><span>- - weak or unobserved link</span></div>
+      ${tab==="trace"?`<button class="btn pri block" style="margin-top:12px" data-act="trace">${I("play")}Trace funds</button>`:""}</div><div class="stack">${side}</div></div>`;
+}
+function traceSummary(done){
+  if(!G) return "";
+  if(!done) return `<section class="card" id="gdetail"><div class="hd"><h2>Path risk</h2></div><p class="muted" style="margin:0;font-size:13px">Follow the money from the subject through each institution's own reported legs. The trace stops where no valid linkage exists.</p></section>`;
+  const insts=new Set(G.trace.map(i=>G.N[i].inst).filter(x=>x!=="—")), last=G.N[G.trace[G.trace.length-1]];
+  const flagged=G.trace.filter(i=>G.N[i].k==="mule").length, cons=G.trace.filter(i=>G.N[i].f.some(x=>/Consolidation/.test(x))).length;
+  return `<section class="card" id="gdetail"><div class="hd"><h2>Path risk</h2><span class="pill p-info" style="margin-left:auto">Traced</span><span class="pill p-warn">Incomplete</span></div>
+    <ul class="path">${G.trace.map((i,n)=>{const e=n?edgeBetween(G.trace[n-1],i):null;return (e?`<li class="lk">↓ ${e.link.toLowerCase().replace("_"," ")} · reported by Bank ${e.src}</li>`:"")+`<li><span class="m">${esc(dshort(G.N[i].id,G.N[i].inst))}</span> <span class="muted">Bank ${G.N[i].inst}</span></li>`}).join("")}
+      <li class="lk" style="color:var(--warn)">↓ unobserved</li><li style="color:var(--warn)">?</li></ul>
+    <div class="hr"></div><dl class="dl"><dt>Observed hops</dt><dd>${G.trace.length-1}</dd><dt>Institutions</dt><dd>${insts.size}</dd><dt>Flagged nodes</dt><dd>${flagged}</dd><dt>Consolidation points</dt><dd>${cons}</dd>
+      <dt>observability.complete</dt><dd>false</dd><dt>observability.boundary</dt><dd>BANK_${last.inst}</dd></dl>
+    <div class="bound">${I("alert")}<span>Observed ${G.trace.length-1} hops. Downstream activity unavailable beyond Bank ${last.inst}.</span></div></section>`;
+}
+
+/* ---------- Cases ---------- */
+function vCases(){
+  const f=S.ui.caseFilter, list=S.caseOrder.map(id=>S.cases[id]).filter(c=>f==="all"||(f==="open"?!/CLOSED/.test(c.status):/CLOSED/.test(c.status)));
+  return pageHd("Cases","Structured reports drafted from recorded evidence")+
+   `<div class="seg" style="margin-bottom:12px">${[["open","Open"],["closed","Closed"],["all","All"]].map(([k,l])=>`<button data-act="casef" data-arg="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div>`+
+   (list.map(c=>`<button class="lrow" data-go="#/case/${c.id}"><span class="bar" style="background:${bandVar(c.band)}"></span><span class="main"><b>${c.id}</b><div class="s">${esc(c.title)}</div><div class="s">${esc(disp(c.acct,c.inst))} · opened ${c.created}</div></span>
+     <span class="r"><span class="pill ${c.status==="OPEN"?"p-warn":c.status==="ESCALATED"?"p-crit":"p-mute"}">${caseLabel(c.status)}</span><div class="s" style="margin-top:6px">${c.heldValue?SGD(c.heldValue)+" held":""}</div></span></button>`).join("")
+    ||`<div class="card empty">No ${f==="all"?"":f} cases. Create one from an investigation.<br><button class="btn" data-go="#/inv">${I("search")}Go to investigations</button></div>`);
+}
+const caseLabel=s=>({OPEN:"Open",ESCALATED:"Escalated",CLOSED_FRAUD:"Closed · fraud confirmed",CLOSED_LEGITIMATE:"Closed · legitimate"}[s]||s);
+function vCase(id){
+  const c=S.cases[id]; if(!c) return pageHd("Case","","#/cases")+`<div class="card empty">Case not found.</div>`;
+  const inc=c.incId&&S.incidents[c.incId], a=inc?incAssess(inc):null, mine=own(c.inst);
+  const summary=inc&&inc.ai?inc.ai.hyp:inc?`${SCENARIOS[inc.scenario].name} on ${esc(disp(c.acct,c.inst))}. ${esc(a.gate.why)} Run the Gemini investigation to add an evidence-backed narrative.`
+    :c.status==="CLOSED_FRAUD"?"Funds arrived from another institution and were forwarded within minutes to beneficiaries linked to flagged entities. Customer contact confirmed the account was being used as a mule; the case was closed as fraud and reported.":"A run of small transfers to new payees raised velocity. The customer confirmed the payments as legitimate business expenses; the case was closed with no further action.";
+  const fld=(k,v,col)=>`<div><div class="muted" style="font-size:11.5px">${k}</div><div class="m" style="font-size:14px${col?";color:"+col:""}">${v}</div></div>`;
+  const hist=S.audit.filter(e=>c.incId&&e.inc===c.incId).slice().reverse();
+  return pageHd("Case report",`<span class="m">${c.id}</span>`,"#/cases")+
+  `<div class="grid g2"><section class="card report"><div style="display:flex;gap:10px;align-items:flex-start"><div><div class="muted" style="font-size:12px">SENTINEL AI · financial fraud incident report</div><h3 style="margin:4px 0 0;font-size:17px">${esc(c.title)}</h3></div>
+    <span class="pill ${c.status==="OPEN"?"p-warn":c.status==="ESCALATED"?"p-crit":"p-mute"}" style="margin-left:auto">${caseLabel(c.status)}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:14px">${fld("Subject",esc(disp(c.acct,c.inst)))}${fld("Severity",c.band,bandVar(c.band))}${fld("Policy gate",c.gate,c.gate==="HOLD ACTIVE"?"var(--crit)":"")}${fld("Value held",c.heldValue?SGD(c.heldValue):"—")}${fld("Risk score",c.score+" / 100")}${fld("Opened",c.created)}</div>
+    <h4>Executive summary</h4><p>${summary}</p>
+    ${inc?`<h4>Timeline</h4><ul>${inc.timeline.map(e=>`<li><span class="m muted">${e.t}</span> ${e.html.replace(/<\/?b>/g,"")}</li>`).join("")}</ul>
+      <h4>Risk attribution</h4><ul>${a.contributions.map(x=>`<li>+${x.points} · ${x.label} — ${esc(x.detail)}</li>`).join("")}</ul>`:""}
+    <h4>Intervention history</h4>${hist.length?`<ul>${hist.map(e=>`<li><span class="m muted">${e.t}</span> ${e.actor} — ${esc(e.text)}</li>`).join("")}</ul>`:`<p>Recorded in the archive for this historical case.</p>`}
+    ${inc&&inc.ai?`<h4>AI provenance</h4><p class="m" style="font-size:12px">${inc.ai.meta.model} · ${inc.ai.meta.prompt} · ${inc.ai.meta.schema} · evidence ${inc.ai.meta.hash} · ${inc.ai.meta.gen}</p>`:""}
+    <h4>Analyst sign-off</h4><p>${c.signed?"Signed off by the analyst on duty.":"Draft generated from recorded evidence. Awaiting analyst review and signature."}</p></section>
+  <div class="stack"><section class="card"><div class="hd"><h2>Case actions</h2></div>
+    ${mine&&!/CLOSED/.test(c.status)?`<button class="btn pri block" data-act="csign" data-arg="${c.id}" ${c.signed&&c.status==="ESCALATED"?"disabled":""}>${I("check")}${c.status==="ESCALATED"?"Signed off and escalated":"Sign off and escalate"}</button>
+      <button class="btn block" style="margin-top:8px" data-act="cclose" data-arg="${c.id}|CLOSED_FRAUD">Close · fraud confirmed</button>
+      <button class="btn block ghost" style="margin-top:8px" data-act="cclose" data-arg="${c.id}|CLOSED_LEGITIMATE">Close · legitimate</button>`:`<p class="muted" style="margin:0;font-size:13px">${mine?"This case is closed.":"Read only — owned by Bank "+c.inst+"."}</p>`}
+    <button class="btn block ghost" style="margin-top:8px" data-act="ccopy" data-arg="${c.id}">${I("export")}Copy report text</button>
+    ${inc?`<button class="btn block ghost" style="margin-top:8px" data-go="#/ws/${inc.id}">${I("search")}Open investigation</button>`:""}</section>
+    <section class="card"><div class="hd"><h2>What this report is</h2></div><p class="muted" style="margin:0;font-size:13px;line-height:1.55">Assembled from the incident record: the rule engine's contributions, the policy decision, the audit trail and — when run — Gemini's schema-validated summary. An analyst signs it; the model never does.</p></section></div></div>`;
+}
+
+/* ---------- More ---------- */
+function vMore(sub){
+  if(sub==="audit") return pageHd("Audit trail","Append-only · every decision, event and analyst action","#/more")+`<section class="card"><ul class="log">${S.audit.map(logLi).join("")||'<li><span></span><span class="muted">Nothing recorded yet.</span></li>'}</ul></section>`;
+  const th=k=>THEMES[k][k==="A"?"dark":"light"];
+  return pageHd("More","Institution, connectors, resilience and data")+
+  `<div class="stack"><section class="card"><div class="hd"><h2>Institution</h2><span class="aside">one codebase, per-tenant configuration</span></div>
+    <div class="tcards">${["A","B","C"].map(k=>{const t=TENANTS[k],c=th(k);return `<button class="tcard" data-act="tenant" data-arg="${k}" aria-pressed="${S.tenant===k}"><div style="display:flex;gap:9px;align-items:center"><span class="tmark" style="background:${t.mark}">${k}</span><div><b>${t.name}</b><div class="muted" style="font-size:12px">${t.city} · contributes by ${t.connector.toLowerCase()}</div></div></div>
+      <div class="sw4">${[c.ac,c.bg,c.sf,c.ink,c.ok].map(x=>`<i style="background:${x}"></i>`).join("")}</div></button>`}).join("")}</div>
+    <div class="hr"></div><div class="hd" style="margin-bottom:8px"><h2 style="font-size:13.5px">Appearance</h2></div>
+    <div class="seg">${[["auto","Automatic"],["light","Light"],["dark","Dark"]].map(([k,l])=>`<button data-act="appear" data-arg="${k}" aria-pressed="${S.appearance===k}">${l}</button>`).join("")}</div></section>
+  <section class="card"><div class="hd"><h2>Connectors</h2></div><div class="health">
+    ${["A","B","C"].map(k=>hrow(TENANTS[k].name+" · "+TENANTS[k].connector,k==="A"?"prevents · p95 "+pct(S.lats,95)+" ms":k==="B"?"detects after settlement":"reconciles · "+S.batches+" batches")).join("")}</div>
+    <p class="note">Every institution uses the same canonical event contract. Fallback if SENTINEL is unreachable is set by each bank: ${TENANTS[S.tenant].name} uses <b>${TENANTS[S.tenant].fallback}</b>.</p></section>
+  <section class="card"><div class="hd"><h2>Resilience</h2></div>
+    <div class="opt"><div>Simulate Gemini outage<div class="d">Detection, holds and the audit trail keep working. Investigations queue.</div></div><button class="sw" role="switch" aria-checked="${S.gemDown}" aria-label="Simulate Gemini outage" data-act="gem"></button></div></section>
+  <section class="card"><div class="hd"><h2>Records</h2></div>
+    <button class="btn block" data-go="#/more/audit">${I("doc")}Audit trail (${S.audit.length})</button>
+    <button class="btn block danger" style="margin-top:8px" data-act="reset">${I("x")}Reset demo data</button>
+    <p class="note">Incidents, cases and the audit trail are kept in this browser so a refresh doesn't lose your work.</p></section>
+  <section class="card"><div class="hd"><h2>About this prototype</h2></div><p class="muted" style="margin:0;font-size:13px;line-height:1.6">Designed as a multi-tenant platform; demonstrated as a single deployment on synthetic data. Institutions are generic, not real banks. COSMIC-inspired cross-institutional risk intelligence. The rule engine and policy gate run here in the browser; Gemini output is simulated in this prototype and produced on Vertex AI in the production design.<br><br><b style="color:var(--ink)">Rules decide. AI explains. Humans authorize.</b></p></section></div>`;
+}
+
+/* =====================================================================
+   GRAPH CANVAS
+   ===================================================================== */
+let cv=null,cx=null,pts=[];
+const cssv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function edgeBetween(i,j){return G.E.find(e=>(e.a===i&&e.b===j)||(e.a===j&&e.b===i))}
+const mid=e=>{const a=pts[e.a],b=pts[e.b];return{x:(a.x+b.x)/2,y:(a.y+b.y)/2-14}};
+const qpt=(a,m,b,t)=>{const u=1-t;return{x:u*u*a.x+2*u*t*m.x+t*t*b.x,y:u*u*a.y+2*u*t*m.y+t*t*b.y}};
+function mountGraph(){
+  cv=$("graph"); if(!cv) return; cx=cv.getContext("2d"); pick={n:-1,e:-1}; traceT=-1; showBound=false;
+  sizeCv(); cv.addEventListener("click",onGraphClick);
+}
+function sizeCv(){ if(!cv) return; const d=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight; cv.width=w*d; cv.height=h*d; cx.setTransform(d,0,0,d,0,0); drawG() }
+window.addEventListener("resize",()=>{if(route.name==="net")sizeCv()});
+function nodeLabel(n){return n.k==="boundary"?"UNOBSERVED":dshort(n.id,n.inst)}
+function drawG(){
+  if(!cv||!G) return;
+  const w=cv.clientWidth,h=cv.clientHeight,px=40,py=28;
+  pts=G.N.map(n=>({x:px+n.x*(w-px*2),y:py+n.y*(h-py*2),n}));
+  cx.clearRect(0,0,w,h);
+  const ln=cssv("--ink3"),crit=cssv("--crit"),info=cssv("--info"),warn=cssv("--warn"),ink=cssv("--ink"),ink3=cssv("--ink3"),sf=cssv("--sf2");
+  G.E.forEach((e,i)=>{
+    const a=pts[e.a],b=pts[e.b],m=mid(e),hot=e.sig!=="—",unob=e.link==="UNOBSERVED";
+    cx.beginPath();cx.moveTo(a.x,a.y);cx.quadraticCurveTo(m.x,m.y,b.x,b.y);
+    if(unob||e.link==="CORRELATED") cx.setLineDash([4,4]);
+    cx.strokeStyle=pick.e===i?info:unob&&showBound?warn:hot?crit:ln;
+    cx.globalAlpha=pick.e===i?1:hot?.75:.45; cx.lineWidth=pick.e===i?2.6:hot?1.8:1.2; cx.stroke(); cx.globalAlpha=1; cx.setLineDash([]);
+  });
+  if(traceT>=0){
+    const seg=Math.floor(traceT),lt=traceT-seg;
+    for(let s=0;s<G.trace.length-1&&s<=seg;s++){
+      const e=edgeBetween(G.trace[s],G.trace[s+1]); if(!e) continue;
+      const A=pts[e.a],B=pts[e.b],M=mid(e),fwd=e.a===G.trace[s],end=s<seg?1:lt;
+      cx.beginPath(); for(let q=0;q<=24;q++){const tt=q/24*end,p=qpt(A,M,B,fwd?tt:1-tt);q?cx.lineTo(p.x,p.y):cx.moveTo(p.x,p.y)}
+      cx.strokeStyle=info;cx.lineWidth=3.2;cx.stroke();
+      if(s===seg){const hp=qpt(A,M,B,fwd?lt:1-lt);cx.beginPath();cx.arc(hp.x,hp.y,5,0,6.283);cx.fillStyle=info;cx.fill()}
+    }
+  }
+  pts.forEach((p,i)=>{
+    const n=p.n,r=n.k==="subject"?12:n.k==="mule"?9:n.k==="boundary"?11:7.5;
+    if(n.k==="boundary"){cx.beginPath();cx.arc(p.x,p.y,r,0,6.283);cx.setLineDash([3,3]);cx.strokeStyle=showBound?warn:ink3;cx.lineWidth=1.8;cx.stroke();cx.setLineDash([]);
+      cx.font="600 10px 'IBM Plex Mono',monospace";cx.textAlign="center";cx.fillStyle=showBound?warn:ink3;cx.fillText("?",p.x,p.y+3.5)}
+    else{const col=n.k==="subject"?info:n.k==="mule"?crit:n.k==="device"?warn:ink3;
+      if(pick.n===i){cx.beginPath();cx.arc(p.x,p.y,r+8,0,6.283);cx.fillStyle=col;cx.globalAlpha=.2;cx.fill();cx.globalAlpha=1}
+      if(n.k==="subject"){cx.beginPath();cx.arc(p.x,p.y,r+5,0,6.283);cx.strokeStyle=col;cx.globalAlpha=.35;cx.lineWidth=1.5;cx.stroke();cx.globalAlpha=1}
+      cx.beginPath();cx.arc(p.x,p.y,r,0,6.283);cx.fillStyle=col;cx.fill();cx.lineWidth=2;cx.strokeStyle=sf;cx.stroke()}
+    cx.font="500 10px 'IBM Plex Mono',monospace";cx.textAlign="center";
+    cx.fillStyle=pick.n===i?ink:n.k==="boundary"&&showBound?warn:n.k==="subject"?info:ink3;
+    cx.fillText(nodeLabel(n),p.x,n.k==="boundary"?p.y-r-7:p.y+r+14);
+    if(n.inst!=="—"&&n.k!=="boundary"){cx.font="400 9px 'IBM Plex Sans',sans-serif";cx.fillStyle=ink3;cx.fillText("Bank "+n.inst,p.x,p.y+r+25)}
+  });
+}
+function onGraphClick(ev){
+  const r=cv.getBoundingClientRect(),mx=ev.clientX-r.left,my=ev.clientY-r.top; let bn=-1,bd=1e9;
+  pts.forEach((p,i)=>{const d=(p.x-mx)**2+(p.y-my)**2;if(d<bd){bd=d;bn=i}});
+  if(bd<=900){pick={n:bn,e:-1};drawG();showDetail(nodeHtml(G.N[bn],bn));return}
+  let be=-1,bed=1e9; G.E.forEach((e,i)=>{const m=mid(e),d=(m.x-mx)**2+(m.y-my)**2;if(d<bed){bed=d;be=i}});
+  if(bed<=1600){pick={n:-1,e:be};drawG();showDetail(edgeHtml(G.E[be]))}
+}
+function showDetail(html){
+  const d=$("gdetail");
+  if(d&&matchMedia("(min-width:960px)").matches&&S.ui.netTab==="graph") d.innerHTML=html; else openSheet(html);
+}
+const fr=(k,v)=>`<dt>${k}</dt><dd>${v}</dd>`;
+function nodeHtml(n,i){
+  const conn=G.E.filter(e=>e.a===i||e.b===i).length;
+  if(n.k==="boundary") return `<div class="hd"><h2>Unobserved downstream</h2><span class="pill p-warn" style="margin-left:auto">Boundary</span></div>
+    <dl class="dl">${fr("Last observed","Bank "+G.N[G.trace[G.trace.length-1]].inst)}${fr("Linkage","UNOBSERVED")}${fr("Hop asserted","No")}</dl>
+    <p class="note">The last institution reported an outbound transfer to one that does not contribute events. SENTINEL shows the edge of what it can see instead of inventing the next hop.</p>`;
+  const mine=n.inst==="—"||own(n.inst);
+  return `<div class="hd"><h2 class="m">${esc(disp(n.id,n.inst))}</h2><span class="pill ${n.k==="mule"?"p-crit":n.k==="subject"?"p-info":n.k==="device"?"p-warn":"p-ok"}" style="margin-left:auto">${n.k==="mule"?"Flagged":n.k==="subject"?"Subject":n.k==="device"?"Device token":"Clear"}</span></div>
+    <dl class="dl">${fr("Institution",n.inst==="—"?"network token":"Bank "+n.inst)}${fr("Connected entities",conn)}${mine?(n.tx!=null?fr("Transactions",n.tx):""):fr("Transactions","withheld")+fr("Risk band",n.band)}</dl>
+    ${mine&&n.f.length?`<p class="note">${n.f.map(esc).join(" · ")}</p>`:""}${mine?"":`<p class="note">Network projection. Identity, history and indicators beyond the band stay with Bank ${n.inst}.</p>`}`;
+}
+function edgeHtml(e){
+  const A=G.N[e.a],B=G.N[e.b],see=own(A.inst)||own(B.inst)||own(e.src);
+  return `<div class="hd"><h2 class="m" style="font-size:13px">${esc(nodeLabel(A))} → ${esc(nodeLabel(B))}</h2>${e.sig!=="—"?`<span class="pill p-crit" style="margin-left:auto">${e.sig}</span>`:""}</div>
+    <dl class="dl">${fr("Relationship",e.type)}${fr("Value",see?e.amt:"withheld")}${fr("Observed",e.tm)}</dl><div class="hr"></div>
+    <div class="muted" style="font-size:12px;margin-bottom:6px">Why this line exists</div>
+    <dl class="dl">${fr("Reported by","Bank "+e.src)}${fr("Evidence",e.ev)}${fr("Network reference",e.ref)}${fr("Linkage",`<span style="color:${e.link==="UNOBSERVED"?"var(--warn)":e.link==="CORRELATED"?"var(--ink2)":"var(--ok)"}">${e.link}</span>`)}${fr("Tenant scope",own(e.src)?"OWN":"NETWORK")}${fr("Risk scoring",LINK_SCORING[e.link])}</dl>
+    <p class="note">Read from the event record, not generated. Model involvement: none.</p>`;
+}
+function traceFunds(){
+  if(!G||!cv) return; cancelAnimationFrame(raf); pick={n:-1,e:-1}; showBound=false;
+  const inc=S.incidents[S.ui.netInc], segs=G.trace.length-1, start=performance.now(), dur=reduced?300:2200;
+  audit("ANALYST","fund trace requested from "+dshort(inc.acct,inc.inst),inc.id);
+  (function tick(now){
+    const p=clamp((now-start)/dur,0,1); traceT=Math.min(p*segs,segs-0.0001); drawG();
+    if(p<1) raf=requestAnimationFrame(tick);
+    else{showBound=true;drawG();const d=$("gdetail");if(d)d.outerHTML=traceSummary(true);
+      audit("SYSTEM","trace ended at observed boundary — Bank "+G.N[G.trace[G.trace.length-1]].inst,inc.id)}
+  })(start);
+}
+
+/* =====================================================================
+   SHEETS
+   ===================================================================== */
+function openSheet(html){$("sheet").innerHTML=`<div class="grab"></div>`+html+`<button class="btn block ghost" style="margin-top:14px" data-act="close">Close</button>`;$("sheet").classList.add("on");$("scrim").classList.add("on");setTimeout(()=>{const b=$("sheet").querySelector("button");if(b)b.focus()},50)}
+function closeSheet(){$("sheet").classList.remove("on");$("scrim").classList.remove("on")}
+$("scrim").addEventListener("click",closeSheet);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+function evidenceSheet(code){
+  const inc=(route.name==="inc"||route.name==="ws")&&S.incidents[route.id]; if(!inc) return;
+  const a=incAssess(inc), c=a.contributions.find(x=>x.code===code), src=inc.timeline.find(e=>e.code===code);
+  const f=(k,v)=>`<div class="field"><span>${k}</span><span>${esc(v)}</span></div>`;
+  openSheet(`<h3>Evidence · <span class="m">${code}</span></h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">The same object the screen rendered and Gemini received.</p>
+   ${c?`<div class="muted" style="font-size:11.5px;margin-top:6px">assessment.contributions[] where code = ${code}</div>${f("label",c.label)}${f("points",c.points)}${f("max",c.max)}${f("detail",c.detail)}`:`<p class="muted">No points from this rule at present.</p>`}
+   <div class="muted" style="font-size:11.5px;margin-top:10px">drain · DrainState</div>${f("balanceAtWindowStart",SGD(a.balance))}${f("outflow24h",SGD(a.outflow))}${f("drainPct",a.drainPct.toFixed(1))}${f("protected",String(a.isProtected))}${f("thresholdMet",String(a.gate.hold))}
+   <div class="muted" style="font-size:11.5px;margin-top:10px">source and provenance</div>${f("triggering event",src?src.t+" · "+src.html.replace(/<[^>]+>/g,""):"standing account state")}${f("producer","rule engine "+RULESET)}${f("mutable by model","false")}`);
+}
+function rowSheet(id){
+  const r=S.stream.find(x=>x.id===id); if(!r) return;
+  if(r.inc&&S.incidents[r.inc]){ go("#/"+(own(r.inst)?"inc":"ws")+"/"+r.inc); return }
+  const ev=txEvent(r.src,r.inst,r.dst,r.inst,r.amt,r.status==="ALLOWED"?"PENDING":"SETTLED",{txId:"TX-"+(80000+id)}); S.seqN--; S.seq[r.src]--;
+  openSheet(`<h3>${esc(dshort(r.src,r.inst))} → ${esc(r.dst)}</h3><p class="muted" style="margin:0 0 8px;font-size:12.5px">${r.t} · Bank ${r.inst} · ${r.mode} · ${r.status.toLowerCase()}</p>
+    <dl class="dl">${fr("Amount",SGD(r.amt))}${fr("Advisory score",r.score+" · "+r.band.toLowerCase())}${fr("Policy gate","not triggered")}</dl>
+    <div class="muted" style="font-size:12px;margin:12px 0 6px">Canonical event as received — identifiers tokenised</div><pre class="code">${jsonHtml(ev)}</pre>
+    ${r.inst==="B"?`<p class="note">Bank B contributes by event stream, so SENTINEL scores this after settlement. It can monitor, not prevent.</p>`:r.inst==="C"?`<p class="note">Bank C contributes daily batch files for backfill and reconciliation.</p>`:`<p class="note">Bank A asks before it moves money: this payment was scored and allowed before commit.</p>`}`);
+}
+
+/* =====================================================================
+   ACTIONS
+   ===================================================================== */
+function setTenant(k){ if(S.tenant===k) return closeSheet(); S.tenant=k; closeSheet(); audit("ANALYST","signed in as "+TENANTS[k].name+" — cross-tenant fields masked, own accounts in full"); save(); render(); toast("Signed in as "+TENANTS[k].name,"Other institutions' accounts now appear masked.","") }
+function tenantSheet(){
+  openSheet(`<h3>Switch institution</h3><p class="muted" style="margin:0 0 12px;font-size:12.5px">Same product and codebase; each bank sees its own records in full and others' as masked projections.</p>
+   <div class="tcards">${["A","B","C"].map(k=>`<button class="tcard" data-act="tenant" data-arg="${k}" aria-pressed="${S.tenant===k}"><div style="display:flex;gap:9px;align-items:center"><span class="tmark" style="background:${TENANTS[k].mark}">${k}</span><div><b>${TENANTS[k].name}</b><div class="muted" style="font-size:12px">${TENANTS[k].city}</div></div></div></button>`).join("")}</div>`);
+}
+function verifySheet(inc){
+  openSheet(`<h3>Customer contacted</h3><p class="muted" style="margin:0 0 12px;font-size:13px">Waiting for the customer's answer through a verified channel. In this prototype you play the customer's response; in production it comes from the bank's verification system.</p>
+    <button class="btn danger block" data-act="vscam" data-arg="${inc.id}">${I("x")}Customer confirms it's a scam — cancel transfers</button>
+    <button class="btn block" style="margin-top:8px" data-act="vok" data-arg="${inc.id}">${I("check")}Customer verifies the transfers as their own</button>`);
+}
+const ACT={
+ close:closeSheet, tenant:k=>setTenant(k), bell:()=>go("#/inv"),
+ ttab:k=>{S.ui.towerTab=k;render()}, filter:k=>{S.ui.filter=k;render()}, row:id=>rowSheet(+id),
+ scen:k=>{S.sim.scenario=k;save();render()}, speed:s=>{S.sim.speed=+s;save();render()}, opt:k=>{S.sim.opts[k]=!S.sim.opts[k];save();render()}, run:()=>runSimulation(),
+ ev:c=>evidenceSheet(c), wstab:k=>{S.ui.wsTab=k;render()}, airun:id=>runAI(id),
+ mkcase:id=>{const c=createCase(S.incidents[id]);toast("Case opened",c.id+" drafted from the recorded evidence.","ok");go("#/case/"+c.id)},
+ netinc:id=>{S.ui.netInc=id;render()}, nettab:k=>{S.ui.netTab=k;render()}, trace:()=>traceFunds(),
+ casef:k=>{S.ui.caseFilter=k;render()},
+ csign:id=>{const c=S.cases[id];c.signed=true;c.status="ESCALATED";audit("ANALYST","case "+id+" signed off and escalated",c.incId);save();render();toast("Case escalated",id+" sent for enhanced investigation.","ok")},
+ cclose:arg=>{const [id,st]=arg.split("|"),c=S.cases[id];c.status=st;c.signed=true;const inc=c.incId&&S.incidents[c.incId];
+   if(inc&&!["CANCELLED","RELEASED"].includes(inc.status)&&!inc.hold) inc.status="CLEARED";
+   audit("ANALYST","case "+id+" closed — "+caseLabel(st).toLowerCase(),c.incId);save();render();toast("Case closed",caseLabel(st)+".","ok")},
+ ccopy:id=>{const c=S.cases[id],inc=c.incId&&S.incidents[c.incId];
+   const txt=["SENTINEL AI — "+c.id,c.title,"Subject: "+disp(c.acct,c.inst),"Severity: "+c.band+" · score "+c.score,"Policy gate: "+c.gate,"Value held: "+(c.heldValue?SGD(c.heldValue):"—"),
+     inc&&inc.ai?"Summary: "+inc.ai.hyp:"",inc?"Timeline:\n"+inc.timeline.map(e=>e.t+" "+e.html.replace(/<[^>]+>/g,"")).join("\n"):"","Rules decide. AI explains. Humans authorize."].filter(Boolean).join("\n");
+   (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("Copied","Report text is on your clipboard.","ok"),()=>openSheet(`<h3>Report text</h3><pre class="code" style="white-space:pre-wrap">${esc(txt)}</pre>`))},
+ contact:()=>{const inc=S.incidents[route.id];if(!inc)return;audit("ANALYST","customer contacted for "+inc.acct+" through a verified channel",inc.id);tl(inc,"act","Customer contacted — verification requested");save();
+   if(inc.hold&&!inc.verify){inc.verify="REQUESTED";verifySheet(inc)} else if(inc.hold&&inc.verify==="REQUESTED") verifySheet(inc); else {render();toast("Customer contacted","Verification requested for "+inc.acct+".","")}},
+ vscam:id=>{const inc=S.incidents[id];inc.verify="SCAM";inc.status="CANCELLED";closeSheet();tl(inc,"act","Customer confirmed scam — held transfers <b>cancelled</b>");
+   audit("CUSTOMER","confirmed scam — "+SGD(inc.heldValue)+" in held transfers cancelled",inc.id);save();render();toast("Transfers cancelled","The customer confirmed the scam. "+SGD(inc.heldValue)+" never left the account.","ok")},
+ vok:id=>{const inc=S.incidents[id];inc.verify="VERIFIED";closeSheet();tl(inc,"act","Customer <b>verified</b> with the bank — release unlocked");audit("CUSTOMER","verified the held transfers — expedited release permitted",inc.id);save();render()},
+ release:()=>{const inc=S.incidents[route.id];if(!inc||inc.verify!=="VERIFIED")return;inc.verify="RELEASED";inc.status="RELEASED";tl(inc,"act","Expedited release after customer verification — reason SG-RD-50_CUSTOMER_VERIFIED");
+   audit("ANALYST","expedited release on "+inc.acct+" after customer verification — reason SG-RD-50_CUSTOMER_VERIFIED",inc.id);save();render();toast("Released after verification","Recorded with the analyst's identity and reason code.","ok")},
+ kill:()=>{const inc=S.incidents[route.id];if(!inc)return;openSheet(`<h3>Engage kill switch?</h3><p class="muted" style="font-size:13px;margin:0 0 12px">Holds every eligible outflow on ${esc(inc.acct)} until the customer verifies. This is logged against your analyst identity.</p><button class="btn danger block" data-act="killok" data-arg="${inc.id}">${I("kill")}Hold all outflows</button>`)},
+ killok:id=>{const inc=S.incidents[id];inc.killed=true;closeSheet();tl(inc,"act","Kill switch — all eligible outflows held pending verification");audit("ANALYST","kill switch engaged on "+inc.acct,inc.id);save();render();toast("Kill switch engaged","All eligible outflows on "+inc.acct+" are held.","crit")},
+ appear:k=>{S.appearance=k;save();render()}, gem:()=>{S.gemDown=!S.gemDown;audit("SYSTEM",S.gemDown?"Gemini unreachable — policy gate, holds and audit unaffected":"Gemini restored");save();render();
+   toast(S.gemDown?"Intelligence path down":"Gemini restored",S.gemDown?"Decisions and holds continue. Investigations queue until the model returns.":"Investigations are available again.",S.gemDown?"warn":"ok")},
+ reset:()=>openSheet(`<h3>Reset demo data?</h3><p class="muted" style="font-size:13px;margin:0 0 12px">Clears incidents, cases and the audit trail kept in this browser.</p><button class="btn danger block" data-act="resetok">Reset everything</button>`),
+ resetok:()=>{timers.forEach(clearTimeout);timers=[];try{localStorage.removeItem(STORE)}catch(e){}location.hash="#/tower";location.reload()}
+};
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-go]"); if(g&&!g.disabled){closeSheet();go(g.dataset.go);return}
+  const a=e.target.closest("[data-act]"); if(a&&!a.disabled&&ACT[a.dataset.act]){ACT[a.dataset.act](a.dataset.arg);}
+});
+$("tenantBtn").addEventListener("click",tenantSheet);
+$("bellBtn").addEventListener("click",()=>go("#/inv"));
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+const _push=pushStream; let rowId=0;
+pushStream=function(row){row.id=++rowId;_push(row)};
+function boot(){
+  const had=load();
+  S.running=null; S.stream=[]; S.tps=[];
+  seedCases();
+  if(!had) audit("SYSTEM","surveillance active — 3 institutions connected: A decision API, B event stream, C batch");
+  // stale "LIVE" incidents from an interrupted run
+  Object.values(S.incidents).forEach(i=>{if(i.status==="LIVE") i.status=i.hold?"HOLD":"REVIEW"});
+  for(let i=0;i<24;i++) baseline();
+  parse(); render();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>render());
+  new MutationObserver(()=>{applyTheme();if(route.name==="net")drawG()}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+  window.addEventListener("hashchange",()=>{parse();closeSheet();render();window.scrollTo(0,0)});
+  setInterval(()=>{t0=new Date(t0.getTime()+1000);$("clock").textContent=stamp()+" SGT";const k=$("kTps");if(k)k.textContent=tpsNow()},1000);
+  $("clock").textContent=stamp()+" SGT";
+  setInterval(baseline,850);
+  setInterval(batchC,19000);
+}
+boot();
+})();
+</script>
+</body>
+</html>

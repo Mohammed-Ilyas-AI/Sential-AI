@@ -12,6 +12,7 @@
     "test": "vitest run --config ../../vitest.config.ts --project simulator"
   },
   "dependencies": {
+    "@google-cloud/pubsub": "~6.1.0",
     "@sentinel/domain": "0.1.0",
     "@sentinel/scenarios": "0.1.0",
     "pino": "~10.3.1"

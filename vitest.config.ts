@@ -10,6 +10,8 @@ const workspaceSourceAliases = {
   '@sentinel/scenarios': fromRoot('./packages/scenarios/src/index.ts'),
 };
 
+const INTEGRATION_SPECS = 'test/integration/**/*.integration.spec.ts';
+
 function nodeProject(name: string, directory: string) {
   return {
     root: fromRoot(directory),
@@ -18,6 +20,23 @@ function nodeProject(name: string, directory: string) {
       name,
       environment: 'node' as const,
       include: ['src/**/*.spec.ts', 'test/**/*.spec.ts'],
+      exclude: [INTEGRATION_SPECS, '**/node_modules/**'],
+    },
+  };
+}
+
+/** Real MongoDB Atlas, never part of `npm test`: run with `npm run test:integration` and a local .env. */
+function integrationProject(name: string, directory: string) {
+  return {
+    root: fromRoot(directory),
+    resolve: { alias: workspaceSourceAliases },
+    test: {
+      name,
+      environment: 'node' as const,
+      include: [INTEGRATION_SPECS],
+      testTimeout: 120_000,
+      hookTimeout: 120_000,
+      fileParallelism: false,
     },
   };
 }
@@ -32,6 +51,8 @@ export default defineConfig({
       nodeProject('core', './apps/core'),
       nodeProject('stream', './apps/stream'),
       nodeProject('simulator', './apps/simulator'),
+      integrationProject('core-integration', './apps/core'),
+      integrationProject('stream-integration', './apps/stream'),
     ],
   },
 });

@@ -11,4 +11,5 @@ export interface ConnectionRegistry {
   add(connection: ClientConnection): void;
   remove(connectionId: string): void;
   broadcast(message: StreamMessage): void;
+  size(): number;
 }

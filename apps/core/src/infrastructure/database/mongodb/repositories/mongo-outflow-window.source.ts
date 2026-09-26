@@ -1,31 +1,27 @@
 import type { MinorUnits } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
-import type { Collection } from 'mongodb';
-import type { OutflowWindowSource } from '../../../../modules/accounts/application/ports/outflow-window-source.port.js';
+import type { Collection, Filter } from 'mongodb';
+import type { OutflowQuery, OutflowWindowSource } from '../../../../modules/accounts/application/ports/outflow-window-source.port.js';
 import type { MongoDatabase } from '../client/mongo-connection.js';
-import { accountsCollection, type AccountDocument } from '../collections/accounts.collection.js';
-import {
-  transactionsCollection,
-  type TransactionProjectionDocument,
-} from '../collections/transactions.collection.js';
+import { transactionsCollection, type TransactionProjectionDocument } from '../collections/transactions.collection.js';
 
-const STEP = 'scheduled for build order step 3';
-
-/** $match on account and time, $group to sum effectiveAmount, $merge into the account's cached window. */
+/** One aggregation over the projection: $match on account and time, $group to sum effectiveAmount. */
 export class MongoOutflowWindowSource implements OutflowWindowSource {
-  private readonly accounts: Collection<AccountDocument>;
   private readonly transactions: Collection<TransactionProjectionDocument>;
 
   constructor(database: MongoDatabase) {
-    this.accounts = database.collection<AccountDocument>(accountsCollection.name);
     this.transactions = database.collection<TransactionProjectionDocument>(transactionsCollection.name);
   }
 
-  balanceAt(): Promise<MinorUnits> {
-    throw new NotYetImplementedError('MongoOutflowWindowSource.balanceAt', STEP);
-  }
-
-  effectiveOutflowSince(): Promise<MinorUnits> {
-    throw new NotYetImplementedError('MongoOutflowWindowSource.effectiveOutflowSince', STEP);
+  async effectiveOutflow(query: OutflowQuery): Promise<MinorUnits> {
+    const match: Filter<TransactionProjectionDocument> = {
+      sourceAccountId: query.accountId,
+      ts: { $gt: query.afterExclusive, $lte: query.upToInclusive },
+      ...(query.eligibleForDrainOnly ? { drainExcluded: false } : {}),
+      ...(query.excludingTransactionId ? { _id: { $ne: query.excludingTransactionId } } : {}),
+    };
+    const [totals] = await this.transactions
+      .aggregate<{ readonly total: number }>([{ $match: match }, { $group: { _id: null, total: { $sum: '$effectiveAmount' } } }])
+      .toArray();
+    return totals?.total ?? 0;
   }
 }

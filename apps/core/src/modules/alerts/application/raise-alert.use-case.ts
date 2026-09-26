@@ -1,6 +1,6 @@
-import type { Alert, DecisionRecord, RecordedRiskAssessment } from '@sentinel/domain';
+import type { Alert, DecisionRecord } from '@sentinel/domain';
 
-/** LOW raises nothing; ELEVATED and HIGH are queued; CRITICAL is promoted. */
+/** LOW raises nothing unless held; ELEVATED and HIGH are queued; CRITICAL is promoted. */
 export interface RaiseAlert {
-  raiseFor(decision: DecisionRecord, assessment: RecordedRiskAssessment): Promise<Alert | null>;
+  raiseFor(decision: DecisionRecord): Promise<Alert | null>;
 }

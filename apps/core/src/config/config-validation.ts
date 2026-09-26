@@ -1,6 +1,6 @@
 import { DEFAULT_RAPID_DRAIN_POLICY, type RapidDrainPolicy } from '@sentinel/domain';
 import type { EnvironmentVariables } from './environment.js';
-import type { CoreRuntimeConfig } from './runtime-config.js';
+import type { CoreRuntimeConfig, PubSubPushVerification } from './runtime-config.js';
 
 export class ConfigurationError extends Error {
   constructor(readonly problems: readonly string[]) {
@@ -46,7 +46,7 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
     port: integer('PORT', 8080),
     logLevel: optional('LOG_LEVEL') ?? 'info',
     corsAllowedOrigin: required('CORS_ALLOWED_ORIGIN'),
-    mongo: { uri: required('MONGODB_URI'), database: optional('MONGODB_DATABASE') ?? 'sentinel' },
+    mongo: { uri: required('MONGODB_URI'), database: optional('MONGODB_DATABASE') ?? 'sentinel_ai' },
     vertex: {
       projectId: optional('GCP_PROJECT_ID') ?? '',
       location: optional('VERTEX_LOCATION') ?? 'asia-southeast1',
@@ -57,9 +57,26 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
     designatedBillingPayeeIds: new Set(
       (optional('DESIGNATED_BILLING_PAYEE_IDS') ?? '').split(',').map((id) => id.trim()).filter(Boolean),
     ),
+    pubsubPush: readPushVerification(env, problems),
     demoTimeCompression: optional('DEMO_TIME_COMPRESSION_ENABLED') === 'true',
   };
 
   if (problems.length > 0) throw new ConfigurationError(problems);
   return config;
+}
+
+function readPushVerification(env: EnvironmentVariables, problems: string[]): PubSubPushVerification {
+  const mode = env['PUBSUB_PUSH_VERIFICATION']?.trim();
+  if (mode === 'disabled-for-local-development') return { mode };
+  if (mode === 'google-oidc') {
+    const audience = env['PUBSUB_PUSH_AUDIENCE']?.trim() ?? '';
+    const serviceAccountEmail = env['PUBSUB_PUSH_SERVICE_ACCOUNT']?.trim() ?? '';
+    if (!audience) problems.push('PUBSUB_PUSH_AUDIENCE is required when PUBSUB_PUSH_VERIFICATION=google-oidc');
+    if (!serviceAccountEmail) {
+      problems.push('PUBSUB_PUSH_SERVICE_ACCOUNT is required when PUBSUB_PUSH_VERIFICATION=google-oidc');
+    }
+    return { mode, audience, serviceAccountEmail };
+  }
+  problems.push('PUBSUB_PUSH_VERIFICATION must be google-oidc or disabled-for-local-development');
+  return { mode: 'disabled-for-local-development' };
 }

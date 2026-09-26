@@ -8,6 +8,11 @@ export interface VertexAiSettings {
   readonly deepModel?: string;
 }
 
+/** Pub/Sub push requests are verified as Google-signed OIDC tokens; only local development may switch it off. */
+export type PubSubPushVerification =
+  | { readonly mode: 'google-oidc'; readonly audience: string; readonly serviceAccountEmail: string }
+  | { readonly mode: 'disabled-for-local-development' };
+
 export interface CoreRuntimeConfig {
   readonly port: number;
   readonly logLevel: string;
@@ -16,6 +21,7 @@ export interface CoreRuntimeConfig {
   readonly vertex: VertexAiSettings;
   readonly rapidDrainPolicy: RapidDrainPolicy;
   readonly designatedBillingPayeeIds: ReadonlySet<string>;
+  readonly pubsubPush: PubSubPushVerification;
   /** Demo only: the 24h hold reads as 24s and the UI labels it "demo time x3600". */
   readonly demoTimeCompression: boolean;
 }

@@ -1,33 +1,37 @@
-import { createApp } from './app.js';
-import { composeControlPath } from './composition/control-path.composition.js';
-import { composeIntelligencePath } from './composition/intelligence-path.composition.js';
+import { composeCoreHttp } from './composition/core-http.composition.js';
 import { composeMongoPersistence } from './composition/mongo-persistence.composition.js';
 import { loadCoreRuntimeConfig } from './config/config-validation.js';
 import { readEnvironment } from './config/environment.js';
 import { systemClock } from './infrastructure/clock/system-clock.js';
 import { connectMongo } from './infrastructure/database/mongodb/client/mongo-connection.js';
+import { ensureSentinelDatabase } from './infrastructure/database/mongodb/indexes/ensure-sentinel-database.js';
+import { HoldReleaseScheduler } from './infrastructure/scheduling/hold-release.scheduler.js';
 import { createLogger } from './infrastructure/telemetry/logger.js';
 import { randomIdGenerator } from './platform/ids/id-generator.js';
 
 const config = loadCoreRuntimeConfig(readEnvironment());
 const logger = createLogger(config.logLevel);
-const mongo = await connectMongo(config.mongo);
-const persistence = composeMongoPersistence(mongo.database);
+if (config.pubsubPush.mode === 'disabled-for-local-development') {
+  logger.warn('Pub/Sub push verification is disabled: local development only, never on Cloud Run');
+}
 
-const controlPath = composeControlPath({
-  persistence,
-  rapidDrainPolicy: config.rapidDrainPolicy,
-  designatedBillingPayeeIds: config.designatedBillingPayeeIds,
+const mongo = await connectMongo(config.mongo);
+const setup = await ensureSentinelDatabase(mongo.database);
+logger.info(
+  { database: config.mongo.database, created: setup.createdCollections, indexes: setup.ensuredIndexes.length },
+  'MongoDB collections and indexes ensured',
+);
+
+const { app, controlPath } = composeCoreHttp({
+  config,
+  persistence: composeMongoPersistence(mongo.database),
   clock: systemClock,
   ids: randomIdGenerator,
-});
-const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids: randomIdGenerator });
-
-const app = createApp({
-  routes: [...controlPath.routes, ...intelligencePath.routes],
-  corsAllowedOrigin: config.corsAllowedOrigin,
   logger,
 });
+
+const holdRelease = new HoldReleaseScheduler(controlPath.interventions, systemClock, config.demoTimeCompression ? 1_000 : 60_000, logger);
+holdRelease.start();
 
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, policyVersion: config.rapidDrainPolicy.policyVersion }, 'sentinel-core listening');
@@ -36,6 +40,7 @@ const server = app.listen(config.port, () => {
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     logger.info({ signal }, 'shutting down');
+    holdRelease.stop();
     server.close(() => void mongo.close().finally(() => process.exit(0)));
   });
 }

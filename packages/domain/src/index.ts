@@ -4,18 +4,23 @@ export * from './tenant/tenant-identifiers.js';
 export * from './tenant/tenant-config.js';
 
 export * from './account/account.js';
+export * from './account/account-behaviour.js';
 export * from './account/account-state.js';
 export * from './account/account-profile.js';
+export * from './account/bank-account-report.js';
 
 export * from './transaction/transaction.js';
 export * from './transaction/transaction-event.js';
 export * from './transaction/transaction-projection.js';
 export * from './security-event/account-security-event.js';
+export * from './security-event/security-event-receipt.js';
 
 export * from './risk/contribution.js';
 export * from './risk/risk-assessment.js';
 export * from './risk/recorded-risk-assessment.js';
+export * from './risk/risk-features.js';
 export * from './risk/window-context.js';
+export * from './risk/account-posture.js';
 
 export * from './policy/drain-state.js';
 export * from './policy/rapid-drain-policy.js';
@@ -28,6 +33,7 @@ export * from './decision/decision-response.js';
 export * from './decision/decision-record.js';
 
 export * from './intervention/intervention.js';
+export * from './intervention/intervention-reason-codes.js';
 export * from './alert/alert.js';
 export * from './alert/alert-summary.js';
 export * from './case/case.js';
@@ -43,10 +49,10 @@ export * from './graph/graph-edge.js';
 export * from './graph/edge-evidence.js';
 export * from './graph/graph-neighbourhood.js';
 export * from './graph/fund-trace.js';
+export * from './graph/network-observation.js';
 
 export * from './realtime/stream-message.js';
 export * from './realtime/stream-client-message.js';
-export * from './realtime/account-snapshot.js';
 
 export * from './errors/not-yet-implemented.error.js';
 

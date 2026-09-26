@@ -1,27 +1,30 @@
-import type { AccountSnapshot, DecisionRecord, DrainState, RiskBand } from '@sentinel/domain';
+import type { DecisionRecord, InstitutionId, MinorUnits, RiskBand } from '@sentinel/domain';
 
 /** One rendered tape row; the tape renders at most TRANSACTION_TAPE_MAX_ROWS. */
 export interface TapeRow {
   readonly transactionId: string;
   readonly accountId: string;
-  readonly amount: number;
+  readonly accountReference?: string;
+  readonly institutionId: InstitutionId;
+  readonly destinationInstitutionId: InstitutionId;
+  readonly amount: MinorUnits;
   readonly score: number;
   readonly band: RiskBand;
   readonly decision: DecisionRecord['decision'];
+  readonly occurredAt: string;
   readonly decidedAt: string;
 }
 
-/** Only what changed in a batch. Optimistic; the server value wins on the next snapshot. */
-export interface AccountDelta {
+/** Only accounts that changed in a batch, each with its latest decision. */
+export interface AccountRisk {
   readonly accountId: string;
-  readonly drain: DrainState;
-  readonly transactionsPerMinute: number;
+  readonly latest: DecisionRecord;
 }
 
-export type TransactionWorkerInput =
-  | { readonly kind: 'BATCH'; readonly batch: readonly DecisionRecord[] }
-  | { readonly kind: 'SNAPSHOT'; readonly accounts: readonly AccountSnapshot[] };
+export type TransactionWorkerInput = { readonly kind: 'BATCH'; readonly batch: readonly DecisionRecord[] };
 
-export type TransactionWorkerOutput =
-  | { readonly kind: 'ACCOUNT_DELTA'; readonly deltas: readonly AccountDelta[] }
-  | { readonly kind: 'TAPE'; readonly rows: readonly TapeRow[] };
+export type TransactionWorkerOutput = {
+  readonly kind: 'BATCH_PROCESSED';
+  readonly rows: readonly TapeRow[];
+  readonly accounts: readonly AccountRisk[];
+};

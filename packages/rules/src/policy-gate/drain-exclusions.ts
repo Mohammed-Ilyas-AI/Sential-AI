@@ -1,5 +1,4 @@
 import type { DesignatedBillingOrganisations, DrainExclusionReason, Transaction } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
 
 export type DrainExclusionFor = (
   transaction: Transaction,
@@ -7,6 +6,9 @@ export type DrainExclusionFor = (
 ) => DrainExclusionReason | null;
 
 /** Recurring standing instructions, recurring GIRO/eGIRO and bills to designated billing organisations bypass the safeguard. */
-export const drainExclusionFor: DrainExclusionFor = () => {
-  throw new NotYetImplementedError('Rapid-drain exclusions', 'scheduled for build order step 7');
+export const drainExclusionFor: DrainExclusionFor = (transaction, billingOrganisations) => {
+  if (transaction.type === 'STANDING') return 'STANDING';
+  if (transaction.type === 'GIRO') return 'GIRO';
+  if (transaction.type === 'BILL' && billingOrganisations.isDesignated(transaction.payeeId)) return 'BILL_ORG';
+  return null;
 };

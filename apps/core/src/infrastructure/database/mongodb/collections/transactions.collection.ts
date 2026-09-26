@@ -6,5 +6,8 @@ export type TransactionProjectionDocument = MongoDocument<TransactionProjection>
 
 export const transactionsCollection: CollectionDefinition = {
   name: 'transactions',
-  indexes: [{ key: { sourceAccountId: 1, ts: -1 }, name: 'sourceAccountId_ts' }],
+  indexes: [
+    { key: { sourceAccountId: 1, ts: -1 }, name: 'sourceAccountId_ts' },
+    { key: { sourceAccountId: 1, drainExcluded: 1, ts: -1 }, name: 'sourceAccountId_drainExcluded_ts' },
+  ],
 };

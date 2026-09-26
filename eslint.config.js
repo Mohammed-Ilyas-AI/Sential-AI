@@ -75,7 +75,7 @@ const BOUNDARIES = [
   {
     appliesTo: (file) => file.startsWith('apps/core/src/') && !file.startsWith('apps/core/src/infrastructure/'),
     check: ({ specifier }) =>
-      specifier === 'mongodb' || GOOGLE_SDK.test(specifier)
+      specifier === 'mongodb' || specifier === 'google-auth-library' || GOOGLE_SDK.test(specifier)
         ? 'Database and Google SDKs are confined to apps/core/src/infrastructure.'
         : null,
   },
@@ -125,7 +125,7 @@ const BOUNDARIES = [
   {
     appliesTo: (file) => file.startsWith('apps/ui/src/'),
     check: ({ specifier }) =>
-      ['mongodb', 'express', 'ws', 'pino', '@sentinel/scenarios'].includes(specifier) || GOOGLE_SDK.test(specifier)
+      ['mongodb', 'express', 'ws', 'pino', 'google-auth-library', '@sentinel/scenarios'].includes(specifier) || GOOGLE_SDK.test(specifier)
         ? 'The browser never holds database drivers, server frameworks, scenarios or Google SDKs.'
         : null,
   },

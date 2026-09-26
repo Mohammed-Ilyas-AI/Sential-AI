@@ -1,13 +1,11 @@
-import type { Intervention } from '@sentinel/domain';
-import { NotYetImplementedError } from '@sentinel/domain';
+import type { Intervention, IsoTimestamp } from '@sentinel/domain';
 import type { Collection } from 'mongodb';
 import type { InterventionRepository } from '../../../../modules/interventions/application/ports/intervention-repository.port.js';
 import type { MongoDatabase } from '../client/mongo-connection.js';
 import { interventionsCollection, type InterventionDocument } from '../collections/interventions.collection.js';
+import { withoutStorageFields } from '../serializers/document-identity.js';
 
-const STEP = 'scheduled for build order step 7';
-
-/** insertOne only: there is no update path to implement. */
+/** insertOne only: there is no update path. `ordinal` orders a transaction's history exactly as it was appended. */
 export class MongoInterventionRepository implements InterventionRepository {
   private readonly interventions: Collection<InterventionDocument>;
 
@@ -15,15 +13,30 @@ export class MongoInterventionRepository implements InterventionRepository {
     this.interventions = database.collection<InterventionDocument>(interventionsCollection.name);
   }
 
-  append(): Promise<void> {
-    throw new NotYetImplementedError('MongoInterventionRepository.append', STEP);
+  async append(intervention: Intervention): Promise<void> {
+    const ordinal = await this.interventions.countDocuments({ transactionId: intervention.transactionId });
+    await this.interventions.insertOne({ ...intervention, _id: intervention.id, ordinal });
   }
 
-  findByTransactionId(): Promise<readonly Intervention[]> {
-    throw new NotYetImplementedError('MongoInterventionRepository.findByTransactionId', STEP);
+  async findByTransactionId(transactionId: string): Promise<readonly Intervention[]> {
+    const documents = await this.interventions.find({ transactionId }).sort({ ordinal: 1 }).toArray();
+    return documents.map(withoutStorageFields);
   }
 
-  findByAccountId(): Promise<readonly Intervention[]> {
-    throw new NotYetImplementedError('MongoInterventionRepository.findByAccountId', STEP);
+  async findByAccountId(accountId: string): Promise<readonly Intervention[]> {
+    const documents = await this.interventions.find({ accountId }).sort({ actedAt: 1, ordinal: 1 }).toArray();
+    return documents.map(withoutStorageFields);
+  }
+
+  async findHeldDueForRelease(now: IsoTimestamp): Promise<readonly Intervention[]> {
+    const documents = await this.interventions
+      .aggregate<InterventionDocument>([
+        { $sort: { transactionId: 1, ordinal: 1 } },
+        { $group: { _id: '$transactionId', latest: { $last: '$$ROOT' } } },
+        { $replaceRoot: { newRoot: '$latest' } },
+        { $match: { state: 'HELD', holdUntil: { $lte: now } } },
+      ])
+      .toArray();
+    return documents.map(withoutStorageFields);
   }
 }

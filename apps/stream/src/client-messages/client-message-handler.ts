@@ -1,6 +1,13 @@
 import type { StreamClientMessage } from '@sentinel/domain';
 
-/** Handles what a browser may send: a snapshot request, optionally resuming from a cursor. */
-export interface ClientMessageHandler {
-  handle(connectionId: string, message: StreamClientMessage): Promise<void>;
+export function parseClientMessage(raw: string): StreamClientMessage | null {
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value === 'object' && value !== null && (value as { kind?: unknown }).kind === 'SNAPSHOT_REQUEST') {
+      return { kind: 'SNAPSHOT_REQUEST' };
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }

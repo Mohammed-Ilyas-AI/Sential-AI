@@ -17,6 +17,17 @@ export const RULE_MAX_POINTS: Readonly<Record<RiskRuleCode, number>> = {
   COOLING_OFF: 5,
 };
 
+/** Labels shown in the attribution panel, as the HTML reference writes them. */
+export const RULE_LABELS: Readonly<Record<RiskRuleCode, string>> = {
+  RAPID_DRAIN: 'Rapid account depletion',
+  NEW_DEVICE: 'New device',
+  NEW_PAYEE: 'New beneficiary',
+  VELOCITY: 'Transaction velocity',
+  ENTITY_LINK: 'Suspicious entity relationship',
+  BEHAVIOUR_DEV: 'Behavioural deviation',
+  COOLING_OFF: 'Cooling-off period active',
+};
+
 /** Inclusive lower bound of each band. */
 export const RISK_BAND_LOWER_BOUNDS: Readonly<Record<RiskBand, number>> = {
   LOW: 0,
@@ -26,16 +37,17 @@ export const RISK_BAND_LOWER_BOUNDS: Readonly<Record<RiskBand, number>> = {
 };
 
 /**
- * Documented rule parameters (T§3). The scaling curves between these points are defined by the
- * HTML behavioural reference and are deliberately absent here.
+ * Rule parameters. Thresholds and maxima are from T§3; the scaling factors between them are from the HTML
+ * behavioural reference (docs/reference/sentinel-ai-prototype.html, RULES).
  */
 export const RULE_PARAMETERS = {
   rapidDrain: { zeroPointsAtDrainPercent: 25, maxPointsAtDrainPercent: 50 },
   newDevice: { firstSeenWithinHours: 24 },
-  newPayee: { fullPointsWithinHours: 24, reducedPointsWithinDays: 7, reducedPoints: 8 },
-  velocity: { baselineMultiple: 3 },
+  newPayee: { fullPointsWithinHours: 24, reducedPointsWithinHours: 168, reducedPoints: 8 },
+  velocity: { baselineMultiple: 3, pointsPerMultipleAboveBaseline: 6 },
   entityLink: { maxHops: 2 },
   behaviourDeviation: { percentile: 95, distributionDays: 90 },
+  coolingOff: { windowHours: 12 },
 } as const;
 
 /** Points per flagged entity by link strength. CANDIDATE and NONE links are shown in the graph, never scored. */
@@ -53,3 +65,12 @@ export const LINKAGE_SCORING: Readonly<Record<EdgeLinkage, EdgeScoring>> = {
   CORRELATED: 'CANDIDATE',
   UNOBSERVED: 'NONE',
 };
+
+/** Strongest first; a two-hop path is only as strong as its weakest link. */
+export const LINKAGE_STRENGTH_ORDER: readonly EdgeLinkage[] = [
+  'DIRECT',
+  'NETWORK_REFERENCE',
+  'NETWORK_TOKEN',
+  'CORRELATED',
+  'UNOBSERVED',
+];

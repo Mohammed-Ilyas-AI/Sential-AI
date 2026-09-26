@@ -7,7 +7,7 @@ export class SecurityEventController {
   constructor(private readonly recordSecurityEvent: RecordAccountSecurityEvent) {}
 
   readonly record: RequestHandler = async (_request, response) => {
-    await this.recordSecurityEvent.record(validatedBodyOf<AccountSecurityEvent>(response));
-    response.status(202).end();
+    const receipt = await this.recordSecurityEvent.record(validatedBodyOf<AccountSecurityEvent>(response));
+    response.status(200).json(receipt);
   };
 }

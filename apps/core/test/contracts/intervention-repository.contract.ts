@@ -8,7 +8,7 @@ export function describeInterventionRepositoryContract(
   createRepository: () => InterventionRepository | Promise<InterventionRepository>,
 ): void {
   describe(`InterventionRepository contract: ${adapterName}`, () => {
-    it('keeps the original hold when a release is appended', async () => {
+    it('keeps the original hold when a release is appended, in append order', async () => {
       const repository = await createRepository();
       const hold = interventionFixture();
       const release = interventionFixture({
@@ -28,6 +28,18 @@ export function describeInterventionRepositoryContract(
       await repository.append(interventionFixture());
       await repository.append(interventionFixture({ id: 'int-fixture-0003', transactionId: 'txn-fixture-0002' }));
       expect(await repository.findByAccountId('tok-acc-fixture-0001')).toHaveLength(2);
+    });
+
+    it('reports only holds whose latest state is HELD and whose hold has expired', async () => {
+      const repository = await createRepository();
+      await repository.append(interventionFixture({ id: 'int-due', transactionId: 'txn-due', holdUntil: '2026-09-25T00:00:00.000Z' }));
+      await repository.append(interventionFixture({ id: 'int-later', transactionId: 'txn-later', holdUntil: '2026-09-26T00:00:00.000Z' }));
+      await repository.append(interventionFixture({ id: 'int-released-hold', transactionId: 'txn-released', holdUntil: '2026-09-25T00:00:00.000Z' }));
+      await repository.append(
+        interventionFixture({ id: 'int-released', transactionId: 'txn-released', previousState: 'HELD', state: 'RELEASED', actor: 'CUSTOMER' }),
+      );
+      const due = await repository.findHeldDueForRelease('2026-09-25T12:00:00.000Z');
+      expect(due.map((intervention) => intervention.transactionId)).toEqual(['txn-due']);
     });
   });
 }
