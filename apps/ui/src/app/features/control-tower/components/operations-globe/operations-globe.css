@@ -1,0 +1,106 @@
+:host {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+canvas:active {
+  cursor: grabbing;
+}
+.callouts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px 9px 9px;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: var(--sentinel-radius-medium);
+  background: color-mix(in srgb, #0b1627 84%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 0 22px -6px color-mix(in srgb, var(--tone) 70%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  opacity: 0;
+  transition: opacity var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
+  white-space: nowrap;
+  will-change: transform;
+}
+.callout[data-tone='held'] {
+  --tone: var(--sentinel-color-critical);
+  background: color-mix(in srgb, #2a0d16 80%, transparent);
+}
+.callout[data-tone='normal'] {
+  --tone: #4aa8ff;
+}
+.callout[data-tone='elevated'] {
+  --tone: var(--sentinel-color-warning);
+}
+.callout[data-tone='high'] {
+  --tone: #ff6b8b;
+}
+.tile {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--sentinel-radius-small);
+  background: color-mix(in srgb, var(--tone) 28%, transparent);
+  color: #fff;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.bank {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.amount {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #7cc4ff;
+}
+[data-tone='held'] .amount {
+  color: #fff;
+}
+.label {
+  font-size: 0.6875rem;
+  color: var(--tone);
+}
+[data-tone='held'] .label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.detail {
+  font-size: 0.6875rem;
+  color: var(--sentinel-color-text-secondary);
+}
+:host([data-compact]) .callout:not([data-tone='held']) {
+  display: none;
+}
+@media (max-width: 640px) {
+  .callout {
+    padding: 6px 10px 6px 6px;
+  }
+  .tile {
+    width: 26px;
+    height: 26px;
+  }
+}

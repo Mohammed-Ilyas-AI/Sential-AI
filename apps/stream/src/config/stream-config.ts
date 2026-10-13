@@ -16,7 +16,8 @@ export function loadStreamRuntimeConfig(env: Readonly<Record<string, string | un
   if (!allowedOrigin) problems.push('STREAM_ALLOWED_ORIGIN is required');
   if (problems.length > 0) throw new Error(`Invalid sentinel-stream configuration:\n- ${problems.join('\n- ')}`);
   return {
-    port: Number(env['PORT'] ?? env['STREAM_PORT'] ?? 8081),
+    // STREAM_PORT first, so one local .env can serve core (PORT) and stream; Cloud Run injects only PORT.
+    port: Number(env['STREAM_PORT'] ?? env['PORT'] ?? 8081),
     logLevel: env['LOG_LEVEL'] ?? 'info',
     mongo: { uri, database: env['MONGODB_DATABASE']?.trim() || 'sentinel_ai' },
     allowedOrigin,

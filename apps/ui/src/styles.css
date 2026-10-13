@@ -3,6 +3,7 @@
 @import './app/design-system/tokens/radius.css';
 @import './app/design-system/tokens/elevation.css';
 @import './app/design-system/tokens/z-index.css';
+@import './app/design-system/tokens/layout.css';
 @import './app/design-system/typography/typography.css';
 @import './app/design-system/motion/motion.css';
 @import './app/design-system/accessibility/accessibility.css';
@@ -10,6 +11,7 @@
 @import './app/design-system/themes/bank-a/bank-a-theme.css';
 @import './app/design-system/themes/bank-b/bank-b-theme.css';
 @import './app/design-system/themes/bank-c/bank-c-theme.css';
+@import './app/design-system/surfaces/surfaces.css';
 
 *,
 *::before,
@@ -17,11 +19,31 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  background: var(--sentinel-color-background);
+  overflow-x: hidden;
+  background:
+    radial-gradient(900px 620px at 52% 52%, rgb(46 104 236 / 0.16), transparent 70%),
+    radial-gradient(700px 420px at 50% 8%, rgb(54 185 231 / 0.07), transparent 70%),
+    radial-gradient(640px 520px at 0% 100%, rgb(120 70 255 / 0.12), transparent 70%),
+    radial-gradient(520px 420px at 100% 100%, rgb(36 180 150 / 0.05), transparent 70%),
+    var(--sentinel-color-background);
+  background-attachment: fixed;
   color: var(--sentinel-color-text);
   font-family: var(--sentinel-font-family-sans);
   font-size: var(--sentinel-font-size-body);
   line-height: var(--sentinel-line-height-body);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+button,
+input,
+select {
+  font: inherit;
 }

@@ -1,5 +1,6 @@
-/* Synthetic tenant theme for the stretch tenant lens. Not the branding of any real institution. */
+/* Synthetic tenant theme for the tenant lens. Not the branding of any real institution. */
 [data-tenant-theme='bank-c'] {
   --sentinel-color-accent: #a3e635;
-  --sentinel-color-surface: #161d10;
+  --sentinel-color-accent-strong: #4ade80;
+  --sentinel-color-accent-soft: rgb(163 230 53 / 0.12);
 }

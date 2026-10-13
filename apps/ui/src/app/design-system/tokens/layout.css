@@ -1,0 +1,8 @@
+/* Shell geometry. The rail animates between the two widths; content never jumps. */
+:root {
+  --sentinel-top-bar-height: 64px;
+  --sentinel-rail-expanded: 248px;
+  --sentinel-rail-collapsed: 72px;
+  --sentinel-bottom-bar-height: 64px;
+  --sentinel-touch-target: 44px;
+}

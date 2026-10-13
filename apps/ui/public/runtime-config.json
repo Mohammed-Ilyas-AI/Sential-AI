@@ -1,0 +1,5 @@
+{
+  "coreApiBaseUrl": "http://localhost:8080",
+  "streamUrl": "ws://localhost:8081/stream",
+  "demoTimeCompression": true
+}

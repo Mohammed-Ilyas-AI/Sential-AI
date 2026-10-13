@@ -6,12 +6,12 @@
 
 `npm ci` → `npm run typecheck` → `npm run lint` → `npm test` → `npm run test:scenario` (DEMO_TAKEOVER_01) →
 four Docker images → Artifact Registry → `gcloud run services replace` ×3 and `gcloud run jobs replace` ×1.
-All steps run on `node:22.23.3-slim`. No manual deploys after 12 October; tag the submitted commit
+All steps run on `node:24.18.0-slim`. No manual deploys after 12 October; tag the submitted commit
 `submission-v1` and record its digest in the README.
 
 ## Images
 
-Each Dockerfile builds from the repository root in two stages (install and compile on `node:22.23.3-slim`, then
+Each Dockerfile builds from the repository root in two stages (install and compile on `node:24.18.0-slim`, then
 a slim runtime). `sentinel-ui` is served by `nginxinc/nginx-unprivileged:stable-alpine` with SPA fallback and
 `/healthz`. The Dockerfiles have not been built locally (Docker is not installed on the authoring machine); the
 first Cloud Build run is their validation.

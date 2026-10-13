@@ -10,7 +10,7 @@ maps them onto the repository. Where the codebase amends v1.2 it says so and lin
 
 | v1.2 | Implementation | Record |
 |---|---|---|
-| Angular 20 | Angular 22.2.x, TypeScript 6.0.x, Node 22.23.3, NgRx 22, Vitest 5 | [ADR-001](decisions/ADR-001-angular-22.md) |
+| Angular 20 | Angular 22.2.x, TypeScript 6.0.x, Node 24 LTS, NgRx 22, Vitest 5 | [ADR-001](decisions/ADR-001-angular-22.md) |
 | NgRx or signal store (open) | NgRx for cross-route domain state, Signals local, RxJS streams | [ADR-002](decisions/ADR-002-ngrx.md) |
 | Decision route "then publish" | Synchronous decision writes PENDING; Pub/Sub carries later lifecycle only | [ADR-004](decisions/ADR-004-decision-pubsub-flow.md) |
 | Security-event transport unspecified | `POST /v1/events/security`, synchronous | [ADR-004](decisions/ADR-004-decision-pubsub-flow.md) |
@@ -61,7 +61,7 @@ sentinel-ai/
 ├── infra/                  cloud-run/<deployable> · pubsub · mongodb · secret-manager · cloud-build · environments
 ├── docs/                   this file · architecture · contracts · decisions · deployment · compliance
 ├── CLAUDE.md · README.md · package.json · tsconfig.base.json · eslint.config.js · vitest.config.ts
-└── .nvmrc (22.23.3) · .npmrc (engine-strict) · .env.example · .dockerignore
+└── .nvmrc (24.18.0) · .npmrc (engine-strict) · .env.example · .dockerignore
 ```
 
 ## 2. Top-level responsibilities

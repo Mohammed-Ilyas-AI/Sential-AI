@@ -1,67 +1,37 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { AccountRiskPanel, AlertQueue } from '../../../fraud-alerts';
-import { TransactionTape } from '../../../live-transactions';
-import { AccountTimeline } from '../../components/account-timeline/account-timeline';
-import { CustomerNotification } from '../../components/customer-notification/customer-notification';
-import { LiveMetrics } from '../../components/live-metrics/live-metrics';
-import { PolicyHold } from '../../components/policy-hold/policy-hold';
-import { SystemHealth } from '../../components/system-health/system-health';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { NotificationList } from '../../../../layout/notification-panel/notification-list';
+import { ShellState } from '../../../../layout/shell/shell-state';
+import { Icon } from '../../../../shared/ui/icon/icon';
+import { KpiCard } from '../../components/kpi-card/kpi-card';
+import { LiveGlobalNetwork } from '../../components/live-global-network/live-global-network';
+import { PolicyGate } from '../../components/policy-gate/policy-gate';
+import { RiskAnalysis } from '../../components/risk-analysis/risk-analysis';
+import { SystemStatus } from '../../components/system-status/system-status';
+import { ThreatLandscape } from '../../components/threat-landscape/threat-landscape';
+import { TransactionStream } from '../../components/transaction-stream/transaction-stream';
 import { ControlTowerFacade } from '../../data-access/control-tower-facade';
 
-/** The Live Operations Command Center (M§5.1): tape left, counters top, alert queue and right rail. Composes only. */
+/**
+ * The Operations Control Tower: global situational awareness on one desktop viewport. Observation only — no
+ * search, no filters, no operator workflow; those live in Live Transactions, Alerts & Cases and Investigations.
+ */
 @Component({
   selector: 'sentinel-control-tower-page',
-  imports: [
-    LiveMetrics,
-    SystemHealth,
-    TransactionTape,
-    AlertQueue,
-    AccountRiskPanel,
-    PolicyHold,
-    AccountTimeline,
-    CustomerNotification,
-  ],
+  imports: [Icon, KpiCard, LiveGlobalNetwork, TransactionStream, RiskAnalysis, SystemStatus, NotificationList, ThreatLandscape, PolicyGate],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <sentinel-system-health [status]="facade.streamStatus()" />
-    <sentinel-live-metrics [metrics]="facade.metrics()" />
-    <div class="workspace">
-      <sentinel-transaction-tape />
-      <div class="column">
-        <sentinel-alert-queue />
-        <sentinel-account-risk-panel />
-        <sentinel-account-timeline [events]="facade.timeline()" />
-      </div>
-      <div class="column">
-        @if (facade.latestHoldNotice(); as notice) {
-          <sentinel-customer-notification [notice]="notice" />
-        }
-        <sentinel-policy-hold [decision]="facade.focusedDecision()" [intervention]="facade.focusedIntervention()" />
-      </div>
-    </div>
-  `,
-  styles: `
-    :host {
-      display: grid;
-      gap: var(--sentinel-space-4);
-    }
-    .workspace {
-      display: grid;
-      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
-      gap: var(--sentinel-space-4);
-      align-items: start;
-    }
-    .column {
-      display: grid;
-      gap: var(--sentinel-space-3);
-    }
-    @media (max-width: 1100px) {
-      .workspace {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-  `,
+  templateUrl: './control-tower-page.html',
+  styleUrl: './control-tower-page.css',
 })
 export class ControlTowerPage {
   protected readonly facade = inject(ControlTowerFacade);
+  protected readonly shell = inject(ShellState);
+
+  protected readonly globeDescription = computed(() => {
+    const callouts = this.facade.globeCallouts();
+    const held = callouts.find((callout) => callout.tone === 'held');
+    const routes = this.facade.networkStats().activeRoutes;
+    return held
+      ? `Live global network: ${routes} active routes; a transfer into ${held.institution} is on policy hold.`
+      : `Live global network: ${routes} active routes, no holds.`;
+  });
 }

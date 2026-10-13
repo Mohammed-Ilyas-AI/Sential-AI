@@ -1,0 +1,105 @@
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: var(--sentinel-z-command-palette);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh var(--sentinel-space-4) var(--sentinel-space-4);
+  pointer-events: none;
+}
+.palette {
+  width: min(640px, 100%);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+  animation: sentinel-enter var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--sentinel-space-3);
+  padding: var(--sentinel-space-4);
+  border-bottom: 1px solid var(--sentinel-color-border-soft);
+  color: var(--sentinel-color-text-muted);
+}
+input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--sentinel-color-text);
+  font-size: 1rem;
+}
+input::placeholder {
+  color: var(--sentinel-color-text-muted);
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: var(--sentinel-space-2);
+  overflow-y: auto;
+}
+li[role='option'] {
+  display: flex;
+  align-items: center;
+  gap: var(--sentinel-space-3);
+  min-height: 44px;
+  padding: 0 var(--sentinel-space-3);
+  border-radius: var(--sentinel-radius-medium);
+  color: var(--sentinel-color-text-secondary);
+  cursor: pointer;
+}
+li.active {
+  background: var(--sentinel-color-accent-soft);
+  color: var(--sentinel-color-text);
+  box-shadow: inset 2px 0 0 var(--sentinel-color-accent);
+}
+.label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hint {
+  color: var(--sentinel-color-text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.group {
+  padding: var(--sentinel-space-3) var(--sentinel-space-3) var(--sentinel-space-1);
+  font-size: var(--sentinel-font-size-micro);
+  letter-spacing: 0.08em;
+  color: var(--sentinel-color-text-muted);
+}
+.empty {
+  padding: var(--sentinel-space-6) var(--sentinel-space-3);
+  color: var(--sentinel-color-text-muted);
+  text-align: center;
+}
+footer {
+  display: flex;
+  gap: var(--sentinel-space-4);
+  padding: var(--sentinel-space-2) var(--sentinel-space-4);
+  border-top: 1px solid var(--sentinel-color-border-soft);
+  font-size: 0.75rem;
+  color: var(--sentinel-color-text-muted);
+}
+.scope {
+  margin-left: auto;
+}
+kbd {
+  margin-right: 3px;
+}
+@media (max-width: 640px) {
+  :host {
+    padding-top: var(--sentinel-space-4);
+  }
+  .scope {
+    display: none;
+  }
+}

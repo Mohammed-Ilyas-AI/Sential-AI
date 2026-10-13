@@ -1,10 +1,16 @@
-/* The default SENTINEL AI theme: dark, readable in a dark demo room. */
+/* The default SENTINEL AI theme: layered dark surfaces, readable in a dark demo room. */
 :root {
   color-scheme: dark;
-  --sentinel-color-background: #0b0f14;
-  --sentinel-color-surface: #141a22;
-  --sentinel-color-border: #253040;
-  --sentinel-color-text: #e6edf3;
-  --sentinel-color-text-muted: #8b98a8;
-  --sentinel-color-accent: #58a6ff;
+  --sentinel-color-background: #070b10;
+  --sentinel-color-surface: #0d141d;
+  --sentinel-color-elevated: #121c28;
+  --sentinel-color-border: #263444;
+  --sentinel-color-border-soft: rgb(38 52 68 / 0.55);
+  --sentinel-color-text: #f1f5f9;
+  --sentinel-color-text-secondary: #a6b3c4;
+  --sentinel-color-text-muted: #667589;
+  --sentinel-color-accent: #36b9e7;
+  --sentinel-color-accent-strong: #6d8cff;
+  --sentinel-color-accent-soft: rgb(54 185 231 / 0.12);
+  --sentinel-color-scrim: rgb(3 6 10 / 0.62);
 }

@@ -1,67 +1,67 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { TENANT_THEME_OPTIONS, TenantLens, type TenantThemeId } from '../../core/tenant/tenant-lens';
+import { Store } from '@ngrx/store';
+import { Icon } from '../../shared/ui/icon/icon';
+import { sessionFeature } from '../../state/session/session.feature';
+import { SentinelLogo } from '../brand/sentinel-logo';
+import { NotificationCenter } from '../notification-panel/notification-center';
+import { ShellState } from '../shell/shell-state';
+import { LiveClock } from './live-clock';
 
+/** Toggle, brand, live state, clock, notifications, settings, analyst. Nothing else: no search lives here. */
 @Component({
   selector: 'sentinel-top-bar',
+  imports: [Icon, SentinelLogo, LiveClock],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header>
-      <strong>SENTINEL AI</strong>
-      <span class="tagline">Detect. Explain. Intervene. Investigate.</span>
-      <span class="spacer"></span>
-      <ng-content />
-      <label>
-        <span class="sentinel-visually-hidden">Tenant view</span>
-        <select [value]="lens.activeTheme()" (change)="switchTenant($event)">
-          @for (option of options; track option.id) {
-            <option [value]="option.id">{{ option.label }}</option>
+      <div class="brand">
+        <button type="button" class="sentinel-icon-button toggle desktop-only" [attr.aria-expanded]="shell.sidebarExpanded()" (click)="shell.toggleSidebar()">
+          <sentinel-icon name="menu" [size]="22" label="Toggle navigation" />
+        </button>
+        <button type="button" class="sentinel-icon-button toggle mobile-only" [attr.aria-expanded]="shell.mobileNavigationOpen()" (click)="shell.toggle('mobile-navigation')">
+          <sentinel-icon name="menu" [size]="22" label="Open navigation" />
+        </button>
+        <span class="divider desktop-only" aria-hidden="true"></span>
+        <sentinel-logo />
+      </div>
+
+      <div class="controls">
+        <button type="button" class="mode" [attr.data-status]="streamStatus()" (click)="shell.open('settings')">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="mode-text">
+            <span class="mode-label">{{ streamStatus() === 'LIVE' ? 'Live Mode' : streamStatus() === 'RECONNECTING' ? 'Reconnecting' : 'Connecting' }}</span>
+            <span class="mode-environment">Synthetic data</span>
+          </span>
+          <sentinel-icon name="chevronDown" [size]="16" />
+        </button>
+        <span class="divider wide-only" aria-hidden="true"></span>
+        <sentinel-live-clock class="wide-only" />
+        <span class="divider desktop-only" aria-hidden="true"></span>
+        <button type="button" class="sentinel-icon-button bell" [attr.aria-expanded]="shell.notificationPanelOpen()" (click)="shell.toggle('notifications')">
+          <sentinel-icon name="bell" [size]="22" [label]="'Notifications, ' + notifications.unreadCount() + ' unread'" />
+          @if (notifications.unreadCount() > 0) {
+            @for (count of [notifications.unreadCount()]; track count) {
+              <span class="badge sentinel-mono" aria-hidden="true">{{ count > 9 ? '9+' : count }}</span>
+            }
           }
-        </select>
-      </label>
+        </button>
+        <button type="button" class="sentinel-icon-button desktop-only" [attr.aria-expanded]="shell.settingsPanelOpen()" (click)="shell.toggle('settings')">
+          <sentinel-icon name="settings" [size]="22" label="Settings" />
+        </button>
+        <span class="divider desktop-only" aria-hidden="true"></span>
+        <button type="button" class="profile" [attr.aria-expanded]="shell.userMenuOpen()" aria-haspopup="menu" (click)="shell.toggle('user-menu')">
+          <span class="avatar" aria-hidden="true">FA</span>
+          <span class="who desktop-only"><span class="name">Fraud analyst</span><span class="role">Demo environment</span></span>
+          <sentinel-icon class="desktop-only" name="chevronDown" [size]="18" />
+          <span class="sentinel-visually-hidden">Analyst menu</span>
+        </button>
+      </div>
     </header>
   `,
-  styles: `
-    header {
-      display: flex;
-      align-items: center;
-      gap: var(--sentinel-space-3);
-      padding: var(--sentinel-space-3) var(--sentinel-space-4);
-      border-bottom: 1px solid var(--sentinel-color-border);
-      background: var(--sentinel-color-surface);
-    }
-    strong {
-      letter-spacing: 0.02em;
-    }
-    .tagline {
-      color: var(--sentinel-color-text-muted);
-      font-size: var(--sentinel-font-size-caption);
-    }
-    .spacer {
-      flex: 1;
-    }
-    @media (max-width: 700px) {
-      .tagline {
-        display: none;
-      }
-    }
-    select {
-      background: var(--sentinel-color-background);
-      color: var(--sentinel-color-text);
-      border: 1px solid var(--sentinel-color-border);
-      border-radius: var(--sentinel-radius-small);
-      padding: var(--sentinel-space-1) var(--sentinel-space-2);
-      font: inherit;
-      font-size: var(--sentinel-font-size-caption);
-    }
-  `,
+  styleUrl: './top-bar.css',
 })
 export class TopBar {
-  protected readonly lens = inject(TenantLens);
-  protected readonly options = TENANT_THEME_OPTIONS;
-
-  protected switchTenant(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    const option = this.options.find((candidate) => candidate.id === value);
-    if (option) this.lens.switchTo(option.id satisfies TenantThemeId);
-  }
+  protected readonly shell = inject(ShellState);
+  protected readonly notifications = inject(NotificationCenter);
+  protected readonly streamStatus = inject(Store).selectSignal(sessionFeature.selectStreamStatus);
 }

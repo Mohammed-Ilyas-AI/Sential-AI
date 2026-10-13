@@ -1,0 +1,98 @@
+:host {
+  --tone: #4aa8ff;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 16px 8px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: var(--sentinel-radius-large);
+  background:
+    radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--tone) 22%, transparent), transparent 62%),
+    linear-gradient(180deg, color-mix(in srgb, var(--tone) 10%, #0b1320), #0a111b);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 0 0 1px rgb(0 0 0 / 0.2),
+    0 14px 34px -22px color-mix(in srgb, var(--tone) 90%, transparent);
+  transition:
+    transform var(--sentinel-motion-duration-base) var(--sentinel-motion-easing-standard),
+    box-shadow var(--sentinel-motion-duration-base) var(--sentinel-motion-easing-standard);
+}
+:host(:hover) {
+  transform: translateY(-2px);
+}
+:host([data-tone='critical']) {
+  --tone: #ff4d63;
+}
+:host([data-tone='warning']) {
+  --tone: #f2b84b;
+}
+:host([data-tone='success']) {
+  --tone: #2fd49a;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.tile {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--tone) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 50%, transparent);
+  color: color-mix(in srgb, var(--tone) 70%, #fff);
+  box-shadow: 0 0 16px -4px color-mix(in srgb, var(--tone) 70%, transparent);
+}
+.label {
+  min-width: 0;
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.figures {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sentinel-space-2);
+}
+.value {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.change {
+  font-size: 0.8125rem;
+  color: var(--sentinel-color-text-secondary);
+  white-space: nowrap;
+}
+.change[data-direction='up'],
+.change[data-direction='down'] {
+  color: var(--tone);
+}
+.trend {
+  align-self: end;
+  height: 24px;
+  color: var(--tone);
+}
+@media (max-height: 940px) {
+  :host {
+    gap: 6px;
+    padding: 10px 14px 6px;
+  }
+  .value {
+    font-size: 1.625rem;
+  }
+  .trend {
+    height: 22px;
+  }
+}

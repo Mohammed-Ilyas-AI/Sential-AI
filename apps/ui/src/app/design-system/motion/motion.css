@@ -1,12 +1,47 @@
+/* Precision over spectacle: short, eased transitions; nothing loops except the live indicator. */
 :root {
-  --sentinel-motion-duration-fast: 120ms;
-  --sentinel-motion-duration-base: 250ms;
+  --sentinel-motion-duration-fast: 150ms;
+  --sentinel-motion-duration-base: 200ms;
+  --sentinel-motion-duration-slow: 240ms;
   --sentinel-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --sentinel-motion-easing-emphasised: cubic-bezier(0.3, 0, 0, 1.15);
+}
+
+@keyframes sentinel-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 0%, transparent);
+  }
+}
+
+@keyframes sentinel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes sentinel-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --sentinel-motion-duration-fast: 0ms;
     --sentinel-motion-duration-base: 0ms;
+    --sentinel-motion-duration-slow: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -1,4 +1,7 @@
 :root {
-  --sentinel-elevation-panel: 0 1px 2px rgb(0 0 0 / 0.4);
-  --sentinel-elevation-overlay: 0 8px 24px rgb(0 0 0 / 0.5);
+  --sentinel-elevation-panel: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -20px rgb(0 0 0 / 0.8);
+  --sentinel-elevation-overlay: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 60px -18px rgb(0 0 0 / 0.85);
+  /* Controlled illumination: one hairline of accent, never a neon outline. */
+  --sentinel-glow-accent: 0 0 0 1px rgb(54 185 231 / 0.18), 0 8px 28px -12px rgb(54 185 231 / 0.45);
+  --sentinel-glow-critical: 0 0 0 1px rgb(244 91 105 / 0.22), 0 8px 28px -12px rgb(244 91 105 / 0.5);
 }

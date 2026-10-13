@@ -27,7 +27,7 @@ installed.
 |---|---|
 | Framework | Angular `~22.2.0`, standalone components only, no NgModules, zoneless change detection |
 | Language | TypeScript `~6.0.3` across every workspace |
-| Runtime | Node.js `22.23.3` pinned in `.nvmrc`, `engines`, `.npmrc` `engine-strict`, Docker images and Cloud Build |
+| Runtime | Node.js 24 LTS: `24.18.0` in `.nvmrc`, Docker images and Cloud Build; `engines` accepts 24.x under `.npmrc` `engine-strict` |
 | Streams / state | RxJS `~7.8.2`, NgRx `~22.0.1`, Angular Signals |
 | Tests | Vitest `~5.0.2` everywhere (the Angular unit-test builder runs Vitest for `apps/ui`) |
 
@@ -37,6 +37,6 @@ MongoDB Atlas, Pub/Sub, Cloud Run, Vertex AI and the scope.
 ## Consequences
 
 - The scaffold's Karma/Jasmine and `node --test` are replaced by Vitest.
-- Local development must use Node 22.23.3; Node 24 is rejected by `engine-strict`.
+- Local development uses Node 24 (amended 13 Oct 2026: moved from 22.23.3 to the LTS the team develops on); other majors are rejected by `engine-strict`.
 - "Module" in this codebase means a feature or capability boundary, never an Angular `NgModule`.
 - Angular 22.2.0 was released on 23 Sep 2026; the lockfile pins it until the 15 Oct freeze.

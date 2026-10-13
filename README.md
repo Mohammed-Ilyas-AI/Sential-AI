@@ -25,7 +25,7 @@ deployed yet.
 | Layer | Choice |
 |---|---|
 | Frontend | Angular 22 (standalone, zoneless), NgRx, Signals, RxJS, Web Workers |
-| Backend | Node.js 22.23.3, TypeScript 6, Express 5 on Cloud Run |
+| Backend | Node.js 24 LTS, TypeScript 6, Express 5 on Cloud Run |
 | Data | MongoDB Atlas on Google Cloud (`asia-southeast1`) |
 | Messaging | Google Cloud Pub/Sub (ordered per account token) |
 | Real time | WebSocket gateway on Cloud Run, fed by MongoDB change streams |
@@ -53,7 +53,7 @@ Start with [docs/repository-architecture.md](docs/repository-architecture.md).
 
 ## Quick start
 
-Requires Node.js **22.23.3** (`.nvmrc`; other versions are rejected by `engine-strict`).
+Requires Node.js **24 LTS** (24.18.0 in `.nvmrc`; other major versions are rejected by `engine-strict`).
 
 ```bash
 npm install

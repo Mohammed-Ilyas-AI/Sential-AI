@@ -1,14 +1,23 @@
 :root {
-  --sentinel-font-family-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --sentinel-font-family-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', monospace;
+  --sentinel-font-family-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --sentinel-font-size-micro: 0.6875rem;
   --sentinel-font-size-caption: 0.8125rem;
-  --sentinel-font-size-body: 0.9375rem;
-  --sentinel-font-size-title: 1.25rem;
-  --sentinel-font-size-display: 2rem;
-  --sentinel-line-height-body: 1.55;
+  --sentinel-font-size-body: 0.875rem;
+  --sentinel-font-size-title: 1.125rem;
+  --sentinel-font-size-headline: 1.75rem;
+  --sentinel-font-size-display: 2.5rem;
+  --sentinel-line-height-body: 1.5;
 }
 
 /* Amounts, scores and percentages line up column by column on the tape. */
 .sentinel-figures {
   font-variant-numeric: tabular-nums;
+}
+
+/* IBM Plex Mono is for telemetry only: IDs, timestamps, amounts, rule codes, technical statuses. */
+.sentinel-mono {
+  font-family: var(--sentinel-font-family-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }

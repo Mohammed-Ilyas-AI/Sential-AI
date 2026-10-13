@@ -3,10 +3,15 @@
  * bands also carry a label, and flagged graph nodes carry a persistent mark.
  */
 :root {
-  --sentinel-color-risk-low: #3fb950;
-  --sentinel-color-risk-elevated: #d29922;
-  --sentinel-color-risk-high: #f0883e;
-  --sentinel-color-risk-critical: #f85149;
-  --sentinel-color-hold: #f85149;
-  --sentinel-color-unobserved: #8b98a8;
+  --sentinel-color-success: #36c98a;
+  --sentinel-color-warning: #f2b84b;
+  --sentinel-color-critical: #f45b69;
+  --sentinel-color-info: #36b9e7;
+
+  --sentinel-color-risk-low: var(--sentinel-color-success);
+  --sentinel-color-risk-elevated: var(--sentinel-color-warning);
+  --sentinel-color-risk-high: #f58a4b;
+  --sentinel-color-risk-critical: var(--sentinel-color-critical);
+  --sentinel-color-hold: var(--sentinel-color-critical);
+  --sentinel-color-unobserved: #667589;
 }

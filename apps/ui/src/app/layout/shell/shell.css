@@ -1,0 +1,80 @@
+:host {
+  --rail-width: var(--sentinel-rail-expanded);
+  display: block;
+  min-height: 100dvh;
+}
+:host(.rail-collapsed) {
+  --rail-width: var(--sentinel-rail-collapsed);
+}
+:host(.focus-mode) {
+  --rail-width: 0px;
+}
+:host(.focus-mode) .rail {
+  transform: translateX(-100%);
+}
+.rail {
+  transition:
+    width var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard),
+    transform var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
+}
+main {
+  min-width: 0;
+  padding: var(--sentinel-space-4) var(--sentinel-space-6) var(--sentinel-space-4) calc(var(--rail-width) + var(--sentinel-space-6));
+  transition: padding-left var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
+  outline: none;
+  overflow-x: clip;
+}
+.bottom-bar {
+  display: none;
+}
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--sentinel-z-scrim);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+.scrim.dimmed {
+  background: var(--sentinel-color-scrim);
+  backdrop-filter: blur(2px);
+  animation: scrim-in var(--sentinel-motion-duration-base) var(--sentinel-motion-easing-standard);
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: calc(var(--sentinel-z-command-palette) + 1);
+  padding: 8px 12px;
+  border-radius: var(--sentinel-radius-small);
+  background: var(--sentinel-color-accent);
+  color: var(--sentinel-color-background);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+@media (max-width: 1279px) {
+  main {
+    padding-right: var(--sentinel-space-4);
+    padding-left: calc(var(--rail-width) + var(--sentinel-space-4));
+  }
+}
+@media (max-width: 767px) {
+  .rail {
+    display: none;
+  }
+  .bottom-bar {
+    display: block;
+  }
+  main {
+    padding: var(--sentinel-space-4) var(--sentinel-space-3) calc(var(--sentinel-bottom-bar-height) + var(--sentinel-space-6) + env(safe-area-inset-bottom, 0px));
+  }
+}

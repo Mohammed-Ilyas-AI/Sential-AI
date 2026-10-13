@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
+    "dev": "tsx --env-file-if-exists=../../.env --import ../../tools/local-dev/dns-resolvers.mjs src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config ../../vitest.config.ts --project simulator"
   },

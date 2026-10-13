@@ -1,5 +1,5 @@
 # sentinel-ui: the Angular SPA served from a static container. Build context: repository root.
-FROM node:22.23.3-slim AS build
+FROM node:24.18.0-slim AS build
 WORKDIR /workspace
 COPY package.json package-lock.json .npmrc tsconfig.base.json ./
 COPY packages ./packages

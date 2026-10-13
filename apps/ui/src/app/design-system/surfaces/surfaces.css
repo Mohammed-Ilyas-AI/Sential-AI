@@ -1,0 +1,109 @@
+/* Shared surfaces. Hierarchy comes from layering and hairlines, not from more boxes. */
+.sentinel-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 40%), var(--sentinel-color-surface);
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: var(--sentinel-radius-large);
+  box-shadow: var(--sentinel-elevation-panel);
+}
+
+.sentinel-panel--elevated {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.03), transparent 50%), var(--sentinel-color-elevated);
+  border-color: var(--sentinel-color-border);
+  box-shadow: var(--sentinel-elevation-overlay);
+}
+
+/* Section labels: small, spaced, quiet. The only uppercase in the product. */
+.sentinel-eyebrow {
+  margin: 0;
+  font-size: var(--sentinel-font-size-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sentinel-color-text-secondary);
+}
+
+.sentinel-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--sentinel-radius-medium);
+  background: transparent;
+  color: var(--sentinel-color-text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--sentinel-motion-duration-fast) var(--sentinel-motion-easing-standard),
+    color var(--sentinel-motion-duration-fast) var(--sentinel-motion-easing-standard),
+    border-color var(--sentinel-motion-duration-fast) var(--sentinel-motion-easing-standard);
+}
+
+.sentinel-icon-button:hover {
+  background: var(--sentinel-color-elevated);
+  border-color: var(--sentinel-color-border-soft);
+  color: var(--sentinel-color-text);
+}
+
+.sentinel-icon-button[aria-expanded='true'] {
+  background: var(--sentinel-color-accent-soft);
+  color: var(--sentinel-color-accent);
+}
+
+.sentinel-link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sentinel-space-1);
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--sentinel-color-accent);
+  font: inherit;
+  font-size: var(--sentinel-font-size-caption);
+  cursor: pointer;
+}
+
+.sentinel-link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sentinel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sentinel-color-border) transparent;
+}
+
+/* Keycaps for shortcut hints. */
+.sentinel-kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 1px 6px;
+  border: 1px solid var(--sentinel-color-border);
+  border-radius: 6px;
+  background: var(--sentinel-color-elevated);
+  font-family: var(--sentinel-font-family-mono);
+  font-size: 0.6875rem;
+  text-align: center;
+  color: var(--sentinel-color-text-secondary);
+}
+
+/* Label shown beside a collapsed rail item; the parent decides when it is visible. */
+.sentinel-tooltip {
+  position: fixed;
+  left: calc(var(--sentinel-rail-collapsed) + 6px);
+  padding: 6px 10px;
+  border: 1px solid var(--sentinel-color-border);
+  border-radius: var(--sentinel-radius-small);
+  background: var(--sentinel-color-elevated);
+  box-shadow: var(--sentinel-elevation-overlay);
+  color: var(--sentinel-color-text);
+  font-size: var(--sentinel-font-size-caption);
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--sentinel-motion-duration-fast) var(--sentinel-motion-easing-standard),
+    transform var(--sentinel-motion-duration-fast) var(--sentinel-motion-easing-standard);
+}

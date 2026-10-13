@@ -1,16 +1,10 @@
-import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import type { StreamMessage } from '@sentinel/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MongoChangeFeed } from '../../src/change-stream/mongo-change-feed.js';
 import { connectStreamDatabase, type StreamDatabase } from '../../src/change-stream/stream-database.js';
 import { StreamCursorTracker } from '../../src/resume/stream-cursor.js';
 import { MongoStreamSnapshotSource } from '../../src/snapshot/mongo-stream-snapshot.source.js';
-
-const ENV_FILE = fileURLToPath(new URL('../../../../.env', import.meta.url));
-if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
-const URI = process.env['MONGODB_URI']?.trim() || undefined;
-const DATABASE = `${process.env['MONGODB_DATABASE']?.trim() || 'sentinel_ai'}_it_stream_${Date.now().toString(36)}`;
+import { ATLAS_URI as URI, INTEGRATION_DATABASE as DATABASE } from './atlas-environment.js';
 
 const describeAgainstAtlas = URI ? describe : describe.skip;
 

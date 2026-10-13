@@ -1,0 +1,114 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 16px;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--sentinel-color-success);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: sentinel-breathe 2.4s ease-in-out infinite;
+}
+.more {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: 6px;
+  color: var(--sentinel-color-text-secondary);
+}
+.map {
+  position: relative;
+  flex: 1;
+  min-height: 90px;
+  margin: 8px 0;
+}
+canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.hotspot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--level);
+  box-shadow: 0 0 12px 3px color-mix(in srgb, var(--level) 70%, transparent);
+}
+.hotspot::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid var(--level);
+  animation: hotspot-ping 2.4s var(--sentinel-motion-easing-standard) infinite;
+}
+@keyframes hotspot-ping {
+  from {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+[data-level='high'] {
+  --level: var(--sentinel-color-critical);
+}
+[data-level='elevated'] {
+  --level: var(--sentinel-color-warning);
+}
+[data-level='normal'] {
+  --level: var(--sentinel-color-accent);
+}
+.legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sentinel-space-4);
+  margin: 0;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--sentinel-color-text-secondary);
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend li::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--level);
+}
+.legend b {
+  color: var(--sentinel-color-text);
+  font-weight: 600;
+}

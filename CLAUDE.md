@@ -15,7 +15,7 @@ model never returns a decision. A change that breaks this is the wrong change, w
 
 ## Repository shape
 
-npm workspaces, Node **22.23.3** (`.nvmrc`, `engine-strict`), TypeScript **6.0.x**, Vitest **5**.
+npm workspaces, Node **24 LTS** (24.18.0 in `.nvmrc`; `engines` accepts 24.x, `engine-strict`), TypeScript **6.0.x**, Vitest **5**.
 
 - `apps/ui` — Angular 22.2, standalone, zoneless, OnPush. Feature-oriented: `features/<feature>/{pages,components,data-access,state,models,routes.ts,index.ts}`. NgRx for cross-route domain state, Signals for local UI state, RxJS for streams.
 - `apps/core` — Express 5, ESM. `modules/<capability>/{application,presentation}`; ports in `application/ports/`; adapters in `infrastructure/`; wiring only in `composition/`.

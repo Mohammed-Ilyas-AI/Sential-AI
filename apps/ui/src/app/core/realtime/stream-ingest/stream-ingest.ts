@@ -7,6 +7,7 @@ import { AlertsActions } from '../../../state/alerts/alerts.actions';
 import { InterventionsActions } from '../../../state/interventions/interventions.actions';
 import { TransactionsActions } from '../../../state/transactions/transactions.actions';
 import { TransactionWorkerClient } from '../../../workers/transaction-worker.client';
+import { StreamTelemetry } from '../stream-telemetry/stream-telemetry';
 import { RealtimeConnection } from '../websocket-client/realtime-connection';
 
 /**
@@ -19,11 +20,15 @@ export class StreamIngest {
   private readonly store = inject(Store);
   private readonly worker = inject(TransactionWorkerClient);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly telemetry = inject(StreamTelemetry);
 
   start(): void {
     const messages$ = this.connection.messages$.pipe(takeUntilDestroyed(this.destroyRef));
 
-    messages$.subscribe((message) => this.routeImmediate(message));
+    messages$.subscribe((message) => {
+      this.telemetry.record(message.emittedAt);
+      this.routeImmediate(message);
+    });
 
     messages$
       .pipe(
