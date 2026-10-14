@@ -7,5 +7,5 @@ job="$1"
 scripts_dir="$(dirname "$0")"
 manifest="$(mktemp)"
 
-"${scripts_dir}/render-manifest.sh" "infra/cloud-run/${job}/job.yaml" "${REGISTRY}/${job}:${TAG}" > "${manifest}"
+bash "${scripts_dir}/render-manifest.sh" "infra/cloud-run/${job}/job.yaml" "${REGISTRY}/${job}:${TAG}" > "${manifest}"
 gcloud run jobs replace "${manifest}" --region "${REGION}"

@@ -11,6 +11,11 @@ RUN npm ci
 RUN npm run build --workspace @sentinel/ui
 
 FROM nginxinc/nginx-unprivileged:stable-alpine AS runtime
-COPY infra/cloud-run/sentinel-ui/nginx.conf /etc/nginx/conf.d/default.conf
+# Rendered at container start into /etc/nginx/conf.d/default.conf (see default.conf.template).
+COPY infra/cloud-run/sentinel-ui/default.conf.template /etc/nginx/templates/default.conf.template
+# Local defaults; Cloud Run sets the deployed values (infra/cloud-run/sentinel-ui/service.yaml).
+ENV CORE_API_BASE_URL=http://localhost:8080 \
+    STREAM_URL=ws://localhost:8081/stream \
+    DEMO_TIME_COMPRESSION=true
 COPY --from=build /workspace/apps/ui/dist/sentinel-ui/browser /usr/share/nginx/html
 EXPOSE 8080

@@ -1,0 +1,28 @@
+# nginx template: the image's entrypoint substitutes ${CORE_API_BASE_URL}, ${STREAM_URL} and ${DEMO_TIME_COMPRESSION}
+# from the container environment at start (only variables that are set, so nginx's own $uri is untouched) and
+# writes /etc/nginx/conf.d/default.conf.
+server {
+  listen 8080;
+  root /usr/share/nginx/html;
+
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 'ok';
+  }
+
+  # The browser's endpoints for this deployment. Overrides the localhost file baked into the build; never a secret.
+  location = /runtime-config.json {
+    default_type application/json;
+    add_header Cache-Control 'no-store' always;
+    return 200 '{"coreApiBaseUrl":"${CORE_API_BASE_URL}","streamUrl":"${STREAM_URL}","demoTimeCompression":${DEMO_TIME_COMPRESSION}}';
+  }
+
+  location = /index.html {
+    add_header Cache-Control 'no-cache' always;
+  }
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+}

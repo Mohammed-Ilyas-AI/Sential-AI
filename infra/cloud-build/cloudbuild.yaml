@@ -1,16 +1,30 @@
 # Push to main: install, typecheck, lint, unit tests, DEMO_TAKEOVER_01 headless assertion, four images,
 # Artifact Registry, deploy. Everything ships from main; no manual deploys after 12 October.
+#
+# Trigger configuration (Cloud Build > Triggers): type "Cloud Build configuration file", location
+# infra/cloud-build/cloudbuild.yaml. One-time project setup: infra/cloud-build/scripts/bootstrap-project.sh.
+#
+# Service URLs are derived, not configured: Cloud Run names a service https://<service>-<project-number>.<region>.run.app,
+# and $PROJECT_NUMBER is a built-in substitution, so the first deploy already knows every URL.
 substitutions:
   _REGION: asia-southeast1
   _REPOSITORY: sentinel
-  _UI_ORIGIN: ''
-  _CORE_URL: ''
+  # 0 keeps idle cost at zero; raise to 1 for demo windows (cold starts are how demos die).
+  _MIN_INSTANCES: '0'
+  # The 24-hour hold runs as 24 seconds and the UI labels it "demo time ×3600".
+  _DEMO_TIME_COMPRESSION: 'true'
+  # Verified Vertex AI model IDs; empty means the investigation advisory reports MODEL_NOT_CONFIGURED.
   _GEMINI_FAST_MODEL: ''
   _GEMINI_DEEP_MODEL: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY
   dynamicSubstitutions: true
+  # Triggers created by the console's "deploy from repository" wizard carry their own substitutions
+  # (_SERVICE_NAME, _DEPLOY_REGION, ...); tolerate them rather than fail the build.
+  substitutionOption: ALLOW_LOOSE
+
+timeout: 3600s
 
 steps:
   - id: install
@@ -73,17 +87,29 @@ steps:
     entrypoint: bash
     env:
       - PROJECT_ID=$PROJECT_ID
+      - PROJECT_NUMBER=$PROJECT_NUMBER
       - REGION=${_REGION}
       - REGISTRY=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}
       - TAG=$SHORT_SHA
-      - UI_ORIGIN=${_UI_ORIGIN}
-      - CORE_URL=${_CORE_URL}
+      - MIN_INSTANCES=${_MIN_INSTANCES}
+      - DEMO_TIME_COMPRESSION=${_DEMO_TIME_COMPRESSION}
       - GEMINI_FAST_MODEL=${_GEMINI_FAST_MODEL}
       - GEMINI_DEEP_MODEL=${_GEMINI_DEEP_MODEL}
     args:
       - -c
       - |
-        infra/cloud-build/scripts/deploy-service.sh sentinel-core
-        infra/cloud-build/scripts/deploy-service.sh sentinel-stream
-        infra/cloud-build/scripts/deploy-service.sh sentinel-ui
-        infra/cloud-build/scripts/deploy-job.sh sentinel-simulator
+        set -euo pipefail
+        source infra/cloud-build/scripts/service-urls.sh
+        bash infra/cloud-build/scripts/deploy-service.sh sentinel-core
+        bash infra/cloud-build/scripts/deploy-service.sh sentinel-stream
+        bash infra/cloud-build/scripts/deploy-service.sh sentinel-ui
+        bash infra/cloud-build/scripts/deploy-job.sh sentinel-simulator
+        # The browser calls core, stream and ui directly, so they are public; the job and push endpoint are not open
+        # beyond that (the push route verifies its Google-signed OIDC token itself).
+        for service in sentinel-core sentinel-stream sentinel-ui; do
+          gcloud run services add-iam-policy-binding "$${service}" --region "${_REGION}" \
+            --member=allUsers --role=roles/run.invoker --quiet > /dev/null
+        done
+        echo "UI:     $${UI_ORIGIN}"
+        echo "Core:   $${CORE_URL}"
+        echo "Stream: $${STREAM_URL}"

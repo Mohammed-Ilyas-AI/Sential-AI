@@ -4,7 +4,7 @@ kind: Job
 metadata:
   name: sentinel-simulator
   labels:
-    cloud.googleapis.com/location: asia-southeast1
+    cloud.googleapis.com/location: __REGION__
 spec:
   template:
     spec:

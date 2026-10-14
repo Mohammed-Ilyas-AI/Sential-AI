@@ -4,13 +4,17 @@ kind: Service
 metadata:
   name: sentinel-stream
   labels:
-    cloud.googleapis.com/location: asia-southeast1
+    cloud.googleapis.com/location: __REGION__
 spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/minScale: '__MIN_INSTANCES__'
         autoscaling.knative.dev/maxScale: '3'
+        # Direct VPC egress: all outbound traffic leaves through Cloud NAT's one reserved IP, the only address on the
+        # Atlas access list (never 0.0.0.0/0). Created by infra/cloud-build/scripts/bootstrap-project.sh.
+        run.googleapis.com/network-interfaces: '[{"network":"__VPC_NETWORK__","subnetwork":"__VPC_SUBNET__"}]'
+        run.googleapis.com/vpc-access-egress: all-traffic
         run.googleapis.com/sessionAffinity: 'true'
     spec:
       serviceAccountName: sentinel-stream@__PROJECT_ID__.iam.gserviceaccount.com

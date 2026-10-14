@@ -3,12 +3,12 @@ kind: Service
 metadata:
   name: sentinel-ui
   labels:
-    cloud.googleapis.com/location: asia-southeast1
+    cloud.googleapis.com/location: __REGION__
 spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/minScale: '__MIN_INSTANCES__'
     spec:
       serviceAccountName: sentinel-ui@__PROJECT_ID__.iam.gserviceaccount.com
       containers:
@@ -19,3 +19,12 @@ spec:
             limits:
               cpu: '1'
               memory: 512Mi
+          # Written into /runtime-config.json at container start (nginx template), so the browser always calls the
+          # deployed core and stream, never localhost. No secret is ever served here.
+          env:
+            - name: CORE_API_BASE_URL
+              value: __CORE_URL__
+            - name: STREAM_URL
+              value: __STREAM_URL__
+            - name: DEMO_TIME_COMPRESSION
+              value: '__DEMO_TIME_COMPRESSION__'

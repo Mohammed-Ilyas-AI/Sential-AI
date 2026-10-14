@@ -7,5 +7,5 @@ service="$1"
 scripts_dir="$(dirname "$0")"
 manifest="$(mktemp)"
 
-"${scripts_dir}/render-manifest.sh" "infra/cloud-run/${service}/service.yaml" "${REGISTRY}/${service}:${TAG}" > "${manifest}"
+bash "${scripts_dir}/render-manifest.sh" "infra/cloud-run/${service}/service.yaml" "${REGISTRY}/${service}:${TAG}" > "${manifest}"
 gcloud run services replace "${manifest}" --region "${REGION}"

@@ -4,13 +4,17 @@ kind: Service
 metadata:
   name: sentinel-core
   labels:
-    cloud.googleapis.com/location: asia-southeast1
+    cloud.googleapis.com/location: __REGION__
 spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/minScale: '1'
+        autoscaling.knative.dev/minScale: '__MIN_INSTANCES__'
         autoscaling.knative.dev/maxScale: '10'
+        # Direct VPC egress: all outbound traffic leaves through Cloud NAT's one reserved IP, the only address on the
+        # Atlas access list (never 0.0.0.0/0). Created by infra/cloud-build/scripts/bootstrap-project.sh.
+        run.googleapis.com/network-interfaces: '[{"network":"__VPC_NETWORK__","subnetwork":"__VPC_SUBNET__"}]'
+        run.googleapis.com/vpc-access-egress: all-traffic
     spec:
       serviceAccountName: sentinel-core@__PROJECT_ID__.iam.gserviceaccount.com
       timeoutSeconds: 300
@@ -26,7 +30,7 @@ spec:
             - name: GCP_PROJECT_ID
               value: __PROJECT_ID__
             - name: VERTEX_LOCATION
-              value: asia-southeast1
+              value: __REGION__
             - name: MONGODB_DATABASE
               value: sentinel_ai
             - name: CORS_ALLOWED_ORIGIN
@@ -39,10 +43,12 @@ spec:
               value: __PUSH_SERVICE_ACCOUNT__
             - name: DESIGNATED_BILLING_PAYEE_IDS
               value: ''
+            - name: DEMO_TIME_COMPRESSION_ENABLED
+              value: '__DEMO_TIME_COMPRESSION__'
             - name: GEMINI_FAST_MODEL
-              value: __GEMINI_FAST_MODEL__
+              value: '__GEMINI_FAST_MODEL__'
             - name: GEMINI_DEEP_MODEL
-              value: __GEMINI_DEEP_MODEL__
+              value: '__GEMINI_DEEP_MODEL__'
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:

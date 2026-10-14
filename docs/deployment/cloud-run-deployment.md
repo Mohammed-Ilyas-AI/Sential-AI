@@ -1,6 +1,7 @@
 # Deployment
 
-**Nothing is deployed and no cloud resource exists yet.** Manifests and runbooks are in `infra/`.
+Manifests, scripts and the one-time setup are in `infra/` (see `infra/README.md`). Deployment target:
+the competition project in `asia-southeast1`, built and deployed by Cloud Build from `main`.
 
 ## Pipeline (Cloud Build, push to `main`)
 
@@ -16,15 +17,23 @@ a slim runtime). `sentinel-ui` is served by `nginxinc/nginx-unprivileged:stable-
 `/healthz`. The Dockerfiles have not been built locally (Docker is not installed on the authoring machine); the
 first Cloud Build run is their validation.
 
-## Open items for build steps 3–5
+## Resolved deployment items
+
+| Item | Resolution |
+|---|---|
+| UI runtime configuration | `sentinel-ui` renders `/runtime-config.json` from `CORE_API_BASE_URL`, `STREAM_URL` and `DEMO_TIME_COMPRESSION` at container start (nginx template); the browser never falls back to localhost |
+| Service URLs | Derived from `$PROJECT_NUMBER` and the region (`service-urls.sh`), so the first deploy knows every URL |
+| Push authentication | The subscription signs its OIDC token for the push endpoint URL as `sentinel-pubsub-push`; `sentinel-core` verifies exactly that audience and account |
+| Atlas network access | Direct VPC egress from core and stream through Cloud NAT with one reserved IP, allowed in Atlas as a `/32` |
+| Idle cost | `_MIN_INSTANCES=0` by default; raise to `1` for demo windows |
+| Manifest safety | `render-manifest.sh` fails the deploy if any `__TOKEN__` is left unsubstituted |
+
+## Still open
 
 | Item | Why |
 |---|---|
-| UI runtime configuration | `sentinel-ui` currently uses `LOCAL_RUNTIME_CONFIG`; the deployed URLs of core and stream must reach the browser (for example a served `runtime-config.json`) |
-| Push authentication | `sentinel-core` is publicly reachable for the browser, so the Pub/Sub push endpoint must verify the OIDC token itself |
-| Atlas network access | "Cloud Run egress range" needs Direct VPC egress + Cloud NAT with a static IP, or an interim IP allow-list decision |
-| Demo login | The single labelled demo login is not built; analyst identity on audit records depends on it |
-| Model IDs | `GEMINI_FAST_MODEL` / `GEMINI_DEEP_MODEL` are empty until verified on Vertex AI (5 Oct) |
+| Model IDs | `_GEMINI_FAST_MODEL` / `_GEMINI_DEEP_MODEL` are empty until verified on Vertex AI; until then the advisory reports `MODEL_NOT_CONFIGURED` |
+| Demo login | The single labelled demo login is not built; the core REST API has no authentication |
 
 ## IAM deviation from C§8
 
