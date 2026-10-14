@@ -104,7 +104,8 @@ fetched from a third party at runtime; the two SENTINEL faces are preloaded.
 | Bank C · Straits Indigo | DM Sans | DM Sans | display 700, −0.02em |
 | All | `--sentinel-font-family-mono`: IBM Plex Mono 400/500/600 for IDs, timestamps, rule codes, telemetry | | |
 
-`--sentinel-font-family-brand` (Sora) sets the SENTINEL AI wordmark in every preset. Files: Sora 33.7 kB, Plus
+`--sentinel-font-family-brand` (Sora) is the platform's own type; the logo itself is artwork and never changes with a
+preset. Files: Sora 33.7 kB, Plus
 Jakarta Sans 27.3 kB, Manrope 24.8 kB, DM Sans 36.9 kB, IBM Plex Mono 3 × ~15 kB; a theme downloads only the
 faces it uses. Sizes: micro 0.6875rem, caption 0.8125rem, body 0.875rem, title 1.125rem, headline 1.75rem,
 display 2.5rem; body line height 1.5. Helpers: `.sentinel-figures` (tabular numerals), `.sentinel-mono`.
@@ -127,7 +128,9 @@ and critical colour). Shell geometry: top bar 64px, rail 248/72px, mobile bottom
 ## 5. Iconography
 
 One in-house set (`shared/ui/icon/icon-paths.ts`): 24×24, 1.75 stroke, round caps, `currentColor`. No icon package
-ships to the browser. The brand mark is `public/brand/sentinel-mark.png`, in the top bar only.
+ships to the browser. The logo is `public/brand/sentinel-logo.webp` (shield, wordmark and "Secure tomorrow, today";
+transparent, 58px high in the top bar, 44px on phones; glow in dark mode only) with `sentinel-logo-mark.webp` as the shield-only variant.
+It reads on both appearance modes and no bank lens replaces it.
 
 ## 6. Motion and reduced motion
 

@@ -36,13 +36,13 @@ describe('Shell', () => {
     expect(host.querySelector('main#sentinel-main')).not.toBeNull();
     expect(host.querySelectorAll('sentinel-sidebar .item')).toHaveLength(12);
     expect(host.querySelector('sentinel-top-bar input, sentinel-top-bar .search')).toBeNull();
-    expect(host.querySelector('sentinel-logo img')?.getAttribute('src')).toBe('brand/sentinel-mark.png');
+    expect(host.querySelector('sentinel-logo img')?.getAttribute('src')).toBe('brand/sentinel-logo.webp');
     const topBar = host.querySelector('sentinel-top-bar')?.textContent ?? '';
     expect(topBar).not.toMatch(/synthetic|demo/i);
     expect(host.querySelectorAll('sentinel-top-bar sentinel-icon[name="settings"]')).toHaveLength(1);
     expect(host.querySelector('sentinel-top-bar .mode')?.tagName).not.toBe('BUTTON');
     expect(host.querySelectorAll('sentinel-mobile-bottom-bar .tab')).toHaveLength(5);
-    expect(host.querySelector('sentinel-logo')?.textContent).toContain('SENTINEL');
+    expect(host.querySelector('sentinel-logo img')?.getAttribute('alt')).toContain('SENTINEL AI');
   });
 
   it('opens the command palette on Ctrl+K and closes it on Escape', async () => {
@@ -101,7 +101,7 @@ describe('Shell', () => {
     expect(radio('Bank B')?.getAttribute('aria-checked')).toBe('true');
     expect(appearance.textContent).toContain('Harbour Teal · synthetic');
     expect(appearance.textContent).toContain('synthetic demo themes, not real institutions');
-    expect(host.querySelector('sentinel-logo')?.textContent).toContain('SENTINEL');
+    expect(host.querySelector('sentinel-logo img')?.getAttribute('alt')).toContain('SENTINEL AI');
 
     radio('Dark')?.click();
     radio('SENTINEL AI')?.click();
