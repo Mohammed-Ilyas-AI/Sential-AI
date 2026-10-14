@@ -17,4 +17,8 @@ export class InvestigationController {
   readonly summarise: RequestHandler<AssessmentParameters> = async (request, response) => {
     response.status(200).json(await this.advisor.summarise(request.params.assessmentId));
   };
+
+  readonly investigate: RequestHandler<AssessmentParameters> = async (request, response) => {
+    response.status(200).json(await this.advisor.investigate(request.params.assessmentId));
+  };
 }

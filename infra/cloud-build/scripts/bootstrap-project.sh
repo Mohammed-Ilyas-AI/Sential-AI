@@ -10,6 +10,7 @@
 #   - Artifact Registry repository "sentinel"                                    (storage, cents per month)
 #   - Service accounts for core, stream, ui, simulator and the Pub/Sub push      (no charge)
 #   - Secret "mongodb-uri"; you paste the Atlas URI, it is never echoed or logged (cents per month)
+#   - Not here: the Gemini API key secret, stored by store-gemini-api-key.sh when _GEMINI_PROVIDER=gemini-api
 #   - VPC "sentinel-vpc", a subnet, Cloud Router, Cloud NAT and one reserved static IP
 #       -> the ongoing cost (roughly USD 35-40 per month). It gives core and stream one fixed outbound address,
 #          so Atlas can allow exactly that /32 and never 0.0.0.0/0.

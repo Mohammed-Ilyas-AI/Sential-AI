@@ -1,6 +1,6 @@
 import { DEFAULT_RAPID_DRAIN_POLICY, type RapidDrainPolicy } from '@sentinel/domain';
 import type { EnvironmentVariables } from './environment.js';
-import type { CoreRuntimeConfig, PubSubPushVerification } from './runtime-config.js';
+import type { CoreRuntimeConfig, GeminiSettings, PubSubPushVerification } from './runtime-config.js';
 
 export class ConfigurationError extends Error {
   constructor(readonly problems: readonly string[]) {
@@ -58,12 +58,7 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
     logLevel: optional('LOG_LEVEL') ?? 'info',
     corsAllowedOrigins,
     mongo: { uri: required('MONGODB_URI'), database: optional('MONGODB_DATABASE') ?? 'sentinel_ai' },
-    vertex: {
-      projectId: optional('GCP_PROJECT_ID') ?? '',
-      location: optional('VERTEX_LOCATION') ?? 'asia-southeast1',
-      fastModel: optional('GEMINI_FAST_MODEL'),
-      deepModel: optional('GEMINI_DEEP_MODEL'),
-    },
+    gemini: readGeminiSettings(env, problems),
     rapidDrainPolicy,
     designatedBillingPayeeIds: new Set(
       (optional('DESIGNATED_BILLING_PAYEE_IDS') ?? '').split(',').map((id) => id.trim()).filter(Boolean),
@@ -90,4 +85,21 @@ function readPushVerification(env: EnvironmentVariables, problems: string[]): Pu
   }
   problems.push('PUBSUB_PUSH_VERIFICATION must be google-oidc or disabled-for-local-development');
   return { mode: 'disabled-for-local-development' };
+}
+
+function readGeminiSettings(env: EnvironmentVariables, problems: string[]): GeminiSettings {
+  const optional = (name: string): string | undefined => env[name]?.trim() || undefined;
+  const apiKey = optional('GEMINI_API_KEY');
+  // Unset: the key's presence decides. A typo is a startup error; a missing key or model is not.
+  const requested = optional('GEMINI_PROVIDER') ?? (apiKey ? 'gemini-api' : 'vertex-ai');
+  if (requested !== 'vertex-ai' && requested !== 'gemini-api') problems.push(`GEMINI_PROVIDER must be vertex-ai or gemini-api, got "${requested}"`);
+  const provider = requested === 'gemini-api' ? 'gemini-api' : 'vertex-ai';
+  return {
+    provider,
+    ...(provider === 'gemini-api' && apiKey ? { apiKey } : {}),
+    projectId: optional('GCP_PROJECT_ID') ?? '',
+    location: optional('VERTEX_LOCATION') ?? 'asia-southeast1',
+    fastModel: optional('GEMINI_FAST_MODEL'),
+    deepModel: optional('GEMINI_DEEP_MODEL'),
+  };
 }

@@ -19,3 +19,9 @@ export const MODEL_RESPONSE_MAX_RETRIES = 1;
 export const TRANSACTION_TAPE_MAX_ROWS = 200;
 
 export const STREAM_BUFFER_WINDOW_MS = 250;
+
+/** Evidence-gathering turns the investigation agent may take before it must submit its findings. */
+export const AGENT_MAX_TOOL_ROUNDS = 5;
+
+/** Tool calls the agent may make in one turn; extra calls in the same turn are refused, not executed. */
+export const AGENT_MAX_CALLS_PER_ROUND = 4;

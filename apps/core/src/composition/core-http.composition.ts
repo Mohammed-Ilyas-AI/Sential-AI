@@ -7,6 +7,7 @@ import {
   type PushAuthenticator,
 } from '../infrastructure/messaging/pubsub/push-authentication/push-authenticator.js';
 import type { Logger } from '../infrastructure/telemetry/logger.js';
+import type { AgentModelGateway } from '../modules/intelligence/application/ports/agent-model-gateway.port.js';
 import type { ModelGateway } from '../modules/intelligence/application/ports/model-gateway.port.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
 import type { Clock } from '../platform/time/clock.js';
@@ -22,14 +23,16 @@ export interface CoreHttpComposition {
 export interface CoreHttpInputs {
   readonly config: Pick<
     CoreRuntimeConfig,
-    'corsAllowedOrigins' | 'rapidDrainPolicy' | 'designatedBillingPayeeIds' | 'demoTimeCompression' | 'pubsubPush' | 'vertex'
+    'corsAllowedOrigins' | 'rapidDrainPolicy' | 'designatedBillingPayeeIds' | 'demoTimeCompression' | 'pubsubPush' | 'gemini'
   >;
   readonly persistence: SentinelPersistence;
   readonly clock: Clock;
   readonly ids: IdGenerator;
   readonly logger: Logger;
-  /** Tests only: a scripted model in place of Vertex AI. */
+  /** Tests only: a scripted model in place of Gemini. */
   readonly modelGateway?: ModelGateway;
+  /** Tests only: a scripted agent model in place of Gemini. */
+  readonly agentGateway?: AgentModelGateway;
 }
 
 function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticator {
@@ -39,7 +42,7 @@ function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticat
 }
 
 /** The whole HTTP surface for a given persistence: used by main.ts with Atlas and by tests with in-memory adapters. */
-export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway }: CoreHttpInputs): CoreHttpComposition {
+export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway, agentGateway }: CoreHttpInputs): CoreHttpComposition {
   const controlPath = composeControlPath({
     persistence,
     rapidDrainPolicy: config.rapidDrainPolicy,
@@ -50,7 +53,14 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
     ids,
     logger,
   });
-  const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids, clock, ...(modelGateway ? { modelGateway } : {}) });
+  const intelligencePath = composeIntelligencePath({
+    persistence,
+    gemini: config.gemini,
+    ids,
+    clock,
+    ...(modelGateway ? { modelGateway } : {}),
+    ...(agentGateway ? { agentGateway } : {}),
+  });
   const app = createApp({
     routes: [...controlPath.routes, ...intelligencePath.routes],
     corsAllowedOrigins: config.corsAllowedOrigins,

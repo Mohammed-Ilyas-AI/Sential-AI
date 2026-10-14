@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import type { AdvisoryOutcome, CaseSummary, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
+import type { AdvisoryOutcome, AgentInvestigation, CaseSummary, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
 import type { Observable } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 
@@ -18,5 +18,9 @@ export class InvestigationsApi {
 
   summarise(assessmentId: string): Observable<AdvisoryOutcome<CaseSummary>> {
     return this.core.post<AdvisoryOutcome<CaseSummary>>(`/v1/investigations/${encodeURIComponent(assessmentId)}/case-summary`, {});
+  }
+
+  investigate(assessmentId: string): Observable<AdvisoryOutcome<AgentInvestigation>> {
+    return this.core.post<AdvisoryOutcome<AgentInvestigation>>(`/v1/investigations/${encodeURIComponent(assessmentId)}/agent-investigation`, {});
   }
 }

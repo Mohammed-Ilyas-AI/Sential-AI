@@ -7,7 +7,8 @@ control, with the security posture of a prototype.
 SENTINEL AI is a real-time fraud operations control tower for retail banking: **Detect. Explain. Intervene.
 Investigate.** It implements Singapore's rapid account-draining safeguard (protected balance S$50,000; a
 transaction that, with the previous 24 hours of outflows, moves more than 50% of the balance is held) as a
-deterministic policy gate, and uses Gemini on Vertex AI to explain decisions that the rules have already made.
+deterministic policy gate, and uses Gemini to explain decisions that the rules have already made, including a
+Gemini investigation agent that gathers evidence through read-only tools and files grounded findings.
 
 **Rules decide. AI explains. Humans authorize.** No language model sits in the path of a financial decision.
 
@@ -29,11 +30,14 @@ deployed yet.
 | Data | MongoDB Atlas on Google Cloud (`asia-southeast1`) |
 | Messaging | Google Cloud Pub/Sub (ordered per account token) |
 | Real time | WebSocket gateway on Cloud Run, fed by MongoDB change streams |
-| AI | Gemini on Vertex AI, called only from `sentinel-core` with the service account's own credentials |
+| AI | Gemini (Gemini API or Vertex AI), called only from `sentinel-core`: structured explanations and summaries, and a function-calling investigation agent |
 | CI/CD | Cloud Build → Artifact Registry → Cloud Run |
 
-There are no API keys in this repository. Vertex AI is called with the service account's credentials; the only
-secret (the Atlas connection string) lives in Secret Manager.
+There are no keys or credentials in this repository. The deployed `sentinel-core` reaches Gemini with a Gemini API
+key held in Secret Manager (`gemini-api-key`), readable only by its own service account. The key is sent only in a
+request header and never reaches the browser or a log. Alternatively, `GEMINI_PROVIDER=vertex-ai` uses the service
+account's own credentials and no key. The Atlas connection string is the other secret, also in Secret Manager. See
+[ADR-010](docs/decisions/ADR-010-gemini-provider-and-investigation-agent.md).
 
 ## Repository
 

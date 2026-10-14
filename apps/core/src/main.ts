@@ -22,6 +22,17 @@ logger.info(
   'MongoDB collections and indexes ensured',
 );
 
+// Which Gemini endpoint and models this revision uses; whether a key is present, never the key itself.
+logger.info(
+  {
+    geminiProvider: config.gemini.provider,
+    fastModel: config.gemini.fastModel ?? null,
+    deepModel: config.gemini.deepModel ?? null,
+    ...(config.gemini.provider === 'gemini-api' ? { apiKeyConfigured: config.gemini.apiKey !== undefined } : {}),
+  },
+  'Gemini intelligence path configured',
+);
+
 const { app, controlPath } = composeCoreHttp({
   config,
   persistence: composeMongoPersistence(mongo.database),

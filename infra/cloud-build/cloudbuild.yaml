@@ -16,9 +16,13 @@ substitutions:
   # Other exact addresses the UI is opened under (comma-separated), added to the core CORS and stream origin
   # allowlists next to the derived run.app URL. Exact origins only: never a wildcard.
   _EXTRA_UI_ORIGINS: 'https://sentinal-ai.cloud.run'
-  # Verified Vertex AI model IDs; empty means the investigation advisory reports MODEL_NOT_CONFIGURED.
-  _GEMINI_FAST_MODEL: ''
-  _GEMINI_DEEP_MODEL: ''
+  # How sentinel-core reaches Gemini: gemini-api (key from the Secret Manager secret gemini-api-key, which must
+  # exist before the first deploy with this value) or vertex-ai (the sentinel-core service account, no key).
+  _GEMINI_PROVIDER: 'gemini-api'
+  # Model IDs per tier (T§7), verified against Google's model list on 14 Oct 2026; re-check before the finale.
+  # Empty means the advisory and the agent report MODEL_NOT_CONFIGURED; the control path is unaffected either way.
+  _GEMINI_FAST_MODEL: 'gemini-3.5-flash'
+  _GEMINI_DEEP_MODEL: 'gemini-3.1-pro-preview'
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -97,6 +101,7 @@ steps:
       - MIN_INSTANCES=${_MIN_INSTANCES}
       - DEMO_TIME_COMPRESSION=${_DEMO_TIME_COMPRESSION}
       - EXTRA_UI_ORIGINS=${_EXTRA_UI_ORIGINS}
+      - GEMINI_PROVIDER=${_GEMINI_PROVIDER}
       - GEMINI_FAST_MODEL=${_GEMINI_FAST_MODEL}
       - GEMINI_DEEP_MODEL=${_GEMINI_DEEP_MODEL}
     args:

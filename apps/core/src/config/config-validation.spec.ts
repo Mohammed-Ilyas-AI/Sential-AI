@@ -58,9 +58,19 @@ describe('loadCoreRuntimeConfig', () => {
   });
 
   it('never defaults a model identifier', () => {
-    const { vertex } = loadCoreRuntimeConfig(minimalEnvironment);
-    expect(vertex.fastModel).toBeUndefined();
-    expect(vertex.deepModel).toBeUndefined();
+    const { gemini } = loadCoreRuntimeConfig(minimalEnvironment);
+    expect(gemini.fastModel).toBeUndefined();
+    expect(gemini.deepModel).toBeUndefined();
+  });
+
+  it('uses Vertex AI unless a Gemini API key is present or the Gemini API is requested', () => {
+    expect(loadCoreRuntimeConfig(minimalEnvironment).gemini).toMatchObject({ provider: 'vertex-ai' });
+    expect(loadCoreRuntimeConfig(minimalEnvironment).gemini.apiKey).toBeUndefined();
+    expect(loadCoreRuntimeConfig({ ...minimalEnvironment, GEMINI_API_KEY: 'test-key' }).gemini).toMatchObject({ provider: 'gemini-api', apiKey: 'test-key' });
+    expect(loadCoreRuntimeConfig({ ...minimalEnvironment, GEMINI_PROVIDER: 'vertex-ai', GEMINI_API_KEY: 'test-key' }).gemini.apiKey).toBeUndefined();
+    // A missing key is the advisory's problem (MODEL_NOT_CONFIGURED), never a reason to stop the control path.
+    expect(loadCoreRuntimeConfig({ ...minimalEnvironment, GEMINI_PROVIDER: 'gemini-api' }).gemini).toMatchObject({ provider: 'gemini-api' });
+    expect(problemsOf({ ...minimalEnvironment, GEMINI_PROVIDER: 'openai' })).toEqual(['GEMINI_PROVIDER must be vertex-ai or gemini-api, got "openai"']);
   });
 
   it('requires an audience and service account for OIDC push verification', () => {

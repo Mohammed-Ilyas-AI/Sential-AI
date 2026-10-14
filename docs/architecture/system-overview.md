@@ -16,8 +16,12 @@ CONTROL PATH (synchronous, deterministic, no AI; under 500 ms to a rendered row)
   → change stream → sentinel-stream → WebSocket → UI
 
 INTELLIGENCE PATH (asynchronous, best-effort)
-  analyst request → EvidenceBundle → ModelRouter → Gemini on Vertex AI
+  analyst request → EvidenceBundle → ModelRouter → Gemini (Gemini API or Vertex AI)
   → response-schema validation → sourceField validation → UI
+
+INVESTIGATION AGENT (intelligence path, ADR-010)
+  analyst "Run agent" → Gemini function calling over read-only evidence tools (≤5 turns)
+  → submit_findings → schema validation → sourceField must cite evidence the agent retrieved → trace + findings → UI
 ```
 
 If Gemini is slow or down, decisions, holds and the audit trail continue; the analyst loses the narrative, not
@@ -29,7 +33,7 @@ the protection.
 |---|---|---|
 | Ingest | `sentinel-simulator` | Cloud Run Job → decision API, then Pub/Sub |
 | Compute | `sentinel-core` | Cloud Run service, MongoDB Atlas |
-| Intelligence | `sentinel-core` (separate modules and composition root) | Vertex AI Gemini |
+| Intelligence | `sentinel-core` (separate modules and composition root) | Gemini via the Gemini API or Vertex AI |
 | Presentation | `sentinel-stream`, `sentinel-ui` | WebSocket gateway, Angular 22 SPA |
 
 ## Production direction (described, not built)

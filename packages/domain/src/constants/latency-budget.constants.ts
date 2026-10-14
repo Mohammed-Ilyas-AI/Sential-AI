@@ -13,3 +13,9 @@ export const CONTROL_PATH_TOTAL_BUDGET_MS = 500;
 
 /** A dropped WebSocket must recover invisibly within this time. */
 export const WEBSOCKET_RECOVERY_BUDGET_MS = 2_000;
+
+/**
+ * Wall-clock ceiling for one investigation-agent run: several deep-tier turns, progress shown in the UI. Past it
+ * the run ends as MODEL_UNAVAILABLE and the deterministic attribution stands.
+ */
+export const AGENT_INVESTIGATION_DEADLINE_MS = 90_000;

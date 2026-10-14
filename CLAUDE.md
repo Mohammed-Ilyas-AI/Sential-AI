@@ -29,8 +29,9 @@ npm workspaces, Node **24 LTS** (24.18.0 in `.nvmrc`; `engines` accepts 24.x, `e
 
 - TypeScript strict everywhere. No `any`; use `unknown` and narrow.
 - Controllers are thin: validation in middleware, orchestration in application services, persistence behind ports.
-- Nothing reaches Vertex AI outside `apps/core/src/infrastructure/ai/`; the browser never holds a model identifier
-  or credential. Model IDs are configuration, never literals.
+- Nothing reaches Gemini (Gemini API or Vertex AI) outside `apps/core/src/infrastructure/ai/`; the browser never
+  holds a model identifier or credential, and the Gemini API key lives only in Secret Manager. Model IDs are
+  configuration, never literals. The investigation agent's tools are read-only (ADR-010).
 - Money is integer minor units (SGD cents), never floats. Time is UTC ISO 8601 on the wire.
 - `contributions[]` is immutable and is the score; `interventions` is append-only; lifecycle events count once.
 - Do not invent rule scoring curves: they are ported from the original HTML behavioural reference.

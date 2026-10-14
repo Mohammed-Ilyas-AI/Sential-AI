@@ -30,13 +30,18 @@ exists only for local runs; deployed services use `google-oidc`.
 There is no analyst release: the analyst never overturns the policy. Holds that reach `holdUntil` are released
 by the scheduler (actor `SYSTEM`).
 
-## Intelligence path (ingest only)
+## Intelligence path
 
 | Method | Path | Body → Response | Status |
 |---|---|---|---|
 | `POST` | `/v1/network/observations` | `NetworkObservation` → `{ nodes, edges }` | 202 |
+| `GET` | `/v1/investigations/:assessmentId/evidence` | — → `InvestigationEvidence` (the bundle exactly as Gemini receives it) | 200; 404 |
+| `POST` | `/v1/investigations/:assessmentId/explanation` | — → `AdvisoryOutcome<RiskExplanation>` (fast tier, cached by assessment) | 200; 404 |
+| `POST` | `/v1/investigations/:assessmentId/case-summary` | — → `AdvisoryOutcome<CaseSummary>` (deep tier) | 200; 404 |
+| `POST` | `/v1/investigations/:assessmentId/agent-investigation` | — → `AdvisoryOutcome<AgentInvestigation>`: the agent's tool trace and grounded findings (ADR-010) | 200; 404 |
 
-Investigation, graph queries and case-report routes arrive with their build steps.
+A `FALLBACK` outcome is a 200: the advisory is optional and the deterministic attribution is not. No response
+here can alter a score, a decision or a hold. Graph queries and case-report routes arrive with their build steps.
 
 ## Idempotency
 

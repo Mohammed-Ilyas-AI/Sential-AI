@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Store } from '@ngrx/store';
-import type { AdvisoryOutcome, CaseSummary, EvidenceBundle, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
+import type { AdvisoryOutcome, AgentInvestigation, CaseSummary, EvidenceBundle, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideTestStore } from '../../../../../testing/provide-test-store';
@@ -53,13 +53,19 @@ const summary: AdvisoryOutcome<CaseSummary> = {
 };
 
 describe('InvestigationPage', () => {
-  let api: { evidence: ReturnType<typeof vi.fn>; explain: ReturnType<typeof vi.fn>; summarise: ReturnType<typeof vi.fn> };
+  let api: {
+    evidence: ReturnType<typeof vi.fn>;
+    explain: ReturnType<typeof vi.fn>;
+    summarise: ReturnType<typeof vi.fn>;
+    investigate: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     api = {
       evidence: vi.fn(() => of<InvestigationEvidence>({ assessmentId: decision.assessmentId, evidence })),
       explain: vi.fn(),
       summarise: vi.fn(),
+      investigate: vi.fn(),
     };
     await TestBed.configureTestingModule({
       imports: [InvestigationPage],
@@ -124,5 +130,37 @@ describe('InvestigationPage', () => {
     await settle();
     expect(text(host.querySelector('sentinel-gemini-advisory [role="status"]'))).toContain('No Gemini model is configured');
     expect(host.querySelectorAll('sentinel-risk-attribution li')).toHaveLength(decision.assessment.contributions.length);
+  });
+
+  it('shows the investigation agent’s own evidence trace, then its grounded findings', async () => {
+    focusDemoAccount();
+    if (summary.status !== 'GENERATED') throw new Error('fixture');
+    const agentRun: AdvisoryOutcome<AgentInvestigation> = {
+      status: 'GENERATED',
+      attempts: 3,
+      droppedClaims: 0,
+      advisory: {
+        assessmentId: decision.assessmentId,
+        rounds: 3,
+        generatedAt: '2026-09-24T11:32:00.000Z',
+        steps: [
+          { round: 1, tool: 'get_risk_assessment', args: {}, bundleField: 'assessment', records: 6 },
+          { round: 2, tool: 'inspect_network_entity', args: { entityId: 'acct_tok_mule_1' }, bundleField: 'neighbourhood', records: 3 },
+        ],
+        summary: summary.advisory,
+      },
+    };
+    api.investigate.mockReturnValue(of(agentRun));
+    const { host, settle } = await render();
+    const run = [...host.querySelectorAll('sentinel-gemini-advisory button')].find((button) => text(button) === 'Run agent') as HTMLButtonElement;
+    run.click();
+    await settle();
+    expect(api.investigate).toHaveBeenCalledWith(decision.assessmentId);
+    const trace = [...host.querySelectorAll('sentinel-gemini-advisory .trace li')].map((step) => [...step.querySelectorAll('span')].map(text));
+    expect(trace).toEqual([
+      ['T1', 'Read the risk assessment', 'assessment · 6 records'],
+      ['T2', 'Followed the money to acct_tok_mule_1', 'neighbourhood · 3 records'],
+    ]);
+    expect(text(host.querySelector('sentinel-gemini-advisory'))).toContain('2 tool calls over 3 turns');
   });
 });

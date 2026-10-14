@@ -45,6 +45,8 @@ spec:
               value: ''
             - name: DEMO_TIME_COMPRESSION_ENABLED
               value: '__DEMO_TIME_COMPRESSION__'
+            - name: GEMINI_PROVIDER
+              value: '__GEMINI_PROVIDER__'
             - name: GEMINI_FAST_MODEL
               value: '__GEMINI_FAST_MODEL__'
             - name: GEMINI_DEEP_MODEL
@@ -54,3 +56,10 @@ spec:
                 secretKeyRef:
                   name: mongodb-uri
                   key: latest
+            # BEGIN gemini-api-key: kept only when GEMINI_PROVIDER=gemini-api (render-manifest.sh removes it otherwise).
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gemini-api-key
+                  key: latest
+            # END gemini-api-key

@@ -36,8 +36,10 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
                 <sentinel-gemini-advisory
                   [explanation]="facade.explanation()"
                   [summary]="facade.summary()"
+                  [agent]="facade.agent()"
                   (explain)="facade.explain()"
                   (summarise)="facade.summarise()"
+                  (investigate)="facade.investigate()"
                 />
                 <sentinel-timeline [entries]="facade.timeline()" />
               </div>

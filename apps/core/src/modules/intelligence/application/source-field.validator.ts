@@ -30,7 +30,8 @@ function exists(root: unknown, sourceField: string): boolean {
  * A claim citing nothing is dropped before it reaches the analyst; the count is reported, never hidden.
  */
 export class SourceFieldValidator {
-  groundedIn(summary: CaseSummary, bundle: EvidenceBundle): GroundedSummary {
+  /** The bundle that was sent, or, for the agent, only the sections it actually retrieved. */
+  groundedIn(summary: CaseSummary, bundle: EvidenceBundle | Partial<Readonly<Record<keyof EvidenceBundle, unknown>>>): GroundedSummary {
     const evidence = summary.evidence.filter((item) => exists(bundle, item.sourceField));
     return { summary: { ...summary, evidence }, droppedClaims: summary.evidence.length - evidence.length };
   }

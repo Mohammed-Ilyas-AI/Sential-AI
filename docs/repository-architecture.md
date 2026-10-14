@@ -18,6 +18,7 @@ maps them onto the repository. Where the codebase amends v1.2 it says so and lin
 | Decision route "then publish" | Synchronous decision writes PENDING; Pub/Sub carries later lifecycle only | [ADR-004](decisions/ADR-004-decision-pubsub-flow.md) |
 | Security-event transport unspecified | `POST /v1/events/security`, synchronous | [ADR-004](decisions/ADR-004-decision-pubsub-flow.md) |
 | Tape source unspecified | `sentinel-stream` watches `decisions`, `alerts`, `interventions` | [contracts/realtime-stream.md](contracts/realtime-stream.md) |
+| Gemini on Vertex AI only, no API keys; single structured calls | Gemini API (key in Secret Manager) or Vertex AI behind one gateway; a bounded, read-only investigation agent using function calling | [ADR-010](decisions/ADR-010-gemini-provider-and-investigation-agent.md) |
 
 ## 1. Repository tree
 
@@ -45,7 +46,7 @@ sentinel-ai/
 │   │   │   │                  (each: application/{*.use-case.ts,*.service.ts,ports/} [+ presentation/])
 │   │   │   ├── infrastructure/ database/mongodb/{client,collections,repositories,indexes,serializers}
 │   │   │   │                   messaging/pubsub/{push-envelope,transaction-event-consumer}
-│   │   │   │                   ai/vertex-ai/{model-router,gateway,response-schemas,prompts}
+│   │   │   │                   ai/gemini/{endpoints,model-router,gateway,response-schemas,prompts}
 │   │   │   │                   configuration · notifications · clock · telemetry
 │   │   │   └── platform/      ids · audit · idempotency · correlation · time
 │   │   └── test/              contracts · integration · scenario · support/{fixtures,in-memory-repositories}
@@ -111,8 +112,10 @@ EvaluateRapidDrainGate (drainGate), AssessTransactionRisk (assess, RISK_RULES) �
 TransactionProjection, InterventionWorkflow`.
 
 Intelligence path: `ManageCase → CompileEvidenceBundle → ExplainAndSummarise → ModelGateway →
-VertexModelGateway (ModelRouter)`, with `ResponseSchemaValidator` and `SourceFieldValidator` in the application
-layer so the guardrail survives a provider change.
+GeminiModelGateway (ModelRouter, GeminiEndpoint)`, and `AdviseInvestigation → InvestigateWithAgent
+(InvestigationAgentService, AgentEvidenceToolbox) → AgentModelGateway → GeminiModelGateway`, with
+`ResponseSchemaValidator` and `SourceFieldValidator` in the application layer so the guardrail survives a
+provider change ([ADR-010](decisions/ADR-010-gemini-provider-and-investigation-agent.md)).
 
 ## 5. Database boundary
 
@@ -134,9 +137,11 @@ never scores ([ADR-004](decisions/ADR-004-decision-pubsub-flow.md)).
 
 ## 7. Gemini boundary
 
-Only `apps/core/src/infrastructure/ai/vertex-ai/gateway/vertex-model.gateway.ts` will call Vertex AI, with the
-service account's credentials. Model IDs come from configuration through `ModelRouter.resolve(job)`; there is no
-default model. The system instruction is a versioned file in `prompts/`. `composition/control-path.composition.ts`
+Only `apps/core/src/infrastructure/ai/gemini/gateway/gemini-model.gateway.ts` calls Gemini: through the Gemini
+API with the key from Secret Manager, or through Vertex AI with the service account's credentials
+(`GEMINI_PROVIDER`, [ADR-010](decisions/ADR-010-gemini-provider-and-investigation-agent.md)). Model IDs come from
+configuration through `ModelRouter.resolve(job)`; there is no default model in code. The investigation agent's
+tool declarations are versioned files in `prompts/`; every evidence tool is read-only. The system instruction is a versioned file in `prompts/`. `composition/control-path.composition.ts`
 receives no model gateway, and the lint boundary rejects any import of `modules/intelligence`,
 `modules/investigations`, `infrastructure/ai` or an AI SDK from the eight control-path modules.
 

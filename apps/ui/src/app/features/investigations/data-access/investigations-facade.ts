@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, inject, signal, untracked, type Signal } from '@angular/core';
 import { Store } from '@ngrx/store';
-import type { CaseSummary, DecisionRecord, EvidenceBundle, RiskExplanation } from '@sentinel/domain';
+import type { AgentInvestigation, CaseSummary, DecisionRecord, EvidenceBundle, RiskExplanation } from '@sentinel/domain';
 import { selectFocusedDecision } from '../../../state/account-focus/account-focus.selectors';
 import type { AdvisoryState, RequestStatus, TimelineEntry } from '../models/investigation-view';
 import { InvestigationsApi } from './investigations-api';
@@ -44,11 +44,13 @@ export class InvestigationsFacade {
   private readonly evidenceState = signal<{ readonly status: RequestStatus; readonly evidence: EvidenceBundle | null }>({ status: 'IDLE', evidence: null });
   private readonly explanationState = signal<AdvisoryState<RiskExplanation>>(IDLE);
   private readonly summaryState = signal<AdvisoryState<CaseSummary>>(IDLE);
+  private readonly agentState = signal<AdvisoryState<AgentInvestigation>>(IDLE);
 
   readonly evidenceStatus = computed(() => this.evidenceState().status);
   readonly evidence = computed(() => this.evidenceState().evidence);
   readonly explanation = this.explanationState.asReadonly();
   readonly summary = this.summaryState.asReadonly();
+  readonly agent = this.agentState.asReadonly();
   readonly timeline = computed(() => {
     const evidence = this.evidence();
     return evidence ? timelineOf(evidence) : [];
@@ -81,9 +83,25 @@ export class InvestigationsFacade {
     });
   }
 
+  investigate(): void {
+    const assessmentId = this.assessmentId();
+    if (!assessmentId || this.agentState().status === 'LOADING') return;
+    this.agentState.set({ status: 'LOADING', outcome: null });
+    this.api.investigate(assessmentId).subscribe({
+      next: (outcome) => {
+        // The analyst may have moved on to another account while the agent was working.
+        if (assessmentId === this.assessmentId()) this.agentState.set({ status: 'READY', outcome });
+      },
+      error: () => {
+        if (assessmentId === this.assessmentId()) this.agentState.set({ status: 'FAILED', outcome: null });
+      },
+    });
+  }
+
   private open(assessmentId: string | null): void {
     this.explanationState.set(IDLE);
     this.summaryState.set(IDLE);
+    this.agentState.set(IDLE);
     if (!assessmentId) {
       this.evidenceState.set({ status: 'IDLE', evidence: null });
       return;

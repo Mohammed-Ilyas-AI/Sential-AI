@@ -1,6 +1,7 @@
-import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type CaseSummary, type EvidenceBundle, type InvestigationEvidence, type ModelJob, type RiskExplanation } from '@sentinel/domain';
+import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type AgentInvestigation, type CaseSummary, type EvidenceBundle, type InvestigationEvidence, type ModelJob, type RiskExplanation } from '@sentinel/domain';
 import { INSTANT_TIMELINE, buildDemoTakeover01, playScenario, syntheticToken, type PlaybackReport } from '@sentinel/scenarios';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { AgentModelGateway, AgentStepReply, AgentTurn } from '../../src/modules/intelligence/application/ports/agent-model-gateway.port.js';
 import type { ModelGateway } from '../../src/modules/intelligence/application/ports/model-gateway.port.js';
 import { ModelUnavailableError } from '../../src/modules/intelligence/application/ports/model-gateway.port.js';
 import { startCoreHarness, type CoreHarness } from '../support/harness/core-test-harness.js';
@@ -10,7 +11,7 @@ import { createInMemoryPersistence, type InMemoryPersistence } from '../support/
 const EPOCH = '2026-09-24T11:30:00.000Z';
 const VICTIM = syntheticToken('acct', DEMO_TAKEOVER_01.accountDisplayId);
 
-/** Stands in for Vertex AI: replays a script and records exactly what it was sent. */
+/** Stands in for Gemini: replays a script and records exactly what it was sent. */
 class ScriptedModel implements ModelGateway {
   script: unknown[] = [];
   readonly calls: { job: ModelJob; evidence: EvidenceBundle }[] = [];
@@ -22,25 +23,43 @@ class ScriptedModel implements ModelGateway {
   }
 }
 
+/** Stands in for Gemini function calling: replays scripted tool calls and records every conversation it was sent. */
+class ScriptedAgent implements AgentModelGateway {
+  script: AgentStepReply[] = [];
+  readonly conversations: (readonly AgentTurn[])[] = [];
+  async step(turns: readonly AgentTurn[]): Promise<AgentStepReply> {
+    this.conversations.push([...turns]);
+    return this.script.shift() ?? { invocations: [], providerContent: null };
+  }
+}
+
+const agentCalls = (...names: [string, Record<string, unknown>?][]): AgentStepReply => ({
+  invocations: names.map(([name, args]) => ({ name, args: args ?? {} })),
+  providerContent: null,
+});
+
 /**
  * The intelligence path over real HTTP on DEMO_TAKEOVER_01 (T§7). The model is scripted, so these tests prove
- * what the server does with any answer; they are not evidence that Vertex AI was called.
+ * what the server does with any answer; they are not evidence that Gemini was called.
  */
 describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01', () => {
   let persistence: InMemoryPersistence;
   let harness: CoreHarness;
   let playback: PlaybackReport;
   const model = new ScriptedModel();
+  const agent = new ScriptedAgent();
 
   beforeAll(async () => {
     persistence = createInMemoryPersistence();
-    harness = await startCoreHarness(persistence, { clockStart: EPOCH, modelGateway: model });
+    harness = await startCoreHarness(persistence, { clockStart: EPOCH, modelGateway: model, agentGateway: agent });
     playback = await playScenario(buildDemoTakeover01(EPOCH), new HttpBankConnector(harness.baseUrl, harness.clock), INSTANT_TIMELINE);
   });
   afterAll(() => harness.close());
   beforeEach(() => {
     model.script = [];
     model.calls.length = 0;
+    agent.script = [];
+    agent.conversations.length = 0;
   });
 
   const finalAssessmentId = () => {
@@ -122,16 +141,47 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect((await post<RiskExplanation>('explanation')).body).toMatchObject({ status: 'CACHED', attempts: 0, advisory: { assessmentId: finalAssessmentId() } });
     expect(model.calls).toHaveLength(1);
   });
+
+  it('runs the investigation agent: Gemini reads the evidence it chooses, claims must cite what it read', async () => {
+    agent.script = [
+      agentCalls(['get_risk_assessment'], ['get_drain_state'], ['get_interventions']),
+      agentCalls([
+        'submit_findings',
+        {
+          hypothesis: 'Probable account takeover: the protected balance was drained past SG-RD-50 and the transfer is held.',
+          confidence: 'HIGH',
+          evidence: [
+            { claim: 'The drain crossed SG-RD-50', sourceField: 'drain.thresholdMet', value: 'true' },
+            { claim: 'The transfer is already held', sourceField: 'interventions[0].state', value: 'HELD' },
+            { claim: 'The device was new', sourceField: 'deviceHistory[0].eventType', value: 'NEW_DEVICE' },
+          ],
+          recommendedActions: ['Contact the customer through the number on file'],
+          escalate: true,
+        },
+      ]),
+    ];
+    const { status, body } = await post<AgentInvestigation>('agent-investigation');
+    expect(status).toBe(200);
+    // deviceHistory exists in the bundle, but the agent never retrieved it: that claim is dropped.
+    expect(body).toMatchObject({ status: 'GENERATED', droppedClaims: 1, advisory: { assessmentId: finalAssessmentId(), rounds: 2 } });
+    expect(body.advisory?.steps.map((step) => step.tool)).toEqual(['get_risk_assessment', 'get_drain_state', 'get_interventions']);
+    expect(body.advisory?.summary.evidence.map((item) => item.sourceField)).toEqual(['drain.thresholdMet', 'interventions[0].state']);
+    const outputs = agent.conversations[1]?.at(-1);
+    expect(outputs).toMatchObject({ kind: 'TOOL_OUTPUTS', outputs: [{ response: { assessment: { score: 95 } } }, {}, { response: { interventions: [{ state: 'HELD' }] } }] });
+    expect(model.calls).toHaveLength(0);
+  });
 });
 
 describe('/v1/investigations — no model configured', () => {
-  it('reports MODEL_NOT_CONFIGURED through the real Vertex gateway without any network call', async () => {
+  it('reports MODEL_NOT_CONFIGURED through the real Gemini gateway without any network call', async () => {
     const persistence = createInMemoryPersistence();
     const harness = await startCoreHarness(persistence, { clockStart: EPOCH });
     const playback = await playScenario(buildDemoTakeover01(EPOCH), new HttpBankConnector(harness.baseUrl, harness.clock), INSTANT_TIMELINE);
     const assessmentId = playback.transfers.at(-1)?.response.assessmentId ?? '';
     const { body } = await callJson<AdvisoryOutcome<CaseSummary>>(harness.baseUrl, 'POST', `/v1/investigations/${assessmentId}/case-summary`);
     expect(body).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_NOT_CONFIGURED', attempts: 1 });
+    const agentRun = await callJson<AdvisoryOutcome<AgentInvestigation>>(harness.baseUrl, 'POST', `/v1/investigations/${assessmentId}/agent-investigation`);
+    expect(agentRun.body).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_NOT_CONFIGURED', attempts: 1 });
     await harness.close();
   });
 });

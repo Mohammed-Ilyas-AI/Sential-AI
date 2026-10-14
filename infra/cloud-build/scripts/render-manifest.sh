@@ -6,8 +6,17 @@ set -euo pipefail
 
 template="$1"
 image="$2"
+gemini_provider="${GEMINI_PROVIDER:-vertex-ai}"
+case "${gemini_provider}" in
+  vertex-ai | gemini-api) ;;
+  *) echo "render-manifest: GEMINI_PROVIDER must be vertex-ai or gemini-api, got '${gemini_provider}'" >&2; exit 1 ;;
+esac
+# The Gemini API key secret is referenced only when it is used, so a Vertex AI deployment never needs it to exist.
+keep_gemini_key='/# BEGIN gemini-api-key/,/# END gemini-api-key/d'
+if [[ "${gemini_provider}" == gemini-api ]]; then keep_gemini_key='/# \(BEGIN\|END\) gemini-api-key/d'; fi
 
 rendered="$(sed \
+  -e "${keep_gemini_key}" \
   -e "s|__IMAGE__|${image}|g" \
   -e "s|__PROJECT_ID__|${PROJECT_ID}|g" \
   -e "s|__REGION__|${REGION}|g" \
@@ -21,6 +30,7 @@ rendered="$(sed \
   -e "s|__VPC_NETWORK__|${VPC_NETWORK}|g" \
   -e "s|__VPC_SUBNET__|${VPC_SUBNET}|g" \
   -e "s|__DEMO_TIME_COMPRESSION__|${DEMO_TIME_COMPRESSION:-true}|g" \
+  -e "s|__GEMINI_PROVIDER__|${gemini_provider}|g" \
   -e "s|__GEMINI_FAST_MODEL__|${GEMINI_FAST_MODEL:-}|g" \
   -e "s|__GEMINI_DEEP_MODEL__|${GEMINI_DEEP_MODEL:-}|g" \
   "${template}")"

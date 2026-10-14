@@ -4,9 +4,10 @@ Theme: **BFSI — Intelligent Risk, Fraud & Financial Experiences.** Deadline 18
 
 | Requirement | How the repository satisfies it | Status |
 |---|---|---|
-| Built on Google Cloud; deployed on Cloud Run | `infra/cloud-run/`, `infra/cloud-build/cloudbuild.yaml`, region `asia-southeast1` | Manifests only |
-| Meaningful use of Google AI | Gemini on Vertex AI behind `ModelGateway`: explanation, correlation, case summary, report draft | Boundary only |
-| Working prototype, public working link | `sentinel-ui` public Cloud Run URL | Not deployed |
+| Built on Google Cloud; deployed on Cloud Run | `infra/cloud-run/`, `infra/cloud-build/cloudbuild.yaml`, region `asia-southeast1` | Deployed |
+| Meaningful use of Google AI | Gemini (Gemini API or Vertex AI) behind one gateway: score explanation, grounded case summary, and a function-calling investigation agent with read-only tools (ADR-010) | Built; live once `gemini-api-key` is stored |
+| Agentic AI | Investigation agent: Gemini chooses which evidence to read over bounded turns, then files findings validated against what it read | Built |
+| Working prototype, public working link | `sentinel-ui` public Cloud Run URL | Deployed |
 | Public GitHub repository, README runs from a clean clone | `README.md` quick start | Repository local only |
 | Video under 3 minutes, ten scenes | M§6 | Not started |
 | Proposal PDF / deck | From the Master Document; separates "demonstrated" from "designed" | Not started |
@@ -18,4 +19,5 @@ Theme: **BFSI — Intelligent Risk, Fraud & Financial Experiences.** Deadline 18
 ## Verified absent
 
 React, Firestore, Cloud SQL, SQLite, BigQuery, GKE, extra microservices, real bank APIs, COSMIC integration,
-real PII, API keys, service-account key files.
+real PII, API keys or credentials in the repository, service-account key files. (The one Gemini API key lives in
+Secret Manager only.)
