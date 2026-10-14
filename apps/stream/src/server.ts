@@ -14,7 +14,7 @@ export interface StreamServerDependencies {
   readonly registry: ConnectionRegistry;
   readonly snapshots: StreamSnapshotSource;
   readonly cursors: StreamCursorTracker;
-  readonly allowedOrigin: string;
+  readonly allowedOrigins: readonly string[];
   readonly heartbeat: HeartbeatPolicy;
   readonly logger: Logger;
 }
@@ -23,7 +23,8 @@ export const STREAM_PATH = '/stream';
 
 /** HTTP for Cloud Run health checks plus the WebSocket upgrade. Transport only: no rules, no policy, no AI. */
 export function createStreamServer(dependencies: StreamServerDependencies): Server {
-  const { registry, snapshots, cursors, allowedOrigin, heartbeat, logger } = dependencies;
+  const { registry, snapshots, cursors, allowedOrigins, heartbeat, logger } = dependencies;
+  const allowed = new Set(allowedOrigins);
   const sockets = new WebSocketServer({ noServer: true });
 
   const server = createServer((request, response) => {
@@ -35,7 +36,7 @@ export function createStreamServer(dependencies: StreamServerDependencies): Serv
   });
 
   server.on('upgrade', (request, socket, head) => {
-    if (request.url !== STREAM_PATH || request.headers.origin !== allowedOrigin) {
+    if (request.url !== STREAM_PATH || !allowed.has(request.headers.origin ?? '')) {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
       return;

@@ -19,7 +19,7 @@ const server = createStreamServer({
   registry,
   snapshots: new MongoStreamSnapshotSource(mongo.database),
   cursors,
-  allowedOrigin: config.allowedOrigin,
+  allowedOrigins: config.allowedOrigins,
   heartbeat: { intervalMs: config.heartbeatIntervalMs },
   logger,
 });

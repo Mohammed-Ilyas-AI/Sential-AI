@@ -42,10 +42,21 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
     problems.push('Changing rapid-drain thresholds requires a new RAPID_DRAIN_POLICY_VERSION');
   }
 
+  // A comma-separated list of exact origins: scheme://host[:port], no path, never a wildcard.
+  const corsAllowedOrigins = required('CORS_ALLOWED_ORIGIN')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  for (const origin of corsAllowedOrigins) {
+    if (!/^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin)) {
+      problems.push(`CORS_ALLOWED_ORIGIN entries must be exact origins like https://host, got "${origin}"`);
+    }
+  }
+
   const config: CoreRuntimeConfig = {
     port: integer('PORT', 8080),
     logLevel: optional('LOG_LEVEL') ?? 'info',
-    corsAllowedOrigin: required('CORS_ALLOWED_ORIGIN'),
+    corsAllowedOrigins,
     mongo: { uri: required('MONGODB_URI'), database: optional('MONGODB_DATABASE') ?? 'sentinel_ai' },
     vertex: {
       projectId: optional('GCP_PROJECT_ID') ?? '',

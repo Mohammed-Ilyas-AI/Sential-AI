@@ -12,6 +12,7 @@ rendered="$(sed \
   -e "s|__PROJECT_ID__|${PROJECT_ID}|g" \
   -e "s|__REGION__|${REGION}|g" \
   -e "s|__MIN_INSTANCES__|${MIN_INSTANCES:-0}|g" \
+  -e "s|__UI_ORIGINS__|${UI_ORIGINS}|g" \
   -e "s|__UI_ORIGIN__|${UI_ORIGIN}|g" \
   -e "s|__CORE_URL__|${CORE_URL}|g" \
   -e "s|__STREAM_URL__|${STREAM_URL}|g" \

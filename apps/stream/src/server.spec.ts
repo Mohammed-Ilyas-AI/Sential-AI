@@ -8,6 +8,8 @@ import { STREAM_PATH, createStreamServer } from './server.js';
 import { createLogger } from './telemetry/logger.js';
 
 const ORIGIN = 'http://localhost:4200';
+/** The same UI under a second address, as a deployment may serve it. */
+const SECOND_ORIGIN = 'https://sentinel.example.run';
 const snapshot: StreamSnapshot = { decisions: [], alerts: [], interventions: [] };
 
 function openClient(baseUrl: string, origin = ORIGIN): Promise<{ socket: WebSocket; messages: StreamMessage[]; next: () => Promise<StreamMessage> }> {
@@ -42,7 +44,7 @@ describe('sentinel-stream server', () => {
       registry,
       snapshots: { currentSnapshot: async () => snapshot },
       cursors: new StreamCursorTracker(),
-      allowedOrigin: ORIGIN,
+      allowedOrigins: [ORIGIN, SECOND_ORIGIN],
       heartbeat: { intervalMs: 60_000 },
       logger: createLogger('silent'),
     });
@@ -73,6 +75,13 @@ describe('sentinel-stream server', () => {
     expect(await second.next()).toEqual(decision);
     first.socket.close();
     second.socket.close();
+  });
+
+  it('accepts every configured UI origin, each exactly', async () => {
+    const client = await openClient(baseUrl, SECOND_ORIGIN);
+    expect((await client.next()).kind).toBe('SNAPSHOT');
+    client.socket.close();
+    await expect(openClient(baseUrl, `${SECOND_ORIGIN}.evil.test`)).rejects.toThrow();
   });
 
   it('refuses a connection from any other origin', async () => {

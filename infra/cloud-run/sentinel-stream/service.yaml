@@ -32,7 +32,7 @@ spec:
             - name: MONGODB_DATABASE
               value: sentinel_ai
             - name: STREAM_ALLOWED_ORIGIN
-              value: __UI_ORIGIN__
+              value: __UI_ORIGINS__
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:

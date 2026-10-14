@@ -34,7 +34,7 @@ spec:
             - name: MONGODB_DATABASE
               value: sentinel_ai
             - name: CORS_ALLOWED_ORIGIN
-              value: __UI_ORIGIN__
+              value: __UI_ORIGINS__
             - name: PUBSUB_PUSH_VERIFICATION
               value: google-oidc
             - name: PUBSUB_PUSH_AUDIENCE

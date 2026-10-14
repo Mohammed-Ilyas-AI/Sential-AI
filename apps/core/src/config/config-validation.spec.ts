@@ -33,6 +33,15 @@ describe('loadCoreRuntimeConfig', () => {
     ]);
   });
 
+  it('accepts a list of exact UI origins and refuses wildcards and paths', () => {
+    const config = loadCoreRuntimeConfig({ ...minimalEnvironment, CORS_ALLOWED_ORIGIN: 'https://a.run.app, https://sentinel.example.run' });
+    expect(config.corsAllowedOrigins).toEqual(['https://a.run.app', 'https://sentinel.example.run']);
+    expect(problemsOf({ ...minimalEnvironment, CORS_ALLOWED_ORIGIN: '*' })).toEqual([
+      'CORS_ALLOWED_ORIGIN entries must be exact origins like https://host, got "*"',
+    ]);
+    expect(problemsOf({ ...minimalEnvironment, CORS_ALLOWED_ORIGIN: 'https://a.run.app/control-tower' })).toHaveLength(1);
+  });
+
   it('refuses changed thresholds that keep the published policy version', () => {
     expect(problemsOf({ ...minimalEnvironment, RAPID_DRAIN_GATE_PERCENT: '40' })).toEqual([
       'Changing rapid-drain thresholds requires a new RAPID_DRAIN_POLICY_VERSION',

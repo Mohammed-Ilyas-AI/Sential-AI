@@ -16,7 +16,8 @@ export type PubSubPushVerification =
 export interface CoreRuntimeConfig {
   readonly port: number;
   readonly logLevel: string;
-  readonly corsAllowedOrigin: string;
+  /** Exact browser origins allowed to call the API (one deployment may serve the UI under several addresses). */
+  readonly corsAllowedOrigins: readonly string[];
   readonly mongo: { readonly uri: string; readonly database: string };
   readonly vertex: VertexAiSettings;
   readonly rapidDrainPolicy: RapidDrainPolicy;

@@ -8,6 +8,8 @@
 
 export CORE_URL="https://sentinel-core-${PROJECT_NUMBER}.${REGION}.run.app"
 export UI_ORIGIN="https://sentinel-ui-${PROJECT_NUMBER}.${REGION}.run.app"
+# Every exact origin the browser may call core and stream from: the derived URL plus any others the UI is served at.
+export UI_ORIGINS="${UI_ORIGIN}${EXTRA_UI_ORIGINS:+,${EXTRA_UI_ORIGINS}}"
 export STREAM_URL="wss://sentinel-stream-${PROJECT_NUMBER}.${REGION}.run.app/stream"
 export PUSH_ENDPOINT="${CORE_URL}/internal/pubsub/transaction-events"
 # The push subscription signs its OIDC token for this audience, and sentinel-core accepts no other.

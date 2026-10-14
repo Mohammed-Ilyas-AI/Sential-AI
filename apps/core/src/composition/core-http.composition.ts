@@ -22,7 +22,7 @@ export interface CoreHttpComposition {
 export interface CoreHttpInputs {
   readonly config: Pick<
     CoreRuntimeConfig,
-    'corsAllowedOrigin' | 'rapidDrainPolicy' | 'designatedBillingPayeeIds' | 'demoTimeCompression' | 'pubsubPush' | 'vertex'
+    'corsAllowedOrigins' | 'rapidDrainPolicy' | 'designatedBillingPayeeIds' | 'demoTimeCompression' | 'pubsubPush' | 'vertex'
   >;
   readonly persistence: SentinelPersistence;
   readonly clock: Clock;
@@ -53,7 +53,7 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
   const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids, clock, ...(modelGateway ? { modelGateway } : {}) });
   const app = createApp({
     routes: [...controlPath.routes, ...intelligencePath.routes],
-    corsAllowedOrigin: config.corsAllowedOrigin,
+    corsAllowedOrigins: config.corsAllowedOrigins,
     logger,
   });
   return { app, controlPath };

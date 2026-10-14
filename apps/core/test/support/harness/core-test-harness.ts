@@ -35,7 +35,7 @@ export async function startCoreHarness(
   const clock = new TestClock(options.clockStart ?? '2026-09-24T11:30:00.000Z');
   const { app, controlPath } = composeCoreHttp({
     config: {
-      corsAllowedOrigin: 'http://localhost:4200',
+      corsAllowedOrigins: ['http://localhost:4200'],
       rapidDrainPolicy: DEFAULT_RAPID_DRAIN_POLICY,
       designatedBillingPayeeIds: options.designatedBillingPayeeIds ?? new Set(),
       demoTimeCompression: false,
