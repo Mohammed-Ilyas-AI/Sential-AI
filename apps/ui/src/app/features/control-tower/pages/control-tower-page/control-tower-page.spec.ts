@@ -57,11 +57,16 @@ describe('ControlTowerPage', () => {
     const host = await render();
 
     expect(textOf(host, 'h1')).toBe('Global Financial Defence in Real Time');
-    const kpis = [...host.querySelectorAll('sentinel-kpi-card')].map((card) => (card.textContent ?? '').replace(/\s+/g, ' ').trim());
-    expect(kpis[0]).toMatch(/^Live Transactions\s*2/);
-    expect(kpis[1]).toMatch(/^High Risk Alerts\s*1/);
-    expect(kpis[2]).toMatch(/^Held Transactions\s*1/);
-    expect(kpis[3]).toMatch(/^Monitored Banks\s*3/);
+    const kpi = (index: number) => ({
+      label: textOf(host, `sentinel-kpi-card:nth-child(${index + 1}) .label`),
+      value: textOf(host, `sentinel-kpi-card:nth-child(${index + 1}) .value`),
+    });
+    expect([0, 1, 2, 3].map(kpi)).toEqual([
+      { label: 'Live Transactions', value: '2' },
+      { label: 'High Risk Alerts', value: '1' },
+      { label: 'Held Transactions', value: '1' },
+      { label: 'Monitored Banks', value: '3' },
+    ]);
 
     const firstRow = textOf(host, 'sentinel-transaction-stream tbody tr');
     expect(firstRow).toContain('S$11,500.00');

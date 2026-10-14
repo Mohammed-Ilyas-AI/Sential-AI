@@ -1,12 +1,23 @@
 /*
- * Risk-band colours carry policy meaning, so they never change per tenant. Colour is never the only signal:
- * bands also carry a label, and flagged graph nodes carry a persistent mark.
+ * Semantic colours carry policy meaning, so they never change per bank lens: green approved, amber review,
+ * red critical and HOLD, blue informational. Light mode uses deeper shades of the same hues so they stay
+ * legible on white; the meaning is identical. Colour is never the only signal: bands also carry a label, held
+ * rows say HOLD, and flagged graph nodes carry a persistent mark.
+ *
+ * Brand accents live in themes/ and colour chrome only (navigation, buttons, links, headline). Anything that
+ * encodes data — a row, a series, a hotspot, a map marker — uses these tokens, so a ruby or teal lens can never
+ * be mistaken for a risk state.
  */
 :root {
   --sentinel-color-success: #36c98a;
   --sentinel-color-warning: #f2b84b;
   --sentinel-color-critical: #f45b69;
   --sentinel-color-info: #36b9e7;
+  /* The softer red used for HIGH-risk routes and text on dark surfaces; same family as critical. */
+  --sentinel-color-critical-soft: #ff6b8b;
+  --sentinel-color-critical-text: #ff6b7a;
+  /* Neutral data encodings (allowed rows, series bullets, routine markers): blue in every brand preset. */
+  --sentinel-color-series: #4aa8ff;
 
   --sentinel-color-risk-low: var(--sentinel-color-success);
   --sentinel-color-risk-elevated: var(--sentinel-color-warning);
@@ -14,4 +25,16 @@
   --sentinel-color-risk-critical: var(--sentinel-color-critical);
   --sentinel-color-hold: var(--sentinel-color-critical);
   --sentinel-color-unobserved: #667589;
+}
+
+:root[data-appearance='light'] {
+  --sentinel-color-success: #0b7a50;
+  --sentinel-color-warning: #b45309;
+  --sentinel-color-critical: #d7263d;
+  --sentinel-color-info: #087ea4;
+  --sentinel-color-critical-soft: #e0335f;
+  --sentinel-color-critical-text: #c81e3a;
+  --sentinel-color-series: #1d6fd8;
+  --sentinel-color-risk-high: #c2410c;
+  --sentinel-color-unobserved: #94a3b8;
 }

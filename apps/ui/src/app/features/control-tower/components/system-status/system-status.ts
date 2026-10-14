@@ -117,6 +117,19 @@ const ROW_ICON: Readonly<Record<string, IconName>> = {
     li[data-state='offline'] .value {
       color: var(--sentinel-color-text-muted);
     }
+    @media (min-width: 768px) and (max-height: 800px) {
+      :host {
+        padding: 8px 14px;
+      }
+      header {
+        padding-bottom: 6px;
+        margin-bottom: 4px;
+      }
+      ul {
+        gap: 1px;
+        font-size: 0.75rem;
+      }
+    }
   `,
 })
 export class SystemStatus {

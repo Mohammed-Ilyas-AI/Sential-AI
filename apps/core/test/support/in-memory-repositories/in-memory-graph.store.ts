@@ -13,6 +13,10 @@ export class InMemoryGraphStore implements GraphRepository, EntityLinkSource {
     for (const edge of observation.edges) this.edges.set(`${edge.from}|${edge.to}|${edge.kind}`, edge);
   }
 
+  snapshot(): { readonly nodes: readonly GraphNode[]; readonly edges: readonly GraphEdge[] } {
+    return { nodes: [...this.nodes.values()], edges: [...this.edges.values()] };
+  }
+
   async flaggedLinksFor(destinationToken: string): Promise<readonly EdgeLinkage[]> {
     const flagged = new Set([...this.nodes.values()].filter((node) => node.flagged).map((node) => node.id));
     return flaggedLinksWithinTwoHops(destinationToken, [...this.edges.values()], flagged);

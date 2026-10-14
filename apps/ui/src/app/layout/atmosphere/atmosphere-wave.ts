@@ -1,9 +1,30 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, effect, inject, viewChild } from '@angular/core';
+import { ThemePreferences } from '../../core/theme/theme-preferences';
+import { hexWithAlpha, readHexToken, readNumberToken } from '../../shared/ui/canvas/css-color-token';
 
 const WAVES = 7;
 const PARTICLES = 90;
 /** One full drift of the wave field; slow enough to read as ambience, not motion. */
 const DRIFT_PERIOD_MS = 26_000;
+
+interface WavePalette {
+  readonly start: string;
+  readonly mid: string;
+  readonly end: string;
+  readonly spark: string;
+  /** 1 on dark canvases (additive light); lower on light ones, which also draw normally rather than additively. */
+  readonly strength: number;
+}
+
+function paletteFrom(element: Element): WavePalette {
+  return {
+    start: readHexToken(element, '--sentinel-wave-start', '#3678ff'),
+    mid: readHexToken(element, '--sentinel-wave-mid', '#5e78ff'),
+    end: readHexToken(element, '--sentinel-wave-end', '#a85cff'),
+    spark: readHexToken(element, '--sentinel-wave-spark', '#aac3ff'),
+    strength: readNumberToken(element, '--sentinel-wave-strength', 1),
+  };
+}
 
 interface Particle {
   readonly wave: number;
@@ -36,9 +57,18 @@ interface Particle {
 export class AtmosphereWave {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly theme = inject(ThemePreferences);
+  private palette: WavePalette | null = null;
+  private redraw: () => void = () => undefined;
 
   constructor() {
     const destroyRef = inject(DestroyRef);
+    effect(() => {
+      this.theme.brand();
+      this.theme.appearance();
+      this.palette = null;
+      this.redraw();
+    });
     afterNextRender(() => {
       if (typeof matchMedia !== 'function' || typeof ResizeObserver !== 'function') return;
       const canvas = this.canvas().nativeElement;
@@ -68,16 +98,18 @@ export class AtmosphereWave {
         if (width === 0) return;
         const elapsed = reducedMotion.matches ? 0 : now - start;
         const phase = (elapsed / DRIFT_PERIOD_MS) * Math.PI * 2;
+        const palette = (this.palette ??= paletteFrom(this.host.nativeElement));
+        const { strength } = palette;
         context.clearRect(0, 0, width, height);
-        context.globalCompositeOperation = 'lighter';
+        context.globalCompositeOperation = strength >= 1 ? 'lighter' : 'source-over';
         for (let wave = 0; wave < WAVES; wave += 1) {
           const gradient = context.createLinearGradient(0, 0, width, 0);
-          gradient.addColorStop(0, `rgba(54, 120, 255, ${0.1 + wave * 0.02})`);
-          gradient.addColorStop(0.55, `rgba(94, 120, 255, ${0.24 + wave * 0.035})`);
-          gradient.addColorStop(1, `rgba(168, 92, 255, ${0.12 + wave * 0.025})`);
+          gradient.addColorStop(0, hexWithAlpha(palette.start, (0.1 + wave * 0.02) * strength));
+          gradient.addColorStop(0.55, hexWithAlpha(palette.mid, (0.24 + wave * 0.035) * strength));
+          gradient.addColorStop(1, hexWithAlpha(palette.end, (0.12 + wave * 0.025) * strength));
           context.strokeStyle = gradient;
           context.lineWidth = wave === 3 ? 1.8 : 1;
-          context.shadowColor = 'rgba(90, 120, 255, 0.8)';
+          context.shadowColor = hexWithAlpha(palette.mid, 0.8 * strength);
           context.shadowBlur = wave === 3 ? 10 : 4;
           context.beginPath();
           for (let x = 0; x <= width; x += 6) {
@@ -93,7 +125,7 @@ export class AtmosphereWave {
           const x = t * width;
           const y = waveY(particle.wave, x, phase * (1 + particle.wave * 0.08));
           const fade = Math.sin(t * Math.PI);
-          context.fillStyle = `rgba(170, 195, 255, ${0.35 + 0.6 * fade})`;
+          context.fillStyle = hexWithAlpha(palette.spark, (0.35 + 0.6 * fade) * strength);
           context.fillRect(x, y, particle.size, particle.size);
         }
         context.globalCompositeOperation = 'source-over';
@@ -107,6 +139,7 @@ export class AtmosphereWave {
       const requestDraw = () => {
         if (frame === 0) frame = requestAnimationFrame(loop);
       };
+      this.redraw = requestDraw;
 
       const resize = new ResizeObserver(([entry]) => {
         if (!entry) return;

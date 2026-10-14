@@ -74,9 +74,13 @@ export interface PolicyGateView {
   readonly drainPct: number;
   readonly gatePercent: number;
   readonly thresholdMet: boolean;
+  /** Held by the cascade: an earlier transfer breached the threshold and the account is still in the hold state. */
+  readonly cascade: boolean;
   readonly protectedAccount: boolean;
   readonly interventionTitle: string;
   readonly interventionDetail: string;
+  /** True when the recorded hold is shorter than an hour: the demo runs 24 hours as 24 seconds (T§4). */
+  readonly demoTime: boolean;
 }
 
 export type SystemState = 'operational' | 'degraded' | 'offline';

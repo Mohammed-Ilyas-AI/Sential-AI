@@ -1,3 +1,4 @@
+import { DECISION_REASON } from '@sentinel/domain';
 import { describe, expect, it } from 'vitest';
 import { decisionRecord, demoAlert, demoFinalDecision, demoHold, demoThirdDecision } from '../../../../testing/ui-fixtures';
 import { processTransactionBatch } from '../../../workers/transaction-batch.processor';
@@ -86,6 +87,12 @@ describe('operations overview', () => {
     const held = buildPolicyGate(demoFinalDecision(), demoHold(), 50);
     expect(held).toMatchObject({ decision: 'HOLD', thresholdMet: true, protectedAccount: true, interventionTitle: 'Intervention required' });
     expect(held?.drainPct.toFixed(1)).toBe('65.4');
+    expect(held?.demoTime).toBe(false);
+    expect(held?.cascade).toBe(false);
+    const cascaded = buildPolicyGate({ ...demoFinalDecision(), reasonCodes: [DECISION_REASON.holdCascade] }, demoHold(), 50);
+    expect(cascaded).toMatchObject({ decision: 'HOLD', cascade: true });
+    const compressed = buildPolicyGate({ ...demoFinalDecision(), holdUntil: '2026-09-24T01:01:09.000Z' }, demoHold(), 50);
+    expect(compressed?.demoTime).toBe(true);
     const released = buildPolicyGate(demoFinalDecision(), demoHold({ state: 'RELEASED', actor: 'CUSTOMER' }), 50);
     expect(released).toMatchObject({ interventionTitle: 'Hold released', interventionDetail: 'Released by customer' });
     expect(buildPolicyGate(demoThirdDecision(), null, 50)?.interventionTitle).toBe('No intervention');

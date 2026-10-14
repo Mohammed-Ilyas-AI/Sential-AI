@@ -1,6 +1,47 @@
-/* Synthetic tenant theme for the tenant lens. Not the branding of any real institution. */
-[data-tenant-theme='bank-a'] {
-  --sentinel-color-accent: #2dd4bf;
-  --sentinel-color-accent-strong: #38bdf8;
-  --sentinel-color-accent-soft: rgb(45 212 191 / 0.12);
+/*
+ * Bank A · Meridian Ruby — a synthetic tenant lens, not the branding of any real institution.
+ * Ruby-rose accent on graphite neutrals; Manrope type. The ruby leans magenta (hue ≈ 328°) so it never reads as
+ * the critical/HOLD red (≈ 355°), and coral was dropped because it collides with HIGH-risk orange.
+ */
+:root[data-tenant-theme='bank-a'] {
+  --sentinel-color-background: #0b0a0c;
+  --sentinel-color-surface: #141215;
+  --sentinel-color-elevated: #1c191e;
+  --sentinel-color-border: #322b33;
+  --sentinel-color-border-soft: rgb(50 43 51 / 0.6);
+  --sentinel-color-text: #f6f2f5;
+  --sentinel-color-text-secondary: #b8adb5;
+  --sentinel-color-text-muted: #8f828d;
+  --sentinel-color-accent: #e0589f;
+  --sentinel-color-accent-strong: #f08cb6;
+  --sentinel-color-accent-tertiary: #b36ae8;
+  --sentinel-color-signal: #e0589f;
+  --sentinel-color-nav: #c8457f;
+
+  --sentinel-font-family-display: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-weight-display: 700;
+  --sentinel-letter-spacing-display: -0.015em;
+  --sentinel-letter-spacing-ui: 0;
+}
+
+:root[data-tenant-theme='bank-a'][data-appearance='light'] {
+  --sentinel-color-background: #f7f5f6;
+  --sentinel-color-surface: #ffffff;
+  --sentinel-color-elevated: #fbf9fa;
+  --sentinel-color-border: #e7dee3;
+  --sentinel-color-border-soft: rgb(231 222 227 / 0.75);
+  --sentinel-color-text: #1d1519;
+  --sentinel-color-text-secondary: #574850;
+  --sentinel-color-text-muted: #6f6068;
+  --sentinel-color-accent: #9b2370;
+  --sentinel-color-accent-strong: #7d1d5c;
+  --sentinel-color-accent-tertiary: #7e3fb5;
+  --sentinel-color-signal: #9b2370;
+  --sentinel-color-nav: #9b2370;
+}
+
+/* Swatch for the Settings preset picker: always available, whichever preset is active. */
+:root {
+  --sentinel-swatch-bank-a: linear-gradient(135deg, #e0589f, #f08cb6);
 }

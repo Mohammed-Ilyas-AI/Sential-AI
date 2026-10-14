@@ -9,11 +9,13 @@ import {
   input,
   viewChild,
 } from '@angular/core';
+import { ThemePreferences } from '../../../../core/theme/theme-preferences';
 import { MinorUnitsCurrencyPipe } from '../../../../shared/pipes/minor-units-currency/minor-units-currency-pipe';
+import { readHexToken, readNumberToken } from '../../../../shared/ui/canvas/css-color-token';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { landDots } from '../../geo/land-mask';
 import type { GlobeCallout } from '../../models/operations-overview';
-import { GlobeRenderer, type GlobeScene } from './globe-renderer';
+import { DARK_GLOBE_PALETTE, GlobeRenderer, type GlobePalette, type GlobeScene } from './globe-renderer';
 
 const DOT_LATTICE_SIZE = 26_000;
 /** One autonomous revolution; slow enough to be felt rather than watched. */
@@ -26,6 +28,33 @@ const COMPACT_WIDTH_PX = 480;
 const CALLOUT_GAP = 14;
 /** How quickly a drag offset relaxes back into autonomous rotation, per frame. */
 const RELAX = 0.035;
+
+/** The globe's colours from the active theme's tokens (design-system/themes), falling back to the dark globe. */
+function paletteFrom(element: Element): GlobePalette {
+  const hex = (token: string, fallback: string) => readHexToken(element, token, fallback);
+  const dark = DARK_GLOBE_PALETTE;
+  return {
+    tones: {
+      normal: hex('--sentinel-color-success', dark.tones.normal),
+      elevated: hex('--sentinel-color-warning', dark.tones.elevated),
+      high: hex('--sentinel-color-critical-soft', dark.tones.high),
+      held: hex('--sentinel-color-critical', dark.tones.held),
+      accent: hex('--sentinel-color-info', dark.tones.accent),
+    },
+    halo: hex('--sentinel-globe-halo', dark.halo),
+    ocean: [hex('--sentinel-globe-ocean-1', dark.ocean[0]), hex('--sentinel-globe-ocean-2', dark.ocean[1]), hex('--sentinel-globe-ocean-3', dark.ocean[2])],
+    rim: hex('--sentinel-globe-rim', dark.rim),
+    rimStroke: hex('--sentinel-globe-rim-stroke', dark.rimStroke),
+    land: hex('--sentinel-globe-land', dark.land),
+    landLit: hex('--sentinel-globe-land-lit', dark.landLit),
+    landBright: hex('--sentinel-globe-land-bright', dark.landBright),
+    landHot: hex('--sentinel-globe-land-hot', dark.landHot),
+    particle: hex('--sentinel-globe-particle', dark.particle),
+    node: hex('--sentinel-globe-node', dark.node),
+    markerCore: hex('--sentinel-globe-marker-core', dark.markerCore),
+    glowStrength: readNumberToken(element, '--sentinel-globe-glow-strength', dark.glowStrength),
+  };
+}
 
 /**
  * The live global network: the renderer draws, this component owns time, pointer, zoom and the HTML callouts.
@@ -72,9 +101,18 @@ export class OperationsGlobe {
   private renderer: GlobeRenderer | null = null;
   private requestRender: () => void = () => undefined;
   private rotation = START_LONGITUDE;
+  private readonly theme = inject(ThemePreferences);
 
   constructor() {
     const destroyRef = inject(DestroyRef);
+
+    // A theme change repaints the globe from the new tokens; it never touches the scene or its data.
+    effect(() => {
+      this.theme.brand();
+      this.theme.appearance();
+      this.renderer?.setPalette(paletteFrom(this.host.nativeElement));
+      this.requestRender();
+    });
 
     effect(() => {
       const scene = this.scene();
@@ -100,6 +138,7 @@ export class OperationsGlobe {
       if (!context) return;
 
       this.renderer = new GlobeRenderer(context, landDots(DOT_LATTICE_SIZE));
+      this.renderer.setPalette(paletteFrom(host));
       this.renderer.setScene(this.scene(), Number.NEGATIVE_INFINITY);
 
       const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -213,7 +252,9 @@ export class OperationsGlobe {
 
   /**
    * Callouts follow their markers by direct style writes: 60 moves a second must not go through change detection.
-   * Each takes the first of four positions around its marker that stays inside the globe and clears the others.
+   * The held transfer is placed first, so it always gets the best spot; each other callout takes the first position
+   * around its marker, nearest first, that stays inside the globe and clears those already placed, or is hidden.
+   * A callout never covers another.
    */
   private placeCallouts(positions: ReadonlyMap<string, { x: number; y: number; visible: boolean }>): void {
     const host = this.host.nativeElement;
@@ -222,26 +263,35 @@ export class OperationsGlobe {
     const elements = Array.from(host.querySelectorAll<HTMLElement>('.callout'))
       .map((element) => ({ element, position: positions.get(element.dataset['id'] ?? '') }))
       .filter((entry): entry is { element: HTMLElement; position: { x: number; y: number; visible: boolean } } => !!entry.position)
-      .sort((left, right) => left.position.y - right.position.y);
+      .sort((left, right) => {
+        const held = Number(right.element.dataset['tone'] === 'held') - Number(left.element.dataset['tone'] === 'held');
+        return held !== 0 ? held : left.position.y - right.position.y;
+      });
 
     for (const { element, position } of elements) {
       const width = element.offsetWidth;
       const height = element.offsetHeight;
-      const candidates = [
-        { left: position.x + CALLOUT_GAP, top: position.y - height - CALLOUT_GAP },
-        { left: position.x - width - CALLOUT_GAP, top: position.y - height - CALLOUT_GAP },
-        { left: position.x + CALLOUT_GAP, top: position.y + CALLOUT_GAP },
-        { left: position.x - width - CALLOUT_GAP, top: position.y + CALLOUT_GAP },
-      ].map((corner) => ({ ...corner, right: corner.left + width, bottom: corner.top + height }));
+      // Four corners around the marker first; then the same corners stepped one and two callouts away.
+      const step = height + CALLOUT_GAP / 2;
+      const candidates = [0, -1, 1, -2, 2]
+        .flatMap((shift) => [
+          { left: position.x + CALLOUT_GAP, top: position.y - height - CALLOUT_GAP + shift * step },
+          { left: position.x - width - CALLOUT_GAP, top: position.y - height - CALLOUT_GAP + shift * step },
+          { left: position.x + CALLOUT_GAP, top: position.y + CALLOUT_GAP + shift * step },
+          { left: position.x - width - CALLOUT_GAP, top: position.y + CALLOUT_GAP + shift * step },
+        ])
+        .map((corner) => ({ ...corner, right: corner.left + width, bottom: corner.top + height }));
       const inside = (box: (typeof candidates)[number]) =>
         box.left >= 0 && box.top >= 0 && box.right <= bounds.width && box.bottom <= bounds.height;
       const clear = (box: (typeof candidates)[number]) =>
         placed.every((other) => box.right <= other.left || box.left >= other.right || box.bottom <= other.top || box.top >= other.bottom);
-      const chosen = candidates.find((box) => inside(box) && clear(box)) ?? candidates.find(inside) ?? candidates[0];
+      const clearSpot = candidates.find((box) => inside(box) && clear(box));
+      const chosen = clearSpot ?? candidates.find(inside) ?? candidates[0];
       if (!chosen) continue;
-      if (position.visible) placed.push(chosen);
+      const shown = position.visible && clearSpot !== undefined;
+      if (shown) placed.push(chosen);
       element.style.transform = `translate(${chosen.left.toFixed(1)}px, ${chosen.top.toFixed(1)}px)`;
-      element.style.opacity = position.visible ? '1' : '0';
+      element.style.opacity = shown ? '1' : '0';
     }
   }
 }

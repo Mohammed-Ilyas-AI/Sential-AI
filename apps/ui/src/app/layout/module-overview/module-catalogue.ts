@@ -41,7 +41,7 @@ export const MODULE_CATALOGUE = {
   integrations: {
     title: 'Integrations',
     icon: 'integrations',
-    summary: 'How synthetic banks connect: the decision API, security events, account reports and the Pub/Sub lifecycle feed.',
+    summary: 'How participating institutions connect: the decision API, security events, account reports and the Pub/Sub lifecycle feed.',
     capabilities: ['Per-institution connection health', 'Push subscription status', 'Event throughput and rejections'],
     availableNow: 'The simulator plays Bank A, Bank B and Bank C over the same contracts a bank would use.',
   },

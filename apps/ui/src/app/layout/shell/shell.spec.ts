@@ -37,6 +37,10 @@ describe('Shell', () => {
     expect(host.querySelectorAll('sentinel-sidebar .item')).toHaveLength(12);
     expect(host.querySelector('sentinel-top-bar input, sentinel-top-bar .search')).toBeNull();
     expect(host.querySelector('sentinel-logo img')?.getAttribute('src')).toBe('brand/sentinel-mark.png');
+    const topBar = host.querySelector('sentinel-top-bar')?.textContent ?? '';
+    expect(topBar).not.toMatch(/synthetic|demo/i);
+    expect(host.querySelectorAll('sentinel-top-bar sentinel-icon[name="settings"]')).toHaveLength(1);
+    expect(host.querySelector('sentinel-top-bar .mode')?.tagName).not.toBe('BUTTON');
     expect(host.querySelectorAll('sentinel-mobile-bottom-bar .tab')).toHaveLength(5);
     expect(host.querySelector('sentinel-logo')?.textContent).toContain('SENTINEL');
   });
@@ -68,6 +72,43 @@ describe('Shell', () => {
     expect(state.sidebarExpanded()).toBe(expandedBefore);
   });
 
+  it('opens Settings from the top-bar gear and keeps the analyst menu to profile actions', async () => {
+    const { host, settle } = await render();
+    (host.querySelector('sentinel-top-bar .gear') as HTMLButtonElement).click();
+    await settle();
+    expect(host.querySelector('sentinel-settings-panel')).not.toBeNull();
+    expect(host.querySelector('sentinel-top-bar .gear')?.getAttribute('aria-expanded')).toBe('true');
+
+    (host.querySelector('sentinel-top-bar .profile') as HTMLButtonElement).click();
+    await settle();
+    const items = [...host.querySelectorAll('sentinel-user-menu [role="menuitem"]')].map((item) => item.textContent?.trim());
+    expect(items).toEqual(['Focus mode']);
+  });
+
+  it('switches appearance and bank lens from Settings, labelled as synthetic demo themes', async () => {
+    const { host, settle } = await render();
+    (host.querySelector('sentinel-top-bar .gear') as HTMLButtonElement).click();
+    await settle();
+    const appearance = host.querySelector('sentinel-appearance-settings') as HTMLElement;
+    const radio = (label: string) =>
+      [...appearance.querySelectorAll<HTMLButtonElement>('[role="radio"]')].find((button) => button.textContent?.includes(label));
+
+    radio('Light')?.click();
+    radio('Bank B')?.click();
+    await settle();
+    const root = document.documentElement;
+    expect([root.getAttribute('data-appearance'), root.getAttribute('data-tenant-theme')]).toEqual(['light', 'bank-b']);
+    expect(radio('Bank B')?.getAttribute('aria-checked')).toBe('true');
+    expect(appearance.textContent).toContain('Harbour Teal · synthetic');
+    expect(appearance.textContent).toContain('synthetic demo themes, not real institutions');
+    expect(host.querySelector('sentinel-logo')?.textContent).toContain('SENTINEL');
+
+    radio('Dark')?.click();
+    radio('SENTINEL AI')?.click();
+    await settle();
+    expect(root.hasAttribute('data-appearance') || root.hasAttribute('data-tenant-theme')).toBe(false);
+  });
+
   it('shows one overlay at a time', async () => {
     const { host, settle } = await render();
     const state = TestBed.inject(ShellState);
@@ -93,6 +134,11 @@ describe('Shell', () => {
     await settle();
     const titles = [...host.querySelectorAll('sentinel-notification-panel .title')].map((title) => title.textContent);
     expect(titles).toEqual(['High-risk transaction held', 'Rapid drain pattern', 'Critical risk alert', 'Network relationship flagged']);
+    // Clicking a notification marks only that one read and stays put.
+    (host.querySelector('sentinel-notification-panel li button') as HTMLButtonElement).click();
+    await settle();
+    expect(host.querySelector('sentinel-top-bar .badge')?.textContent?.trim()).toBe('3');
+    expect(host.querySelector('sentinel-notification-panel')).not.toBeNull();
     (host.querySelector('sentinel-notification-panel header button') as HTMLButtonElement).click();
     await settle();
     expect(host.querySelector('sentinel-top-bar .badge')).toBeNull();

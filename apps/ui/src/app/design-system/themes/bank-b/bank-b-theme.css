@@ -1,6 +1,48 @@
-/* Synthetic tenant theme for the tenant lens. Not the branding of any real institution. */
-[data-tenant-theme='bank-b'] {
-  --sentinel-color-accent: #a78bfa;
-  --sentinel-color-accent-strong: #818cf8;
-  --sentinel-color-accent-soft: rgb(167 139 250 / 0.12);
+/*
+ * Bank B · Harbour Teal — a synthetic tenant lens, not the branding of any real institution.
+ * Teal accent with a harbour-blue partner on slate neutrals; Plus Jakarta Sans with a tighter, heavier display
+ * profile. The teal sits at hue ≈ 175°, deliberately away from the approved/success green (≈ 155°); emerald was
+ * dropped for that reason.
+ */
+:root[data-tenant-theme='bank-b'] {
+  --sentinel-color-background: #061013;
+  --sentinel-color-surface: #0c171b;
+  --sentinel-color-elevated: #112127;
+  --sentinel-color-border: #22393f;
+  --sentinel-color-border-soft: rgb(34 57 63 / 0.6);
+  --sentinel-color-text: #eef7f7;
+  --sentinel-color-text-secondary: #a2b9bc;
+  --sentinel-color-text-muted: #75949a;
+  --sentinel-color-accent: #2ec4b6;
+  --sentinel-color-accent-strong: #3fa9d8;
+  --sentinel-color-accent-tertiary: #5b8def;
+  --sentinel-color-signal: #2ec4b6;
+  --sentinel-color-nav: #1f9e93;
+
+  --sentinel-font-family-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-weight-display: 700;
+  --sentinel-letter-spacing-display: -0.03em;
+  --sentinel-letter-spacing-ui: 0.005em;
+}
+
+:root[data-tenant-theme='bank-b'][data-appearance='light'] {
+  --sentinel-color-background: #f2f7f8;
+  --sentinel-color-surface: #ffffff;
+  --sentinel-color-elevated: #f7fbfb;
+  --sentinel-color-border: #d5e4e6;
+  --sentinel-color-border-soft: rgb(213 228 230 / 0.75);
+  --sentinel-color-text: #0d1f22;
+  --sentinel-color-text-secondary: #3f5659;
+  --sentinel-color-text-muted: #567073;
+  --sentinel-color-accent: #0f766e;
+  --sentinel-color-accent-strong: #0e6a8f;
+  --sentinel-color-accent-tertiary: #3559c7;
+  --sentinel-color-signal: #0f766e;
+  --sentinel-color-nav: #0f766e;
+}
+
+/* Swatch for the Settings preset picker: always available, whichever preset is active. */
+:root {
+  --sentinel-swatch-bank-b: linear-gradient(135deg, #2ec4b6, #3fa9d8);
 }

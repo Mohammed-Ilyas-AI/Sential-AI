@@ -5,6 +5,7 @@ import type { ControlPath } from '../../../src/composition/control-path.composit
 import type { SentinelPersistence } from '../../../src/composition/mongo-persistence.composition.js';
 import type { PubSubPushVerification } from '../../../src/config/runtime-config.js';
 import { createLogger } from '../../../src/infrastructure/telemetry/logger.js';
+import type { ModelGateway } from '../../../src/modules/intelligence/application/ports/model-gateway.port.js';
 import type { IdGenerator } from '../../../src/platform/ids/id-generator.js';
 import { TestClock } from './test-clock.js';
 
@@ -28,6 +29,7 @@ export async function startCoreHarness(
     readonly clockStart?: string;
     readonly pubsubPush?: PubSubPushVerification;
     readonly designatedBillingPayeeIds?: ReadonlySet<string>;
+    readonly modelGateway?: ModelGateway;
   } = {},
 ): Promise<CoreHarness> {
   const clock = new TestClock(options.clockStart ?? '2026-09-24T11:30:00.000Z');
@@ -44,6 +46,7 @@ export async function startCoreHarness(
     clock,
     ids: sequentialIds(),
     logger: createLogger('silent'),
+    ...(options.modelGateway ? { modelGateway: options.modelGateway } : {}),
   });
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));

@@ -14,6 +14,8 @@ export interface DecisionRecord extends DecisionResponse {
   readonly amount: MinorUnits;
   readonly band: RiskBand;
   readonly occurredAt: IsoTimestamp;
+  /** For a cascaded hold, the transaction whose threshold breach put the account into the hold state. */
+  readonly cascadeOfTransactionId?: string;
   /** Snapshot of the assessment the decision cites; contributions[] are copied, never recomputed. */
   readonly assessment: RiskAssessment;
 }

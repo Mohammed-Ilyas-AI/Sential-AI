@@ -4,6 +4,7 @@ import { Icon } from '../../../../shared/ui/icon/icon';
 import { Sparkline } from '../../../../shared/ui/sparkline/sparkline';
 import type { KpiView } from '../../models/operations-overview';
 
+/** A compact headline counter: what it is and how it is moving on top, the figure and its trend below. */
 @Component({
   selector: 'sentinel-kpi-card',
   imports: [DecimalPipe, Icon, Sparkline],
@@ -11,11 +12,8 @@ import type { KpiView } from '../../models/operations-overview';
   host: { '[attr.data-tone]': 'kpi().tone' },
   template: `
     <div class="head">
-      <span class="tile"><sentinel-icon [name]="kpi().icon" [size]="20" /></span>
+      <span class="tile"><sentinel-icon [name]="kpi().icon" [size]="16" /></span>
       <span class="label">{{ kpi().label }}</span>
-    </div>
-    <div class="figures">
-      <span class="value sentinel-mono">{{ kpi().value | number }}</span>
       <span class="change sentinel-mono" [attr.data-direction]="direction()">
         @if (kpi().changePercent === null) {
           new
@@ -31,7 +29,10 @@ import type { KpiView } from '../../models/operations-overview';
         }
       </span>
     </div>
-    <sentinel-sparkline class="trend" [values]="kpi().series" [variant]="kpi().id === 'transactions' ? 'bars' : 'line'" />
+    <div class="figures">
+      <span class="value sentinel-mono">{{ kpi().value | number }}</span>
+      <sentinel-sparkline class="trend" [values]="kpi().series" [variant]="kpi().id === 'transactions' ? 'bars' : 'line'" />
+    </div>
   `,
   styleUrl: './kpi-card.css',
 })

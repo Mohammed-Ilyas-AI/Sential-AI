@@ -17,10 +17,14 @@ export interface MuleNetworkInput {
   readonly destinationInstitutionId: InstitutionId;
   readonly flaggedLinks: readonly EdgeLinkage[];
   readonly observedAt: string;
+  /** The run's tokeniser, so the network links the same synthetic accounts the run transacts with. */
+  readonly token?: (prefix: 'acct' | 'dev' | 'ben', identifier: string) => string;
 }
 
 interface FlaggedEntity {
+  /** A display identifier, tokenised per run when the observation is generated. */
   readonly id: string;
+  readonly prefix: 'acct' | 'dev' | 'ben';
   readonly kind: NodeKind;
   readonly institutionId: InstitutionId;
   readonly edgeKind: GraphEdgeKind;
@@ -30,12 +34,13 @@ interface FlaggedEntity {
 
 /** The reference's mules across the three banks, a network-authorised shared device, a correlated beneficiary. */
 const CONFIRMED_MULES: readonly FlaggedEntity[] = [
-  { id: syntheticToken('acct', 'ACC-55902'), kind: 'ACCOUNT', institutionId: 'BANK_B', edgeKind: 'TRANSFERRED_TO', evidenceType: 'PAYMENT_EVENT', riskIndicators: ['RAPID_MOVEMENT'] },
-  { id: syntheticToken('acct', 'ACC-47219'), kind: 'ACCOUNT', institutionId: 'BANK_C', edgeKind: 'TRANSFERRED_TO', evidenceType: 'PAYMENT_EVENT', riskIndicators: ['RAPID_MOVEMENT'] },
-  { id: syntheticToken('acct', 'ACC-20441'), kind: 'ACCOUNT', institutionId: 'BANK_A', edgeKind: 'TRANSFERRED_TO', evidenceType: 'PAYMENT_EVENT', riskIndicators: ['MULTI_BENEFICIARY'] },
+  { id: 'ACC-55902', prefix: 'acct', kind: 'ACCOUNT', institutionId: 'BANK_B', edgeKind: 'TRANSFERRED_TO', evidenceType: 'PAYMENT_EVENT', riskIndicators: ['RAPID_MOVEMENT'] },
+  { id: 'ACC-47219', prefix: 'acct', kind: 'ACCOUNT', institutionId: 'BANK_C', edgeKind: 'TRANSFERRED_TO', evidenceType: 'PAYMENT_EVENT', riskIndicators: ['RAPID_MOVEMENT'] },
+  { id: 'ACC-20441', prefix: 'acct', kind: 'ACCOUNT', institutionId: 'BANK_A', edgeKind: 'TRANSFERRED_TO', evidenceType: 'PAYMENT_EVENT', riskIndicators: ['MULTI_BENEFICIARY'] },
 ];
 const SHARED_DEVICE: FlaggedEntity = {
-  id: syntheticToken('dev', 'DEV-SHARED-01'),
+  id: 'DEV-SHARED-01',
+  prefix: 'dev',
   kind: 'DEVICE',
   institutionId: 'BANK_B',
   edgeKind: 'USED_DEVICE',
@@ -43,7 +48,8 @@ const SHARED_DEVICE: FlaggedEntity = {
   riskIndicators: ['SHARED_ACROSS_INSTITUTIONS'],
 };
 const CORRELATED_BENEFICIARY: FlaggedEntity = {
-  id: syntheticToken('ben', 'PAYEE-5121'),
+  id: 'PAYEE-5121',
+  prefix: 'ben',
   kind: 'PAYEE',
   institutionId: 'BANK_C',
   edgeKind: 'PAYEE_OF',
@@ -58,7 +64,8 @@ const CORRELATED_BENEFICIARY: FlaggedEntity = {
 export const muleNetworkGenerator: ScenarioGenerator<MuleNetworkInput, NetworkObservation> = {
   name: 'mule-network',
   generate(_random, input) {
-    const root = syntheticToken('acct', input.destinationPayeeId);
+    const token = input.token ?? syntheticToken;
+    const root = token('acct', input.destinationPayeeId);
     const mules = [...CONFIRMED_MULES];
     const entityFor = (linkage: EdgeLinkage): FlaggedEntity => {
       if (linkage === 'NETWORK_TOKEN') return SHARED_DEVICE;
@@ -73,10 +80,11 @@ export const muleNetworkGenerator: ScenarioGenerator<MuleNetworkInput, NetworkOb
     ];
     const edges: GraphEdge[] = input.flaggedLinks.map((linkage, index) => {
       const entity = entityFor(linkage);
-      nodes.push({ id: entity.id, kind: entity.kind, institutionId: entity.institutionId, flagged: true, riskIndicators: entity.riskIndicators, txCount: 3 });
+      const entityToken = token(entity.prefix, entity.id);
+      nodes.push({ id: entityToken, kind: entity.kind, institutionId: entity.institutionId, flagged: true, riskIndicators: entity.riskIndicators, txCount: 3 });
       return {
         from: root,
-        to: entity.id,
+        to: entityToken,
         kind: entity.edgeKind,
         weight: entity.edgeKind === 'TRANSFERRED_TO' ? 900_000 : 1,
         firstSeen: input.observedAt,

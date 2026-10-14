@@ -56,7 +56,7 @@ function withoutRecordFields({ assessmentId, accountId, rulesetVersion, ...asses
 
 /**
  * The synchronous control path: idempotency, rolling window, drain gate, features, risk assessment, initial
- * PENDING projection, decision record, hold, alert. Never waits on Pub/Sub; no language model anywhere.
+ * PENDING projection, hold cascade, decision record, hold, alert. Never waits on Pub/Sub; no language model anywhere.
  */
 export class DecisionService implements DecideTransaction {
   constructor(private readonly dependencies: DecisionServiceDependencies) {}
@@ -95,7 +95,13 @@ export class DecisionService implements DecideTransaction {
     await deps.transactionLifecycle.apply(request, { drainExcluded: gate.drain.excluded });
 
     const decidedAt = deps.clock.now();
-    const hold = gate.drain.thresholdMet;
+    // The hold cascade: once a transfer breaches the threshold, every subsequent eligible outflow is held too.
+    // Excluded payment types stay outside it, exactly as they stay outside the gate. The score is untouched.
+    const cascade =
+      gate.drain.thresholdMet || gate.drain.excluded
+        ? null
+        : await deps.interventions.activeHoldCascade(account.id, evaluatedAt, decidedAt.toISOString());
+    const hold = gate.drain.thresholdMet || cascade !== null;
     const record: DecisionRecord = {
       decisionId: deps.ids.next(),
       tenantId: request.tenantId,
@@ -104,11 +110,12 @@ export class DecisionService implements DecideTransaction {
       decision: hold ? 'HOLD' : 'ALLOW',
       riskScore: assessment.score,
       policyCodes: hold ? ['RAPID_DRAIN'] : [],
-      reasonCodes: [reasonFor(gate)],
+      reasonCodes: [cascade ? DECISION_REASON.holdCascade : reasonFor(gate)],
       assessmentId: assessment.assessmentId,
       rulesetVersion: assessment.rulesetVersion,
       policyVersion: gate.policy.policyVersion,
-      ...(hold ? { holdUntil: deps.rapidDrainGate.holdUntil(decidedAt) } : {}),
+      ...(gate.drain.thresholdMet ? { holdUntil: deps.rapidDrainGate.holdUntil(decidedAt) } : {}),
+      ...(cascade?.holdUntil ? { holdUntil: cascade.holdUntil, cascadeOfTransactionId: cascade.transactionId } : {}),
       decidedAt: decidedAt.toISOString(),
       expiresAt: new Date(decidedAt.getTime() + VALIDITY_MS).toISOString(),
       traceId,

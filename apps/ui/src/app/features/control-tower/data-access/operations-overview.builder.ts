@@ -19,6 +19,7 @@ const STREAM_ROWS = 5;
 /** Routes drawn on the globe: the most recent transfers on the tape. */
 const LIVE_ROUTES = 28;
 const RISK_CONTRIBUTIONS = 5;
+const HOUR_MS = 3_600_000;
 const institutionLabel = (id: string): string => INSTITUTION_ANCHORS[id]?.label ?? id;
 
 /** Buckets the tape's own time span; every series is derived from decisions actually received. */
@@ -206,8 +207,10 @@ export function buildPolicyGate(decision: DecisionRecord | null, intervention: I
     drainPct: drain.drainPct,
     gatePercent,
     thresholdMet: drain.thresholdMet,
+    cascade: decision.reasonCodes.includes(DECISION_REASON.holdCascade),
     protectedAccount: !decision.reasonCodes.includes(DECISION_REASON.notProtected),
     interventionTitle,
     interventionDetail,
+    demoTime: !!decision.holdUntil && Date.parse(decision.holdUntil) - Date.parse(decision.decidedAt) < HOUR_MS,
   };
 }

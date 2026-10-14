@@ -1,3 +1,5 @@
+import { isScenarioRunId } from '@sentinel/scenarios';
+
 export type LifecycleTransport =
   | { readonly kind: 'pubsub'; readonly projectId: string; readonly topic: string }
   | { readonly kind: 'direct-push'; readonly pushEndpoint: string };
@@ -9,6 +11,8 @@ export interface SimulatorRuntimeConfig {
   /** realtime replays the scenario on its documented clock; instant runs it as fast as the API answers. */
   readonly timeline: 'realtime' | 'instant';
   readonly logLevel: string;
+  /** Set to replay a specific run exactly (idempotent); unset, every start is a new run with fresh identifiers. */
+  readonly runId: string | null;
 }
 
 export class SimulatorConfigurationError extends Error {
@@ -39,6 +43,9 @@ export function loadSimulatorRuntimeConfig(env: Readonly<Record<string, string |
   const timeline = env['SIMULATOR_TIMELINE']?.trim() ?? 'realtime';
   if (timeline !== 'realtime' && timeline !== 'instant') problems.push('SIMULATOR_TIMELINE must be realtime or instant');
 
+  const runId = env['SIMULATOR_RUN_ID']?.trim().toUpperCase() || null;
+  if (runId !== null && !isScenarioRunId(runId)) problems.push('SIMULATOR_RUN_ID must be 1-12 letters or digits');
+
   if (problems.length > 0) throw new SimulatorConfigurationError(problems);
   return {
     coreBaseUrl,
@@ -46,5 +53,6 @@ export function loadSimulatorRuntimeConfig(env: Readonly<Record<string, string |
     transport,
     timeline: timeline === 'instant' ? 'instant' : 'realtime',
     logLevel: env['LOG_LEVEL'] ?? 'info',
+    runId,
   };
 }

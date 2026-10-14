@@ -1,5 +1,5 @@
 :focus-visible {
-  outline: 2px solid var(--sentinel-color-accent);
+  outline: 2px solid var(--sentinel-color-focus);
   outline-offset: 2px;
 }
 

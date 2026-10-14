@@ -6,6 +6,11 @@ import type { DecisionRecord, Intervention, IsoTimestamp } from '@sentinel/domai
  */
 export interface InterventionWorkflow {
   placeHold(decision: DecisionRecord): Promise<Intervention>;
+  /**
+   * The threshold hold that keeps the account in the hold state for an outflow occurring at `occurredAt` and
+   * decided at `at`, or null. Every subsequent eligible outflow is held until it ends (the hold cascade).
+   */
+  activeHoldCascade(accountId: string, occurredAt: IsoTimestamp, at: IsoTimestamp): Promise<Intervention | null>;
   releaseDueHolds(now: IsoTimestamp): Promise<number>;
   releaseAfterCustomerVerification(transactionId: string): Promise<Intervention>;
   cancelByCustomer(transactionId: string): Promise<Intervention>;

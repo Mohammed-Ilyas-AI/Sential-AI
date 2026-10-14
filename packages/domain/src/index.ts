@@ -43,6 +43,7 @@ export * from './intelligence/evidence-bundle.js';
 export * from './intelligence/case-summary.js';
 export * from './intelligence/model-job.js';
 export * from './intelligence/risk-explanation.js';
+export * from './intelligence/advisory-outcome.js';
 
 export * from './graph/graph-node.js';
 export * from './graph/graph-edge.js';

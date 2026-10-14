@@ -1,16 +1,187 @@
-/* The default SENTINEL AI theme: layered dark surfaces, readable in a dark demo room. */
+/*
+ * SENTINEL AI master theme. Two independent attributes on <html> select the theme:
+ *   data-tenant-theme  bank-a | bank-b | bank-c   (absent = SENTINEL AI)   brand preset: accents, neutrals, type
+ *   data-appearance    light                      (absent = dark)          surfaces, text, borders, shadows
+ * Components read only these semantic tokens, so 4 presets × 2 modes = 8 themes from one component set.
+ *
+ * The dark values below are the approved Control Tower baseline, unchanged except muted text (#667589 → #7a8aa0,
+ * accessibility sign-off 14 Oct 2026: 4.9:1 on every dark surface). Light is designed, not inverted.
+ */
 :root {
   color-scheme: dark;
+
+  /* Neutrals */
   --sentinel-color-background: #070b10;
   --sentinel-color-surface: #0d141d;
   --sentinel-color-elevated: #121c28;
   --sentinel-color-border: #263444;
   --sentinel-color-border-soft: rgb(38 52 68 / 0.55);
+  /*
+   * Borders come in two kinds. --sentinel-color-border and -border-soft are decorative: card edges, dividers and
+   * chips, never the only cue for anything. --sentinel-color-border-interactive outlines a control whose boundary
+   * is its affordance (toggle, switch track, bordered button, list item) and holds 3:1 against every surface
+   * (WCAG 1.4.11). Focus is always --sentinel-color-focus, a separate 2px ring.
+   */
+  --sentinel-color-border-interactive: color-mix(in srgb, var(--sentinel-color-text-muted) 80%, var(--sentinel-color-surface));
   --sentinel-color-text: #f1f5f9;
   --sentinel-color-text-secondary: #a6b3c4;
-  --sentinel-color-text-muted: #667589;
+  --sentinel-color-text-muted: #7a8aa0;
+  --sentinel-color-scrim: rgb(3 6 10 / 0.62);
+  --sentinel-color-hover: rgb(255 255 255 / 0.03);
+  --sentinel-color-track: rgb(255 255 255 / 0.08);
+  --sentinel-color-highlight: rgb(255 255 255 / 0.05);
+  /* Mixed into a semantic tone to make its text legible on the surface: lighten on dark, darken on light. */
+  --sentinel-color-tone-ink: #fff;
+
+  /* Brand accents (the bank lens overrides these; semantic colours in tokens/color.css never change) */
   --sentinel-color-accent: #36b9e7;
   --sentinel-color-accent-strong: #6d8cff;
-  --sentinel-color-accent-soft: rgb(54 185 231 / 0.12);
-  --sentinel-color-scrim: rgb(3 6 10 / 0.62);
+  --sentinel-color-accent-tertiary: #a45cff;
+  --sentinel-color-signal: #4aa8ff;
+  --sentinel-color-nav: #406eff;
+  --sentinel-color-accent-soft: color-mix(in srgb, var(--sentinel-color-accent) 12%, transparent);
+  --sentinel-color-accent-text: color-mix(in srgb, var(--sentinel-color-signal) 80%, #fff);
+  --sentinel-color-on-accent: #fff;
+  --sentinel-color-focus: var(--sentinel-color-accent);
+  --sentinel-gradient-brand: linear-gradient(90deg, var(--sentinel-color-accent), var(--sentinel-color-accent-strong) 55%, var(--sentinel-color-accent-tertiary));
+  /* The platform's own blue in the wordmark: product identity, never replaced by a bank lens. */
+  --sentinel-brand-platform: #4aa8ff;
+
+  /* Composite surfaces */
+  --sentinel-surface-ambient:
+    radial-gradient(900px 620px at 52% 52%, rgb(46 104 236 / 0.16), transparent 70%),
+    radial-gradient(700px 420px at 50% 8%, rgb(54 185 231 / 0.07), transparent 70%),
+    radial-gradient(640px 520px at 0% 100%, rgb(120 70 255 / 0.12), transparent 70%),
+    radial-gradient(520px 420px at 100% 100%, rgb(36 180 150 / 0.05), transparent 70%),
+    var(--sentinel-color-background);
+  --sentinel-surface-top-bar: linear-gradient(180deg, rgb(9 14 22 / 0.96), rgb(7 11 16 / 0.9));
+  --sentinel-surface-control: color-mix(in srgb, var(--sentinel-color-elevated) 60%, transparent);
+  --sentinel-surface-control-strong: color-mix(in srgb, var(--sentinel-color-surface) 80%, transparent);
+  --sentinel-surface-rail: linear-gradient(180deg, rgb(11 17 26 / 0.94), rgb(7 11 18 / 0.9) 70%, rgb(8 10 24 / 0.9));
+  --sentinel-surface-panel: linear-gradient(180deg, rgb(12 20 34 / 0.82), rgb(8 13 23 / 0.82));
+  --sentinel-surface-panel-border: rgb(64 104 170 / 0.32);
+  --sentinel-surface-network:
+    radial-gradient(60% 80% at 58% 50%, rgb(40 90 200 / 0.18), transparent 70%),
+    linear-gradient(180deg, rgb(10 18 32 / 0.72), rgb(7 12 22 / 0.72));
+  --sentinel-surface-overlay: rgb(8 14 26 / 0.7);
+  --sentinel-surface-callout: color-mix(in srgb, #0b1627 84%, transparent);
+  --sentinel-surface-callout-critical: color-mix(in srgb, #2a0d16 80%, transparent);
+  --sentinel-surface-card: #0a111b;
+
+  /*
+   * Canvas palettes (globe, threat map, rail wave). Canvas cannot resolve CSS, so these are plain hex values the
+   * renderers read once per theme change; they vary by appearance only. Risk tones come from tokens/color.css.
+   */
+  --sentinel-globe-halo: #4696ff;
+  --sentinel-globe-ocean-1: #16325c;
+  --sentinel-globe-ocean-2: #0b1a33;
+  --sentinel-globe-ocean-3: #040912;
+  --sentinel-globe-rim: #50a0ff;
+  --sentinel-globe-rim-stroke: #6eb4ff;
+  --sentinel-globe-land: #7fb0f0;
+  --sentinel-globe-land-lit: #cfe2ff;
+  --sentinel-globe-land-bright: #fff3d6;
+  --sentinel-globe-land-hot: #ff6a4d;
+  --sentinel-globe-particle: #9cc8ff;
+  --sentinel-globe-node: #9fd4ff;
+  --sentinel-globe-marker-core: #ffffff;
+  --sentinel-globe-glow-strength: 1;
+  --sentinel-map-land: #78a0dc;
+  --sentinel-wave-start: #3678ff;
+  --sentinel-wave-mid: #5e78ff;
+  --sentinel-wave-end: #a85cff;
+  --sentinel-wave-spark: #aac3ff;
+  --sentinel-wave-strength: 1;
+}
+
+/* SENTINEL AI light: cool off-white canvas, white panels, deep text, a stronger blue for contrast on white. */
+:root[data-appearance='light'] {
+  color-scheme: light;
+
+  --sentinel-color-background: #f4f7fb;
+  --sentinel-color-surface: #ffffff;
+  --sentinel-color-elevated: #f8fafc;
+  --sentinel-color-border: #dce5ef;
+  --sentinel-color-border-soft: rgb(220 229 239 / 0.75);
+  --sentinel-color-text: #101828;
+  --sentinel-color-text-secondary: #475569;
+  --sentinel-color-text-muted: #5b6b7f;
+  --sentinel-color-scrim: rgb(15 23 42 / 0.32);
+  --sentinel-color-hover: rgb(15 23 42 / 0.04);
+  --sentinel-color-track: rgb(15 23 42 / 0.08);
+  --sentinel-color-highlight: rgb(255 255 255 / 0.9);
+  --sentinel-color-tone-ink: #000;
+
+  --sentinel-color-accent: #087ea4;
+  --sentinel-color-accent-strong: #4f5bd5;
+  --sentinel-color-accent-tertiary: #7c3aed;
+  --sentinel-color-signal: #1d6fd8;
+  --sentinel-color-nav: #2563eb;
+  --sentinel-color-accent-text: color-mix(in srgb, var(--sentinel-color-signal) 88%, #000);
+  --sentinel-brand-platform: #1d6fd8;
+
+  --sentinel-surface-ambient:
+    radial-gradient(900px 620px at 52% 52%, color-mix(in srgb, var(--sentinel-color-nav) 5%, transparent), transparent 70%),
+    radial-gradient(640px 520px at 0% 100%, color-mix(in srgb, var(--sentinel-color-accent-tertiary) 4%, transparent), transparent 70%),
+    var(--sentinel-color-background);
+  --sentinel-surface-top-bar: linear-gradient(180deg, color-mix(in srgb, var(--sentinel-color-surface) 94%, transparent), color-mix(in srgb, var(--sentinel-color-elevated) 92%, transparent));
+  --sentinel-surface-control: color-mix(in srgb, var(--sentinel-color-background) 90%, transparent);
+  --sentinel-surface-control-strong: var(--sentinel-color-surface);
+  --sentinel-surface-rail: linear-gradient(180deg, var(--sentinel-color-surface), var(--sentinel-color-elevated) 70%, var(--sentinel-color-background));
+  --sentinel-surface-panel: linear-gradient(180deg, var(--sentinel-color-surface), var(--sentinel-color-elevated));
+  --sentinel-surface-panel-border: var(--sentinel-color-border);
+  --sentinel-surface-network:
+    radial-gradient(60% 80% at 58% 50%, color-mix(in srgb, var(--sentinel-color-signal) 6%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--sentinel-color-surface), var(--sentinel-color-elevated));
+  --sentinel-surface-overlay: color-mix(in srgb, var(--sentinel-color-surface) 90%, transparent);
+  --sentinel-surface-callout: color-mix(in srgb, var(--sentinel-color-surface) 95%, transparent);
+  --sentinel-surface-callout-critical: color-mix(in srgb, #fff1f3 95%, transparent);
+  --sentinel-surface-card: var(--sentinel-color-surface);
+
+  --sentinel-globe-halo: #3b82f6;
+  --sentinel-globe-ocean-1: #f7faff;
+  --sentinel-globe-ocean-2: #e1eaf6;
+  --sentinel-globe-ocean-3: #c4d4e9;
+  --sentinel-globe-rim: #3b6fb5;
+  --sentinel-globe-rim-stroke: #7aa2d6;
+  --sentinel-globe-land: #3a6aa8;
+  --sentinel-globe-land-lit: #1e4b8a;
+  --sentinel-globe-land-bright: #b45309;
+  --sentinel-globe-land-hot: #dc2626;
+  --sentinel-globe-particle: #6b8fc0;
+  --sentinel-globe-node: #1e4b8a;
+  --sentinel-globe-marker-core: #ffffff;
+  --sentinel-globe-glow-strength: 0.35;
+  --sentinel-map-land: #64748b;
+  --sentinel-wave-start: #2563eb;
+  --sentinel-wave-mid: #4f5bd5;
+  --sentinel-wave-end: #7c3aed;
+  --sentinel-wave-spark: #4f5bd5;
+  --sentinel-wave-strength: 0.55;
+}
+
+/*
+ * Bank presets in dark mode: their neutrals carry the tint, so composite surfaces are derived from them rather
+ * than copied per bank. (The SENTINEL light block above is already derived and serves every preset in light.)
+ */
+:root[data-tenant-theme]:not([data-appearance='light']) {
+  --sentinel-surface-ambient:
+    radial-gradient(900px 620px at 52% 52%, color-mix(in srgb, var(--sentinel-color-nav) 14%, transparent), transparent 70%),
+    radial-gradient(640px 520px at 0% 100%, color-mix(in srgb, var(--sentinel-color-accent-tertiary) 10%, transparent), transparent 70%),
+    var(--sentinel-color-background);
+  --sentinel-surface-top-bar: linear-gradient(180deg, color-mix(in srgb, var(--sentinel-color-surface) 70%, var(--sentinel-color-background)), color-mix(in srgb, var(--sentinel-color-background) 92%, transparent));
+  --sentinel-surface-rail: linear-gradient(180deg, color-mix(in srgb, var(--sentinel-color-surface) 94%, transparent), color-mix(in srgb, var(--sentinel-color-background) 90%, transparent));
+  --sentinel-surface-panel: linear-gradient(180deg, color-mix(in srgb, var(--sentinel-color-surface) 86%, transparent), color-mix(in srgb, var(--sentinel-color-background) 84%, transparent));
+  --sentinel-surface-panel-border: color-mix(in srgb, var(--sentinel-color-signal) 22%, var(--sentinel-color-border));
+  --sentinel-surface-network:
+    radial-gradient(60% 80% at 58% 50%, color-mix(in srgb, var(--sentinel-color-signal) 12%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--sentinel-color-surface) 76%, transparent), color-mix(in srgb, var(--sentinel-color-background) 76%, transparent));
+  --sentinel-surface-overlay: color-mix(in srgb, var(--sentinel-color-background) 75%, transparent);
+  --sentinel-surface-callout: color-mix(in srgb, var(--sentinel-color-elevated) 88%, transparent);
+  --sentinel-surface-card: var(--sentinel-color-surface);
+}
+
+/* Swatch for the Settings preset picker: always available, whichever preset is active. */
+:root {
+  --sentinel-swatch-sentinel: linear-gradient(135deg, #36b9e7, #6d8cff);
 }

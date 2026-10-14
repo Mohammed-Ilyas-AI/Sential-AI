@@ -4,18 +4,25 @@ import { SYNTHETIC_ACCOUNTS } from '../catalogue/synthetic-roster.js';
 import { baselineGenerator } from '../generators/baseline.generator.js';
 import { muleNetworkGenerator } from '../generators/mule-network.generator.js';
 import { takeoverGenerator } from '../generators/takeover.generator.js';
+import type { ScenarioRunId } from '../identity/scenario-run.js';
 import type { Scenario, ScenarioStep } from '../scenario.js';
 import { createSeededRandom } from '../seed/seeded-random.js';
 
-export type BuildDemoScenario = (epoch: string) => Scenario;
+export interface DemoScenarioOptions {
+  /** Scope every identifier to this run, so a repeat run is new activity rather than a replay of stored events. */
+  readonly runId?: ScenarioRunId;
+}
+
+export type BuildDemoScenario = (epoch: string, options?: DemoScenarioOptions) => Scenario;
 
 /**
  * DEMO_TAKEOVER_01: baseline traffic across twelve accounts, the mule network, then the takeover of ACC-10291.
- * Deterministic for a given epoch: the same seed, the same events, the same decisions.
+ * Deterministic for a given epoch and run: the same seed, the same events, the same decisions. Different runs
+ * produce the same scores on their own run-scoped synthetic accounts.
  */
-export const buildDemoTakeover01: BuildDemoScenario = (epoch) => {
+export const buildDemoTakeover01: BuildDemoScenario = (epoch, options = {}) => {
   const random = createSeededRandom(DEMO_TAKEOVER_01.seed);
-  const events = new ScenarioEventFactory('DT01', Date.parse(epoch));
+  const events = new ScenarioEventFactory('DT01', Date.parse(epoch), options.runId);
   const victim = SYNTHETIC_ACCOUNTS.find((account) => account.displayId === DEMO_TAKEOVER_01.accountDisplayId);
   if (!victim) throw new Error(`${DEMO_TAKEOVER_01.accountDisplayId} is missing from the synthetic roster`);
 
@@ -35,10 +42,11 @@ export const buildDemoTakeover01: BuildDemoScenario = (epoch) => {
       destinationInstitutionId: finalTransfer.destinationInstitutionId,
       flaggedLinks: DEMO_TAKEOVER_01.finalPayeeFlaggedLinks,
       observedAt: events.hoursBefore(2),
+      token: (prefix, identifier) => events.token(prefix, identifier),
     }),
   };
   const takeover = takeoverGenerator.generate(random, { events, victim });
 
   const timeline = [...baseline, network, ...takeover].sort((left, right) => left.atMs - right.atMs);
-  return { id: DEMO_TAKEOVER_01.scenarioId, seed: DEMO_TAKEOVER_01.seed, epoch, timeline };
+  return { id: DEMO_TAKEOVER_01.scenarioId, seed: DEMO_TAKEOVER_01.seed, epoch, ...(options.runId ? { runId: options.runId } : {}), timeline };
 };

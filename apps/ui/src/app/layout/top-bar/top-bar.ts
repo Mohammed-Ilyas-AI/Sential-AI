@@ -7,7 +7,7 @@ import { NotificationCenter } from '../notification-panel/notification-center';
 import { ShellState } from '../shell/shell-state';
 import { LiveClock } from './live-clock';
 
-/** Toggle, brand, live state, clock, notifications, settings, analyst. Nothing else: no search lives here. */
+/** Toggle, brand, live state, clock, notifications, settings, analyst. No search here. */
 @Component({
   selector: 'sentinel-top-bar',
   imports: [Icon, SentinelLogo, LiveClock],
@@ -26,14 +26,10 @@ import { LiveClock } from './live-clock';
       </div>
 
       <div class="controls">
-        <button type="button" class="mode" [attr.data-status]="streamStatus()" (click)="shell.open('settings')">
+        <span class="mode" role="status" [attr.data-status]="streamStatus()">
           <span class="dot" aria-hidden="true"></span>
-          <span class="mode-text">
-            <span class="mode-label">{{ streamStatus() === 'LIVE' ? 'Live Mode' : streamStatus() === 'RECONNECTING' ? 'Reconnecting' : 'Connecting' }}</span>
-            <span class="mode-environment">Synthetic data</span>
-          </span>
-          <sentinel-icon name="chevronDown" [size]="16" />
-        </button>
+          <span class="mode-label">{{ streamStatus() === 'LIVE' ? 'Live Mode' : streamStatus() === 'RECONNECTING' ? 'Reconnecting' : 'Connecting' }}</span>
+        </span>
         <span class="divider wide-only" aria-hidden="true"></span>
         <sentinel-live-clock class="wide-only" />
         <span class="divider desktop-only" aria-hidden="true"></span>
@@ -45,13 +41,13 @@ import { LiveClock } from './live-clock';
             }
           }
         </button>
-        <button type="button" class="sentinel-icon-button desktop-only" [attr.aria-expanded]="shell.settingsPanelOpen()" (click)="shell.toggle('settings')">
+        <button type="button" class="sentinel-icon-button gear" [attr.aria-expanded]="shell.settingsPanelOpen()" (click)="shell.toggle('settings')">
           <sentinel-icon name="settings" [size]="22" label="Settings" />
         </button>
         <span class="divider desktop-only" aria-hidden="true"></span>
         <button type="button" class="profile" [attr.aria-expanded]="shell.userMenuOpen()" aria-haspopup="menu" (click)="shell.toggle('user-menu')">
           <span class="avatar" aria-hidden="true">FA</span>
-          <span class="who desktop-only"><span class="name">Fraud analyst</span><span class="role">Demo environment</span></span>
+          <span class="who desktop-only"><span class="name">Fraud analyst</span><span class="role">Fraud Operations</span></span>
           <sentinel-icon class="desktop-only" name="chevronDown" [size]="18" />
           <span class="sentinel-visually-hidden">Analyst menu</span>
         </button>

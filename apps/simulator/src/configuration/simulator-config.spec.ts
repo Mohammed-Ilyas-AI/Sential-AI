@@ -18,4 +18,11 @@ describe('loadSimulatorRuntimeConfig', () => {
     expect(config.transport).toEqual({ kind: 'direct-push', pushEndpoint: 'http://localhost:8080/internal/pubsub/transaction-events' });
     expect(config.timeline).toBe('instant');
   });
+
+  it('starts a new run by default and accepts an explicit run ID to replay one exactly', () => {
+    const base = { SIMULATOR_CORE_BASE_URL: 'http://core', SIMULATOR_EVENT_TRANSPORT: 'direct-push' };
+    expect(loadSimulatorRuntimeConfig(base).runId).toBeNull();
+    expect(loadSimulatorRuntimeConfig({ ...base, SIMULATOR_RUN_ID: ' demo42 ' }).runId).toBe('DEMO42');
+    expect(() => loadSimulatorRuntimeConfig({ ...base, SIMULATOR_RUN_ID: 'run 1!' })).toThrowError(SimulatorConfigurationError);
+  });
 });

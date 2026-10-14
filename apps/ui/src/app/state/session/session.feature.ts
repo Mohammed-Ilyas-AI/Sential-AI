@@ -9,7 +9,8 @@ export interface SessionState {
   readonly streamStatus: StreamConnectionStatus;
 }
 
-const initialSessionState: SessionState = { analystIdentity: null, streamStatus: 'CONNECTING' };
+/** The prototype has one labelled demo login; its identity is recorded on every analyst action. */
+const initialSessionState: SessionState = { analystIdentity: 'demo-analyst', streamStatus: 'CONNECTING' };
 
 export const sessionFeature = createFeature({
   name: 'session',

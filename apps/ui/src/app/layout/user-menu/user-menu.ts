@@ -2,7 +2,10 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Icon } from '../../shared/ui/icon/icon';
 import { ShellState } from '../shell/shell-state';
 
-/** The single labelled demo analyst. No authentication exists, so the menu offers no sign-out. */
+/**
+ * Profile actions only: the analyst identity shown on screen and focus mode. Settings sit on the top-bar gear
+ * and in the rail. No authentication exists, so the menu offers no sign-out.
+ */
 @Component({
   selector: 'sentinel-user-menu',
   imports: [Icon],
@@ -13,12 +16,9 @@ import { ShellState } from '../shell/shell-state';
         <span class="avatar" aria-hidden="true">FA</span>
         <span>
           <span class="name">Fraud analyst</span>
-          <span class="role">Demo environment</span>
+          <span class="role">Fraud Operations</span>
         </span>
       </div>
-      <button type="button" role="menuitem" (click)="shell.open('settings')">
-        <sentinel-icon name="settings" [size]="18" />Settings
-      </button>
       <button type="button" role="menuitem" (click)="focus()">
         <sentinel-icon name="focus" [size]="18" />{{ shell.focusMode() ? 'Leave focus mode' : 'Focus mode' }}
       </button>
@@ -80,7 +80,7 @@ import { ShellState } from '../shell/shell-state';
       cursor: pointer;
     }
     button:hover {
-      background: rgb(255 255 255 / 0.04);
+      background: var(--sentinel-color-hover);
       color: var(--sentinel-color-text);
     }
   `,

@@ -6,12 +6,17 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#070b10" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
-    />
+    <link rel="preload" href="fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/sora-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Apply the remembered theme before the first paint (see core/theme/theme-preferences.ts). Presentation only.
+      try {
+        var brand = localStorage.getItem('sentinel.theme.brand');
+        var appearance = localStorage.getItem('sentinel.theme.appearance');
+        if (brand === 'bank-a' || brand === 'bank-b' || brand === 'bank-c') document.documentElement.setAttribute('data-tenant-theme', brand);
+        if (appearance === 'light') document.documentElement.setAttribute('data-appearance', 'light');
+      } catch (error) {}
+    </script>
   </head>
   <body>
     <sentinel-root></sentinel-root>

@@ -2,6 +2,22 @@
   --sentinel-elevation-panel: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 12px 32px -20px rgb(0 0 0 / 0.8);
   --sentinel-elevation-overlay: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 60px -18px rgb(0 0 0 / 0.85);
   /* Controlled illumination: one hairline of accent, never a neon outline. */
-  --sentinel-glow-accent: 0 0 0 1px rgb(54 185 231 / 0.18), 0 8px 28px -12px rgb(54 185 231 / 0.45);
-  --sentinel-glow-critical: 0 0 0 1px rgb(244 91 105 / 0.22), 0 8px 28px -12px rgb(244 91 105 / 0.5);
+  --sentinel-glow-accent:
+    0 0 0 1px color-mix(in srgb, var(--sentinel-color-accent) 18%, transparent),
+    0 8px 28px -12px color-mix(in srgb, var(--sentinel-color-accent) 45%, transparent);
+  --sentinel-glow-critical:
+    0 0 0 1px color-mix(in srgb, var(--sentinel-color-critical) 22%, transparent),
+    0 8px 28px -12px color-mix(in srgb, var(--sentinel-color-critical) 50%, transparent);
+}
+
+/* Light surfaces separate by hairline and a restrained, cool shadow; glows are dimmed so nothing glares. */
+:root[data-appearance='light'] {
+  --sentinel-elevation-panel: 0 1px 2px rgb(16 24 40 / 0.05), 0 8px 24px -16px rgb(16 24 40 / 0.18);
+  --sentinel-elevation-overlay: 0 2px 6px rgb(16 24 40 / 0.06), 0 24px 48px -20px rgb(16 24 40 / 0.28);
+  --sentinel-glow-accent:
+    0 0 0 1px color-mix(in srgb, var(--sentinel-color-accent) 22%, transparent),
+    0 6px 18px -12px color-mix(in srgb, var(--sentinel-color-accent) 40%, transparent);
+  --sentinel-glow-critical:
+    0 0 0 1px color-mix(in srgb, var(--sentinel-color-critical) 24%, transparent),
+    0 6px 18px -12px color-mix(in srgb, var(--sentinel-color-critical) 40%, transparent);
 }

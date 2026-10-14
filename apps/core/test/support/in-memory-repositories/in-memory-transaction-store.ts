@@ -24,6 +24,10 @@ export class InMemoryTransactionStore implements TransactionEventLog, Transactio
     this.projections.set(projection.id, projection);
   }
 
+  allProjections(): readonly TransactionProjection[] {
+    return [...this.projections.values()];
+  }
+
   async effectiveOutflow(query: OutflowQuery): Promise<MinorUnits> {
     let total = 0;
     for (const projection of this.projections.values()) {

@@ -30,11 +30,11 @@ canvas:active {
   padding: 9px 16px 9px 9px;
   border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
   border-radius: var(--sentinel-radius-medium);
-  background: color-mix(in srgb, #0b1627 84%, transparent);
+  background: var(--sentinel-surface-callout);
   backdrop-filter: blur(8px);
   box-shadow:
     0 0 22px -6px color-mix(in srgb, var(--tone) 70%, transparent),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
+    inset 0 1px 0 var(--sentinel-color-highlight);
   opacity: 0;
   transition: opacity var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
   white-space: nowrap;
@@ -42,16 +42,16 @@ canvas:active {
 }
 .callout[data-tone='held'] {
   --tone: var(--sentinel-color-critical);
-  background: color-mix(in srgb, #2a0d16 80%, transparent);
+  background: var(--sentinel-surface-callout-critical);
 }
 .callout[data-tone='normal'] {
-  --tone: #4aa8ff;
+  --tone: var(--sentinel-color-series);
 }
 .callout[data-tone='elevated'] {
   --tone: var(--sentinel-color-warning);
 }
 .callout[data-tone='high'] {
-  --tone: #ff6b8b;
+  --tone: var(--sentinel-color-critical-soft);
 }
 .tile {
   display: grid;
@@ -60,7 +60,7 @@ canvas:active {
   height: 34px;
   border-radius: var(--sentinel-radius-small);
   background: color-mix(in srgb, var(--tone) 28%, transparent);
-  color: #fff;
+  color: var(--sentinel-color-text);
 }
 .text {
   display: flex;
@@ -74,10 +74,10 @@ canvas:active {
 .amount {
   font-weight: 600;
   font-size: 0.9375rem;
-  color: #7cc4ff;
+  color: var(--sentinel-color-accent-text);
 }
 [data-tone='held'] .amount {
-  color: #fff;
+  color: var(--sentinel-color-text);
 }
 .label {
   font-size: 0.6875rem;

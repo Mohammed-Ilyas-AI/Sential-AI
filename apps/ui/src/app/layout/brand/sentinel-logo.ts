@@ -28,7 +28,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       width: 34px;
       height: auto;
       flex: none;
-      filter: drop-shadow(0 4px 16px rgb(88 130 255 / 0.35));
+      filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--sentinel-brand-platform) 35%, transparent));
     }
     .wordmark {
       display: flex;
@@ -37,13 +37,14 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       white-space: nowrap;
     }
     .name {
+      font-family: var(--sentinel-font-family-brand);
       font-weight: 700;
       font-size: 1.1875rem;
       letter-spacing: 0.12em;
       line-height: 1.05;
     }
     .ai {
-      color: #4aa8ff;
+      color: var(--sentinel-brand-platform);
     }
     .tagline {
       margin-top: 4px;

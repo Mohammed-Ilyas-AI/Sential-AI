@@ -12,14 +12,14 @@ h2 {
   font-weight: 600;
 }
 .rule {
-  --tone: #36c98a;
+  --tone: var(--sentinel-color-success);
   display: flex;
   align-items: center;
   gap: 14px;
 }
 .rule[data-decision='HOLD'],
 .rule[data-decision='REJECT'] {
-  --tone: #f45b69;
+  --tone: var(--sentinel-color-critical);
 }
 .badge {
   display: inline-flex;
@@ -30,7 +30,7 @@ h2 {
   border: 1px solid color-mix(in srgb, var(--tone) 70%, transparent);
   border-radius: var(--sentinel-radius-medium);
   background: color-mix(in srgb, var(--tone) 20%, transparent);
-  color: color-mix(in srgb, var(--tone) 70%, #fff);
+  color: color-mix(in srgb, var(--tone) 70%, var(--sentinel-color-tone-ink));
   font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -51,6 +51,18 @@ h2 {
   color: var(--sentinel-color-text-secondary);
   white-space: nowrap;
 }
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.demo-time {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--sentinel-color-warning) 14%, transparent);
+  color: var(--sentinel-color-warning);
+  font-size: 0.625rem;
+}
 .meter {
   position: relative;
   padding: 18px 0 16px;
@@ -66,25 +78,25 @@ h2 {
   position: relative;
   height: 10px;
   border-radius: 5px;
-  background: rgb(255 255 255 / 0.08);
+  background: var(--sentinel-color-track);
 }
 .fill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 5px;
-  background: linear-gradient(90deg, #36c98a, #f2b84b);
+  background: linear-gradient(90deg, var(--sentinel-color-success), var(--sentinel-color-warning));
   transition: width var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
 }
 .fill.over {
-  background: linear-gradient(90deg, #e2424f, #ff5f6d);
-  box-shadow: 0 0 12px rgb(244 91 105 / 0.6);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sentinel-color-critical) 88%, #000), var(--sentinel-color-critical));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--sentinel-color-critical) 60%, transparent);
 }
 .threshold {
   position: absolute;
   top: -4px;
   bottom: -4px;
   width: 2px;
-  background: #fff;
+  background: var(--sentinel-color-text);
 }
 .threshold-label {
   position: absolute;
@@ -105,12 +117,12 @@ h2 {
   width: 40px;
   height: 40px;
   border-radius: var(--sentinel-radius-medium);
-  background: rgb(54 201 138 / 0.14);
-  color: #36c98a;
+  background: color-mix(in srgb, var(--sentinel-color-success) 14%, transparent);
+  color: var(--sentinel-color-success);
 }
 .pending .intervention-icon {
-  background: rgb(244 91 105 / 0.16);
-  color: #ff6b7a;
+  background: color-mix(in srgb, var(--sentinel-color-critical) 16%, transparent);
+  color: var(--sentinel-color-critical-text);
 }
 .intervention-title,
 .intervention-detail {
@@ -130,16 +142,16 @@ h2 {
   gap: 6px;
   height: 34px;
   margin-top: auto;
-  border: 1px solid rgb(74 140 255 / 0.55);
+  border: 1px solid color-mix(in srgb, var(--sentinel-color-signal) 55%, transparent);
   border-radius: var(--sentinel-radius-medium);
-  background: rgb(40 90 200 / 0.12);
-  color: #7cb8ff;
+  background: color-mix(in srgb, var(--sentinel-color-signal) 12%, transparent);
+  color: var(--sentinel-color-accent-text);
   font-size: 0.8125rem;
   font-weight: 500;
   text-decoration: none;
 }
 .action:hover {
-  background: rgb(40 90 200 / 0.24);
+  background: color-mix(in srgb, var(--sentinel-color-signal) 24%, transparent);
 }
 .empty {
   color: var(--sentinel-color-text-muted);
@@ -163,5 +175,45 @@ h2 {
   }
   .action {
     height: 30px;
+  }
+}
+@media (min-width: 768px) and (max-height: 800px) {
+  :host {
+    gap: 5px;
+    padding: 8px 14px;
+  }
+  h2 {
+    font-size: 0.9375rem;
+  }
+  .badge {
+    height: 30px;
+    font-size: 0.9375rem;
+  }
+  .meter {
+    padding: 13px 0 11px;
+  }
+  .intervention-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .action {
+    height: 28px;
+  }
+}
+@media (min-width: 768px) and (max-height: 680px) {
+  :host {
+    gap: 4px;
+  }
+  .badge {
+    height: 28px;
+  }
+  .meter {
+    padding: 12px 0 10px;
+  }
+  .intervention-detail {
+    display: none;
+  }
+  .action {
+    height: 26px;
   }
 }

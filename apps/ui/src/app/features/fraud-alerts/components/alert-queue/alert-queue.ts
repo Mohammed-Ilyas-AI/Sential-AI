@@ -78,7 +78,7 @@ import { FraudAlertsFacade } from '../../data-access/fraud-alerts-facade';
       align-items: center;
       gap: var(--sentinel-space-2);
       padding: var(--sentinel-space-2) var(--sentinel-space-3);
-      border: 1px solid var(--sentinel-color-border);
+      border: 1px solid var(--sentinel-color-border-interactive);
       border-radius: var(--sentinel-radius-small);
       background: var(--sentinel-color-background);
       color: var(--sentinel-color-text);

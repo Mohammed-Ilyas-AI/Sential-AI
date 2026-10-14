@@ -42,4 +42,8 @@ export class InMemorySecurityEventLog implements SecurityEventLog {
     this.events.set(event.idempotencyKey, event);
     return { outcome: 'CREATED', record: event };
   }
+
+  all(): readonly AccountSecurityEvent[] {
+    return [...this.events.values()];
+  }
 }

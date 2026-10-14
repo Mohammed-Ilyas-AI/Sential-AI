@@ -12,11 +12,16 @@ import { NetworkObservationController } from '../modules/graph/presentation/netw
 import { networkObservationRoutes } from '../modules/graph/presentation/network-observation.routes.js';
 import { IntelligenceService } from '../modules/intelligence/application/intelligence.service.js';
 import type { ExplanationCache } from '../modules/intelligence/application/ports/explanation-cache.port.js';
+import type { ModelGateway } from '../modules/intelligence/application/ports/model-gateway.port.js';
 import { ResponseSchemaValidator } from '../modules/intelligence/application/response-schema.validator.js';
 import { SourceFieldValidator } from '../modules/intelligence/application/source-field.validator.js';
 import { EvidenceBundleCompiler } from '../modules/investigations/application/evidence-bundle.compiler.js';
+import { InvestigationAdvisor } from '../modules/investigations/application/investigation-advisor.service.js';
 import type { EvidenceSource } from '../modules/investigations/application/ports/evidence-source.port.js';
+import { InvestigationController } from '../modules/investigations/presentation/investigation.controller.js';
+import { investigationRoutes } from '../modules/investigations/presentation/investigation.routes.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
+import type { Clock } from '../platform/time/clock.js';
 
 export interface IntelligencePathPersistence {
   readonly evidence: EvidenceSource;
@@ -29,6 +34,9 @@ export interface IntelligencePathDependencies {
   readonly persistence: IntelligencePathPersistence;
   readonly vertex: VertexAiSettings;
   readonly ids: IdGenerator;
+  readonly clock: Clock;
+  /** Tests substitute a scripted model; production always reaches Vertex AI through VertexModelGateway. */
+  readonly modelGateway?: ModelGateway;
 }
 
 export interface IntelligencePath {
@@ -41,18 +49,23 @@ export interface IntelligencePath {
  * Wires the asynchronous, best-effort intelligence path and the network ingest. Nothing here is reachable from
  * POST /v1/decision/transactions. AI explains.
  */
-export function composeIntelligencePath({ persistence, vertex, ids }: IntelligencePathDependencies): IntelligencePath {
+export function composeIntelligencePath({ persistence, vertex, ids, clock, modelGateway }: IntelligencePathDependencies): IntelligencePath {
   const intelligence = new IntelligenceService({
-    modelGateway: new VertexModelGateway(new ModelRouter(vertex), vertex),
+    modelGateway: modelGateway ?? new VertexModelGateway(new ModelRouter(vertex), vertex),
     explanations: persistence.explanations,
     responseSchemas: new ResponseSchemaValidator(),
     sourceFields: new SourceFieldValidator(),
+    clock,
   });
+  const bundles = new EvidenceBundleCompiler(persistence.evidence);
   const network = new GraphService(persistence.graph);
 
   return {
-    routes: [networkObservationRoutes(new NetworkObservationController(network))],
-    cases: new CaseService(persistence.cases, new EvidenceBundleCompiler(persistence.evidence), intelligence, ids),
+    routes: [
+      networkObservationRoutes(new NetworkObservationController(network)),
+      investigationRoutes(new InvestigationController(new InvestigationAdvisor(bundles, intelligence))),
+    ],
+    cases: new CaseService(persistence.cases, bundles, intelligence, ids),
     network,
   };
 }

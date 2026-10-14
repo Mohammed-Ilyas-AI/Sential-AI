@@ -33,5 +33,7 @@ export interface Scenario {
   readonly id: string;
   readonly seed: number;
   readonly epoch: string;
+  /** Present when the run's identifiers are scoped to it (identity/scenario-run.ts). */
+  readonly runId?: string;
   readonly timeline: readonly ScenarioStep[];
 }

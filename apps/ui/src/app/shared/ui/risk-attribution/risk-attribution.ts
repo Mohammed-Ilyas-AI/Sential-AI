@@ -58,7 +58,7 @@ import type { Contribution } from '@sentinel/domain';
     .bar span {
       display: block;
       height: 100%;
-      background: var(--sentinel-color-accent);
+      background: var(--sentinel-color-series);
     }
     .detail,
     .empty,

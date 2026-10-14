@@ -11,7 +11,7 @@ header {
   gap: var(--sentinel-space-4);
   height: var(--sentinel-top-bar-height);
   padding: 0 var(--sentinel-space-6) 0 var(--sentinel-space-4);
-  background: linear-gradient(180deg, rgb(9 14 22 / 0.96), rgb(7 11 16 / 0.9));
+  background: var(--sentinel-surface-top-bar);
   backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--sentinel-color-border-soft);
 }
@@ -25,8 +25,8 @@ header {
 .toggle {
   width: 42px;
   height: 42px;
-  border-color: var(--sentinel-color-border-soft);
-  background: rgb(18 28 40 / 0.6);
+  border-color: var(--sentinel-color-border-interactive);
+  background: var(--sentinel-surface-control);
   color: var(--sentinel-color-text);
 }
 .divider {
@@ -37,31 +37,17 @@ header {
 .mode {
   display: flex;
   align-items: center;
-  gap: var(--sentinel-space-3);
-  height: 44px;
-  padding: 0 var(--sentinel-space-3) 0 var(--sentinel-space-4);
+  gap: var(--sentinel-space-2);
+  height: 38px;
+  padding: 0 var(--sentinel-space-4);
   border: 1px solid var(--sentinel-color-border);
-  border-radius: var(--sentinel-radius-medium);
-  background: rgb(13 20 29 / 0.8);
-  color: var(--sentinel-color-text-secondary);
-  cursor: pointer;
-}
-.mode:hover {
-  border-color: color-mix(in srgb, var(--sentinel-color-accent) 40%, var(--sentinel-color-border));
-}
-.mode-text {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  line-height: 1.2;
+  border-radius: var(--sentinel-radius-pill);
+  background: var(--sentinel-surface-control-strong);
 }
 .mode-label {
   color: var(--sentinel-color-text);
   font-size: var(--sentinel-font-size-caption);
   font-weight: 600;
-}
-.mode-environment {
-  font-size: 0.6875rem;
 }
 .dot {
   width: 9px;
@@ -86,7 +72,7 @@ header {
   padding: 0 4px;
   border-radius: 9px;
   background: var(--sentinel-color-critical);
-  color: #fff;
+  color: var(--sentinel-color-on-accent);
   font-size: 0.625rem;
   font-weight: 600;
   line-height: 18px;
@@ -115,11 +101,11 @@ header {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3f8cff, #8b5cf6);
-  color: #fff;
+  background: linear-gradient(135deg, var(--sentinel-color-nav), var(--sentinel-color-accent-tertiary));
+  color: var(--sentinel-color-on-accent);
   font-weight: 700;
   font-size: 0.8125rem;
-  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.08);
+  box-shadow: 0 0 0 2px var(--sentinel-color-track);
 }
 .who {
   display: flex;

@@ -17,6 +17,8 @@ export interface Intervention {
   readonly previousState: InterventionPriorState;
   readonly state: InterventionState;
   readonly holdUntil?: IsoTimestamp;
+  /** For a cascaded hold, the transaction whose threshold breach put the account into the hold state. */
+  readonly cascadeOfTransactionId?: string;
   readonly reasonCodes: readonly string[];
   readonly actor: InterventionActor;
   /** Always recorded for ANALYST actions. */

@@ -2,16 +2,16 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { DEFAULT_RAPID_DRAIN_POLICY, DEMO_TIME_COMPRESSION_FACTOR } from '@sentinel/domain';
 import { RUNTIME_CONFIG } from '../../core/config/runtime-config';
-import { TENANT_THEME_OPTIONS, TenantLens } from '../../core/tenant/tenant-lens';
 import { Icon } from '../../shared/ui/icon/icon';
 import { sessionFeature } from '../../state/session/session.feature';
 import { ShellState } from '../shell/shell-state';
+import { AppearanceSettings } from './appearance-settings';
 import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
 
 /** A right-hand drawer. Everything here is either a real preference or a read-only fact about this deployment. */
 @Component({
   selector: 'sentinel-settings-panel',
-  imports: [Icon],
+  imports: [Icon, AppearanceSettings],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <aside class="drawer sentinel-panel--elevated sentinel-scroll" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -23,16 +23,7 @@ import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
       </header>
 
       <section aria-labelledby="appearance-title">
-        <h3 id="appearance-title"><sentinel-icon name="palette" [size]="16" />Appearance</h3>
-        <p class="note">Tenant lens over synthetic data. Risk-band colours never change per tenant.</p>
-        <div class="segmented" role="radiogroup" aria-label="Tenant theme">
-          @for (option of themes; track option.id) {
-            <button type="button" role="radio" [attr.aria-checked]="lens.activeTheme() === option.id" (click)="lens.switchTo(option.id)">
-              {{ option.label.replace(' (synthetic)', '') }}
-            </button>
-          }
-        </div>
-        <p class="note">Motion follows your system's reduced-motion setting.</p>
+        <sentinel-appearance-settings />
       </section>
 
       <section aria-labelledby="workspace-title">
@@ -63,7 +54,6 @@ import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
       <section aria-labelledby="environment-title">
         <h3 id="environment-title"><sentinel-icon name="environment" [size]="16" />Environment</h3>
         <dl>
-          <dt>Environment</dt><dd>Demo · synthetic data only</dd>
           <dt>Decision API</dt><dd class="sentinel-mono">{{ config.coreApiBaseUrl }}</dd>
           <dt>Stream</dt><dd class="sentinel-mono">{{ config.streamUrl }}</dd>
           <dt>Policy time</dt><dd>{{ config.demoTimeCompression ? 'Compressed ×' + compression : 'Real time' }}</dd>
@@ -84,10 +74,8 @@ import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
 })
 export class SettingsPanel {
   protected readonly shell = inject(ShellState);
-  protected readonly lens = inject(TenantLens);
   protected readonly config = inject(RUNTIME_CONFIG);
   protected readonly streamStatus = inject(Store).selectSignal(sessionFeature.selectStreamStatus);
-  protected readonly themes = TENANT_THEME_OPTIONS;
   protected readonly shortcuts = KEYBOARD_SHORTCUTS;
   protected readonly compression = DEMO_TIME_COMPRESSION_FACTOR;
   protected readonly policyVersion = DEFAULT_RAPID_DRAIN_POLICY.policyVersion;

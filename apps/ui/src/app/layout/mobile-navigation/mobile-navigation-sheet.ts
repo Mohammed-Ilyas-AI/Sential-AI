@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Icon } from '../../shared/ui/icon/icon';
-import { NAVIGATION_ITEMS, NAVIGATION_SECTIONS } from '../navigation/navigation-items';
+import { NAVIGATION_ITEMS, NAVIGATION_SECTIONS, type NavigationItem } from '../navigation/navigation-items';
 import { ShellState } from '../shell/shell-state';
 
 /** Every destination as a bottom sheet with large touch targets; opened by the menu button or "More". */
@@ -83,7 +83,7 @@ import { ShellState } from '../shell/shell-state';
       width: 100%;
       min-height: 52px;
       padding: 0 var(--sentinel-space-3);
-      border: 1px solid var(--sentinel-color-border-soft);
+      border: 1px solid var(--sentinel-color-border-interactive);
       border-radius: var(--sentinel-radius-medium);
       background: var(--sentinel-color-surface);
       color: var(--sentinel-color-text-secondary);
@@ -103,9 +103,15 @@ import { ShellState } from '../shell/shell-state';
 })
 export class MobileNavigationSheet {
   protected readonly shell = inject(ShellState);
-  protected readonly groups = NAVIGATION_SECTIONS.map(({ section, label }) => ({
-    section,
-    label,
-    items: NAVIGATION_ITEMS.filter((item) => item.section === section),
-  }));
+  /** Unlabelled sections continue the grid of the section before them, so no item sits alone on a row. */
+  protected readonly groups = NAVIGATION_SECTIONS.reduce<{ section: string; label: string | null; items: NavigationItem[] }[]>(
+    (groups, { section, label }) => {
+      const items = NAVIGATION_ITEMS.filter((item) => item.section === section);
+      const previous = groups.at(-1);
+      if (!label && previous) previous.items.push(...items);
+      else groups.push({ section, label, items: [...items] });
+      return groups;
+    },
+    [],
+  );
 }

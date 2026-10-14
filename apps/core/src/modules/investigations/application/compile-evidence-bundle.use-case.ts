@@ -1,5 +1,6 @@
 import type { EvidenceBundle } from '@sentinel/domain';
 
+/** The bundle for one recorded assessment; the assessment names its account. */
 export interface CompileEvidenceBundle {
-  compile(accountId: string, assessmentId: string): Promise<EvidenceBundle>;
+  compile(assessmentId: string): Promise<EvidenceBundle>;
 }

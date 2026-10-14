@@ -37,12 +37,39 @@ export interface ScreenPosition {
   readonly visible: boolean;
 }
 
-export const GLOBE_TONE_COLORS: Readonly<Record<GlobeTone, string>> = {
-  normal: '#36c98a',
-  elevated: '#f2b84b',
-  high: '#ff6b8b',
-  held: '#f45b69',
-  accent: '#36b9e7',
+/** Every colour the globe draws with. Risk tones are the semantic tokens; the rest varies by appearance only. */
+export interface GlobePalette {
+  readonly tones: Readonly<Record<GlobeTone, string>>;
+  readonly halo: string;
+  readonly ocean: readonly [string, string, string];
+  readonly rim: string;
+  readonly rimStroke: string;
+  readonly land: string;
+  readonly landLit: string;
+  readonly landBright: string;
+  readonly landHot: string;
+  readonly particle: string;
+  readonly node: string;
+  readonly markerCore: string;
+  /** Scales the atmosphere and rim glow: full on a dark canvas, restrained on a light one. */
+  readonly glowStrength: number;
+}
+
+/** The approved dark globe; also what the renderer draws before the theme has been read. */
+export const DARK_GLOBE_PALETTE: GlobePalette = {
+  tones: { normal: '#36c98a', elevated: '#f2b84b', high: '#ff6b8b', held: '#f45b69', accent: '#36b9e7' },
+  halo: '#4696ff',
+  ocean: ['#16325c', '#0b1a33', '#040912'],
+  rim: '#50a0ff',
+  rimStroke: '#6eb4ff',
+  land: '#7fb0f0',
+  landLit: '#cfe2ff',
+  landBright: '#fff3d6',
+  landHot: '#ff6a4d',
+  particle: '#9cc8ff',
+  node: '#9fd4ff',
+  markerCore: '#ffffff',
+  glowStrength: 1,
 };
 
 const RADIANS = Math.PI / 180;
@@ -96,6 +123,7 @@ export class GlobeRenderer {
   private heat: Float32Array;
   private lights: Float32Array;
   private scene: GlobeScene = { markers: [], nodes: [], routes: [], holds: [] };
+  private palette: GlobePalette = DARK_GLOBE_PALETTE;
   private readonly routeBirth = new Map<string, number>();
   private readonly orbitals = Array.from({ length: ORBITAL_PARTICLES }, (_, index) => ({
     inclination: (((index * 47) % 180) - 90) * RADIANS,
@@ -118,6 +146,10 @@ export class GlobeRenderer {
   }
 
   /** New routes are stamped with `now` so they draw in; routes no longer on the tape are forgotten. */
+  setPalette(palette: GlobePalette): void {
+    this.palette = palette;
+  }
+
   setScene(scene: GlobeScene, now: number): void {
     const live = new Set(scene.routes.map((route) => route.id));
     for (const id of this.routeBirth.keys()) if (!live.has(id)) this.routeBirth.delete(id);
@@ -147,7 +179,7 @@ export class GlobeRenderer {
 
   /** Renders one frame; returns where each marker landed, for the HTML callouts. */
   render(view: GlobeView, width: number, height: number, timeMs: number): ReadonlyMap<string, ScreenPosition> {
-    const radius = Math.min(width, height) * 0.45 * view.zoom;
+    const radius = Math.min(width, height) * 0.42 * view.zoom;
     const cx = width / 2;
     const cy = height / 2;
     const cosLon = Math.cos(view.centerLongitude * RADIANS);
@@ -184,18 +216,20 @@ export class GlobeRenderer {
   private drawAtmosphere(cx: number, cy: number, radius: number, width: number, height: number): void {
     const outer = Math.min(radius * 1.45, Math.min(width, height) / 2);
     const halo = this.context.createRadialGradient(cx, cy, radius * 0.92, cx, cy, outer);
-    halo.addColorStop(0, 'rgba(70, 150, 255, 0.5)');
-    halo.addColorStop(0.3, 'rgba(60, 120, 255, 0.16)');
-    halo.addColorStop(1, 'rgba(60, 120, 255, 0)');
+    const { halo: haloColor, glowStrength } = this.palette;
+    halo.addColorStop(0, withAlpha(haloColor, 0.5 * glowStrength));
+    halo.addColorStop(0.3, withAlpha(haloColor, 0.16 * glowStrength));
+    halo.addColorStop(1, withAlpha(haloColor, 0));
     this.context.fillStyle = halo;
     this.context.fillRect(0, 0, width, height);
   }
 
   private drawBody(cx: number, cy: number, radius: number): void {
     const body = this.context.createRadialGradient(cx - radius * 0.3, cy - radius * 0.35, radius * 0.05, cx, cy, radius);
-    body.addColorStop(0, '#16325c');
-    body.addColorStop(0.55, '#0b1a33');
-    body.addColorStop(1, '#040912');
+    const [light, mid, deep] = this.palette.ocean;
+    body.addColorStop(0, light);
+    body.addColorStop(0.55, mid);
+    body.addColorStop(1, deep);
     this.context.beginPath();
     this.context.arc(cx, cy, radius, 0, Math.PI * 2);
     this.context.fillStyle = body;
@@ -205,14 +239,14 @@ export class GlobeRenderer {
   private drawRim(cx: number, cy: number, radius: number): void {
     const context = this.context;
     const rim = context.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius);
-    rim.addColorStop(0, 'rgba(0,0,0,0)');
-    rim.addColorStop(1, 'rgba(80, 160, 255, 0.28)');
+    rim.addColorStop(0, withAlpha(this.palette.rim, 0));
+    rim.addColorStop(1, withAlpha(this.palette.rim, 0.28 * this.palette.glowStrength));
     context.beginPath();
     context.arc(cx, cy, radius, 0, Math.PI * 2);
     context.fillStyle = rim;
     context.fill();
     context.lineWidth = 1.2;
-    context.strokeStyle = 'rgba(110, 180, 255, 0.55)';
+    context.strokeStyle = withAlpha(this.palette.rimStroke, 0.55);
     context.stroke();
   }
 
@@ -220,6 +254,7 @@ export class GlobeRenderer {
     const context = this.context;
     const base = Math.max(1, radius / 200);
     const vectors = this.dotVectors;
+    const palette = this.palette;
     for (let index = 0; index < this.dots.length; index += 1) {
       const point = project(vectors[index * 3] ?? 0, vectors[index * 3 + 1] ?? 0, vectors[index * 3 + 2] ?? 0);
       if (point.depth <= 0) continue;
@@ -227,7 +262,7 @@ export class GlobeRenderer {
       const light = this.lights[index] ?? 0;
       const twinkle = index % 13 === 0 ? 0.18 * Math.sin(timeMs / 1100 + index) : 0;
       context.globalAlpha = Math.min(1, 0.26 + 0.62 * point.depth + twinkle + heat * 0.45 + light * 0.35);
-      context.fillStyle = heat > 0.05 ? '#ff6a4d' : light > 0.3 ? '#fff3d6' : light > 0.05 ? '#cfe2ff' : '#7fb0f0';
+      context.fillStyle = heat > 0.05 ? palette.landHot : light > 0.3 ? palette.landBright : light > 0.05 ? palette.landLit : palette.land;
       const size = base * (0.7 + 0.5 * point.depth) * (1 + heat * 0.7 + light * 0.5);
       context.fillRect(point.x - size / 2, point.y - size / 2, size, size);
     }
@@ -246,14 +281,14 @@ export class GlobeRenderer {
       const y = ox * Math.sin(orbital.node) + oy * Math.cos(orbital.node);
       const point = project(x, y, oz, orbital.lift);
       if (point.depth > 0 !== front) continue;
-      context.fillStyle = withAlpha('#9cc8ff', front ? 0.55 : 0.18);
+      context.fillStyle = withAlpha(this.palette.particle, front ? 0.55 : 0.18);
       context.fillRect(point.x, point.y, orbital.size, orbital.size);
     }
   }
 
   private drawRoute(route: GlobeRoute, project: Projector, timeMs: number): void {
     const context = this.context;
-    const color = GLOBE_TONE_COLORS[route.tone];
+    const color = this.palette.tones[route.tone];
     const span = angularDistance(route.from, route.to);
     const lift = 0.06 + (span / 180) * 0.42;
     const born = this.routeBirth.get(route.id) ?? Number.NEGATIVE_INFINITY;
@@ -306,7 +341,7 @@ export class GlobeRenderer {
       const [x, y, z] = toVector(node);
       const point = project(x, y, z);
       if (point.depth <= 0) continue;
-      context.fillStyle = withAlpha('#9fd4ff', 0.55 + 0.45 * point.depth);
+      context.fillStyle = withAlpha(this.palette.node, 0.55 + 0.45 * point.depth);
       context.beginPath();
       context.arc(point.x, point.y, 1.8, 0, Math.PI * 2);
       context.fill();
@@ -321,7 +356,7 @@ export class GlobeRenderer {
       const pulse = (timeMs / 1_600 + offset) % 1;
       this.context.beginPath();
       this.context.arc(point.x, point.y, 8 + pulse * 26, 0, Math.PI * 2);
-      this.context.strokeStyle = withAlpha(GLOBE_TONE_COLORS.held, 0.75 * (1 - pulse));
+      this.context.strokeStyle = withAlpha(this.palette.tones.held, 0.75 * (1 - pulse));
       this.context.lineWidth = 2;
       this.context.stroke();
     }
@@ -335,7 +370,7 @@ export class GlobeRenderer {
       const point = project(x, y, z);
       positions.set(marker.id, { x: point.x, y: point.y, visible: point.depth > 0.08 });
       if (point.depth <= 0) continue;
-      const color = GLOBE_TONE_COLORS[marker.tone];
+      const color = this.palette.tones[marker.tone];
       const pulse = (timeMs / 2_200 + marker.id.length * 0.17) % 1;
       context.beginPath();
       context.arc(point.x, point.y, 5 + pulse * 12, 0, Math.PI * 2);
@@ -345,7 +380,7 @@ export class GlobeRenderer {
       this.glow(point.x, point.y, 14, color, 0.9);
       context.beginPath();
       context.arc(point.x, point.y, 3.2, 0, Math.PI * 2);
-      context.fillStyle = '#ffffff';
+      context.fillStyle = this.palette.markerCore;
       context.fill();
     }
     return positions;

@@ -1,4 +1,4 @@
-import { DEMO_TAKEOVER_01 } from '@sentinel/domain';
+import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type DecisionResponse, type InvestigationEvidence, type RiskExplanation } from '@sentinel/domain';
 import { INSTANT_TIMELINE, buildDemoTakeover01, playScenario, syntheticToken } from '@sentinel/scenarios';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { composeMongoPersistence } from '../../src/composition/mongo-persistence.composition.js';
@@ -23,7 +23,8 @@ import { describeNetworkGraphContract } from '../contracts/network-graph.contrac
 import { describeRecordStoresContract } from '../contracts/record-stores.contract.js';
 import { describeTransactionStoreContract } from '../contracts/transaction-store.contract.js';
 import { startCoreHarness } from '../support/harness/core-test-harness.js';
-import { HttpBankConnector } from '../support/harness/http-bank-connector.js';
+import { HttpBankConnector, callJson } from '../support/harness/http-bank-connector.js';
+import { DOCUMENTED_SCORES, FIRST_EPOCH, outflowInWindow, playTwoRunsAndAReplay, scriptedTransfers, victimOf } from '../support/scenario/repeat-runs.js';
 import { ATLAS_URI, INTEGRATION_DATABASE } from './atlas-environment.js';
 
 const describeAgainstAtlas = ATLAS_URI ? describe : describe.skip;
@@ -97,7 +98,9 @@ describeAgainstAtlas(`MongoDB Atlas integration (throwaway database ${INTEGRATIO
     it('reproduces the documented final state', { timeout: 600_000 }, async () => {
       const database = await clean();
       const epoch = '2026-09-24T11:30:00.000Z';
-      const harness = await startCoreHarness(composeMongoPersistence(database), { clockStart: epoch });
+      const explanation = { primaryReason: 'A 65.4% drain followed a new device and a new payee', recommendedAction: 'Contact the customer' };
+      const modelGateway = { generate: async () => JSON.stringify(explanation) };
+      const harness = await startCoreHarness(composeMongoPersistence(database), { clockStart: epoch, modelGateway });
       try {
         const playback = await playScenario(buildDemoTakeover01(epoch), new HttpBankConnector(harness.baseUrl, harness.clock), INSTANT_TIMELINE);
         const victim = syntheticToken('acct', DEMO_TAKEOVER_01.accountDisplayId);
@@ -110,6 +113,62 @@ describeAgainstAtlas(`MongoDB Atlas integration (throwaway database ${INTEGRATIO
         expect(finalRecord?.['assessment']?.drain).toMatchObject({ balanceAtWindowStart: 5_200_000, outflow24h: 3_400_000, thresholdMet: true });
         expect(await database.collection('interventions').countDocuments({ state: 'HELD' })).toBe(1);
         expect(await database.collection('alerts').findOne({ accountId: victim })).toMatchObject({ band: 'CRITICAL', onHold: true });
+
+        // The evidence bundle, read from Atlas by MongoEvidenceSource.
+        const final = scripted.at(-1);
+        const assessmentId = final?.response.assessmentId ?? '';
+        const { body: opened } = await callJson<InvestigationEvidence>(harness.baseUrl, 'GET', `/v1/investigations/${assessmentId}/evidence`);
+        expect(Object.fromEntries(opened.evidence.assessment.contributions.map((contribution) => [contribution.code, contribution.points]))).toEqual(
+          DEMO_TAKEOVER_01.finalContributions,
+        );
+        expect(opened.evidence.account).toMatchObject({ accountId: victim, protected: true });
+        expect(opened.evidence.interventions.map((intervention) => intervention.state)).toEqual(['HELD']);
+
+        // MongoExplanationCache writes the explanation beside contributions[], never into them.
+        const explain = () => callJson<AdvisoryOutcome<RiskExplanation>>(harness.baseUrl, 'POST', `/v1/investigations/${assessmentId}/explanation`);
+        expect((await explain()).body).toMatchObject({ status: 'GENERATED', attempts: 1 });
+        expect((await explain()).body).toMatchObject({ status: 'CACHED', attempts: 0, advisory: explanation });
+        const stored = await database.collection('assessments').findOne({ _id: assessmentId as never });
+        expect(stored?.['explanation']).toMatchObject(explanation);
+        expect(stored?.['contributions']).toEqual(opened.evidence.assessment.contributions);
+
+        // The hold cascade reads the account's interventions from Atlas.
+        const request = final?.step.request;
+        if (!request) throw new Error('The final transfer was not played');
+        harness.clock.set(new Date(Date.parse(request.occurredAt) + 60_000).toISOString());
+        const { body: followOn } = await callJson<DecisionResponse>(harness.baseUrl, 'POST', '/v1/decision/transactions', {
+          ...request,
+          transactionId: `${request.transactionId}-FOLLOW-ON`,
+          eventId: `${request.eventId}-FOLLOW-ON`,
+          idempotencyKey: `${request.idempotencyKey}-FOLLOW-ON`,
+          accountSequence: request.accountSequence + 100,
+          amount: 100,
+          occurredAt: harness.clock.now().toISOString(),
+        });
+        expect(followOn.decision).toBe('HOLD');
+        expect(await database.collection('interventions').countDocuments({ accountId: victim, state: 'HELD' })).toBe(2);
+      } finally {
+        await harness.close();
+      }
+    });
+  });
+
+  describe('Demo repeatability: two runs and an exact replay against Atlas', () => {
+    it('scores both runs as documented, counts each once, and stores nothing new on the replay', { timeout: 600_000 }, async () => {
+      const database = await clean();
+      const persistence = composeMongoPersistence(database);
+      const harness = await startCoreHarness(persistence, { clockStart: FIRST_EPOCH });
+      try {
+        const result = await playTwoRunsAndAReplay(harness);
+        for (const [report, runId] of [[result.first, 'RUNA'], [result.second, 'RUNB']] as const) {
+          expect(scriptedTransfers(report, runId).map((transfer) => transfer.response.riskScore)).toEqual(DOCUMENTED_SCORES);
+          expect(await outflowInWindow(persistence, report, runId)).toBe(DEMO_TAKEOVER_01.totalMovedInWindow);
+          expect(await database.collection('interventions').countDocuments({ accountId: victimOf(runId) })).toBe(1);
+        }
+        const decisionsPerRun = result.first.transfers.length;
+        expect(await database.collection('decisions').countDocuments()).toBe(decisionsPerRun * 2);
+        expect(await database.collection('security_events').countDocuments()).toBe(result.first.securityReceipts.length * 2);
+        expect(result.replay.transfers.map((transfer) => transfer.response.decisionId)).toEqual(result.first.transfers.map((transfer) => transfer.response.decisionId));
       } finally {
         await harness.close();
       }

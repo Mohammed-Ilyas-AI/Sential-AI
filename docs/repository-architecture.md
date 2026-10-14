@@ -11,6 +11,9 @@ maps them onto the repository. Where the codebase amends v1.2 it says so and lin
 | v1.2 | Implementation | Record |
 |---|---|---|
 | Angular 20 | Angular 22.2.x, TypeScript 6.0.x, Node 24 LTS, NgRx 22, Vitest 5 | [ADR-001](decisions/ADR-001-angular-22.md) |
+| Node.js 22 | Node.js 24 LTS (24.18.0) everywhere: `.nvmrc`, engines, Docker, Cloud Build | [ADR-007](decisions/ADR-007-node-24-lts.md) |
+| Hold cascade (T§4) unspecified in detail | The threshold breach and every later eligible outflow are held until the trigger's cooling period ends or the customer verifies | [ADR-008](decisions/ADR-008-hold-cascade.md) |
+| Single dark theme | Brand preset (SENTINEL AI, synthetic Bank A/B/C) × appearance (dark default, light), one token set, self-hosted fonts | [ADR-009](decisions/ADR-009-theme-system.md) |
 | NgRx or signal store (open) | NgRx for cross-route domain state, Signals local, RxJS streams | [ADR-002](decisions/ADR-002-ngrx.md) |
 | Decision route "then publish" | Synchronous decision writes PENDING; Pub/Sub carries later lifecycle only | [ADR-004](decisions/ADR-004-decision-pubsub-flow.md) |
 | Security-event transport unspecified | `POST /v1/events/security`, synchronous | [ADR-004](decisions/ADR-004-decision-pubsub-flow.md) |

@@ -1,6 +1,16 @@
+/*
+ * Typography tokens. The SENTINEL AI preset is the default; a bank preset (themes/bank-*) overrides only the
+ * display and UI families and their profile. Telemetry stays IBM Plex Mono in every theme, and the platform
+ * wordmark always uses the brand family: a bank lens never replaces the product identity.
+ */
 :root {
-  --sentinel-font-family-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --sentinel-font-family-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --sentinel-font-family-brand: 'Sora', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-display: 'Sora', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
+  --sentinel-font-weight-display: 600;
+  --sentinel-letter-spacing-display: -0.02em;
+  --sentinel-letter-spacing-ui: 0;
   --sentinel-font-size-micro: 0.6875rem;
   --sentinel-font-size-caption: 0.8125rem;
   --sentinel-font-size-body: 0.875rem;
@@ -8,6 +18,14 @@
   --sentinel-font-size-headline: 1.75rem;
   --sentinel-font-size-display: 2.5rem;
   --sentinel-line-height-body: 1.5;
+}
+
+/* Page and section headings take the display family; everything else inherits the UI family from body. */
+h1,
+h2,
+h3 {
+  font-family: var(--sentinel-font-family-display);
+  letter-spacing: var(--sentinel-letter-spacing-display);
 }
 
 /* Amounts, scores and percentages line up column by column on the tape. */

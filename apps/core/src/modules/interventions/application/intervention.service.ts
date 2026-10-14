@@ -1,4 +1,5 @@
 import {
+  DECISION_REASON,
   INTERVENTION_REASON,
   type DecisionRecord,
   type Intervention,
@@ -29,12 +30,16 @@ export class InterventionService implements InterventionWorkflow {
     private readonly ids: IdGenerator,
   ) {}
 
-  /** Evaluating → Held, by the system, immediately, with the customer notified. Idempotent per transaction. */
+  /**
+   * Evaluating → Held, by the system, immediately, with the customer notified. Idempotent per transaction.
+   * A cascaded hold records the cascade reason and the transaction that triggered it.
+   */
   async placeHold(decision: DecisionRecord): Promise<Intervention> {
     const history = await this.interventions.findByTransactionId(decision.transactionId);
     const latest = history.at(-1);
     if (latest) return latest;
 
+    const cascaded = decision.reasonCodes.includes(DECISION_REASON.holdCascade);
     const hold: Intervention = {
       id: this.ids.next(),
       decisionId: decision.decisionId,
@@ -43,7 +48,8 @@ export class InterventionService implements InterventionWorkflow {
       previousState: 'EVALUATING',
       state: 'HELD',
       ...(decision.holdUntil ? { holdUntil: decision.holdUntil } : {}),
-      reasonCodes: [INTERVENTION_REASON.thresholdExceeded],
+      ...(decision.cascadeOfTransactionId ? { cascadeOfTransactionId: decision.cascadeOfTransactionId } : {}),
+      reasonCodes: [cascaded ? INTERVENTION_REASON.holdCascade : INTERVENTION_REASON.thresholdExceeded],
       actor: 'SYSTEM',
       actedAt: decision.decidedAt,
       policyVersion: decision.policyVersion,
@@ -53,6 +59,30 @@ export class InterventionService implements InterventionWorkflow {
     await this.interventions.append(hold);
     await this.notifications.notifyHold(hold);
     return hold;
+  }
+
+  /**
+   * A threshold hold keeps the account in the hold state for outflows occurring at or after the transfer that
+   * breached it, until its cooling period ends or the customer verifies and it is released. A customer
+   * cancellation or an analyst fraud rejection leaves the account held: neither is evidence the account is safe.
+   * Cascaded holds never extend the cascade themselves; only a new threshold breach does.
+   */
+  async activeHoldCascade(accountId: string, occurredAt: IsoTimestamp, at: IsoTimestamp): Promise<Intervention | null> {
+    const histories = new Map<string, Intervention[]>();
+    for (const record of await this.interventions.findByAccountId(accountId)) {
+      histories.set(record.transactionId, [...(histories.get(record.transactionId) ?? []), record]);
+    }
+    let active: Intervention | null = null;
+    for (const history of histories.values()) {
+      const trigger = history.find((record) => record.previousState === 'EVALUATING');
+      if (!trigger?.holdUntil || !trigger.reasonCodes.includes(INTERVENTION_REASON.thresholdExceeded)) continue;
+      const covers =
+        Date.parse(occurredAt) >= Date.parse(trigger.assessment.evaluatedAt) &&
+        Date.parse(at) < Date.parse(trigger.holdUntil) &&
+        !history.some((record) => record.state === 'RELEASED');
+      if (covers && (!active?.holdUntil || Date.parse(trigger.holdUntil) > Date.parse(active.holdUntil))) active = trigger;
+    }
+    return active;
   }
 
   /** Held → Released by the system once the 24-hour cooling period has elapsed. */
@@ -124,6 +154,7 @@ export class InterventionService implements InterventionWorkflow {
       accountId: latest.accountId,
       previousState: latest.state,
       state: transition.state,
+      ...(latest.cascadeOfTransactionId ? { cascadeOfTransactionId: latest.cascadeOfTransactionId } : {}),
       reasonCodes: [transition.reason],
       actor: transition.actor,
       ...(transition.actorIdentity ? { actorIdentity: transition.actorIdentity } : {}),

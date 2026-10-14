@@ -147,3 +147,63 @@ describe('DEMO_TAKEOVER_01 through the control path', () => {
     expect(body.history.map((record) => `${record.state}:${record.actor}`)).toEqual(['HELD:SYSTEM', 'RELEASED:SYSTEM']);
   });
 });
+
+/**
+ * The hold cascade on the scripted takeover: the customer cancels the held S$11,500 and the bank cancels it, so
+ * the drain falls back to 43.3%. The attacker's next transfer is still held, by the cascade alone, and nothing
+ * the cascade does reaches the documented assessment.
+ */
+describe('DEMO_TAKEOVER_01 hold cascade', () => {
+  let persistence: InMemoryPersistence;
+  let harness: CoreHarness;
+  let playback: PlaybackReport;
+  let connector: HttpBankConnector;
+
+  beforeAll(async () => {
+    persistence = createInMemoryPersistence();
+    harness = await startCoreHarness(persistence, { clockStart: EPOCH });
+    connector = new HttpBankConnector(harness.baseUrl, harness.clock);
+    playback = await playScenario(buildDemoTakeover01(EPOCH), connector, INSTANT_TIMELINE);
+  });
+
+  afterAll(() => harness.close());
+
+  it('holds the attacker’s next transfer after the trigger is cancelled, without touching the documented 95', async () => {
+    const final = playback.transfers.filter((transfer) => transfer.step.request.sourceAccountToken === VICTIM).at(-1);
+    if (!final) throw new Error('The final transfer was not played');
+    const { request } = final.step;
+    const at = (offsetMs: number) => new Date(Date.parse(request.occurredAt) + offsetMs).toISOString();
+
+    const cancelled = await callJson<Intervention>(harness.baseUrl, 'POST', `/v1/interventions/${request.transactionId}/customer-cancellation`);
+    expect(cancelled.body).toMatchObject({ state: 'CANCELLED', actor: 'CUSTOMER' });
+    await connector.publishLifecycleEvent({
+      ...request,
+      status: 'CANCELLED',
+      eventId: `${request.eventId}-CANCELLED`,
+      idempotencyKey: `${request.idempotencyKey}-CANCELLED`,
+      accountSequence: request.accountSequence + 100,
+      occurredAt: at(30_000),
+    });
+
+    const followOn = await connector.requestDecision({
+      ...request,
+      transactionId: `${request.transactionId}-FOLLOW-ON`,
+      eventId: `${request.eventId}-FOLLOW-ON`,
+      idempotencyKey: `${request.idempotencyKey}-FOLLOW-ON`,
+      networkReference: `${request.networkReference}-FOLLOW-ON`,
+      accountSequence: request.accountSequence + 101,
+      amount: 100_000,
+      occurredAt: at(60_000),
+    });
+    const record = await persistence.decisions.findByIdempotencyKey(`${request.idempotencyKey}-FOLLOW-ON`);
+    expect(record?.assessment.drain).toMatchObject({ thresholdMet: false, outflow24h: 2_350_000 });
+    expect(followOn).toMatchObject({ decision: 'HOLD', reasonCodes: ['SG-RD-50_HOLD_CASCADE'], holdUntil: final.response.holdUntil });
+    expect(record?.cascadeOfTransactionId).toBe(request.transactionId);
+
+    const trigger = await persistence.decisions.findByIdempotencyKey(request.idempotencyKey);
+    expect(trigger?.riskScore).toBe(DEMO_TAKEOVER_01.finalScore);
+    expect(Object.fromEntries((trigger?.assessment.contributions ?? []).map((contribution) => [contribution.code, contribution.points]))).toEqual(
+      DEMO_TAKEOVER_01.finalContributions,
+    );
+  });
+});

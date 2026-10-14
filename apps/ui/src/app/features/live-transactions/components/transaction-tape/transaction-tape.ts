@@ -1,11 +1,21 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { TRANSACTION_TAPE_MAX_ROWS } from '@sentinel/domain';
 import { InstitutionLabelPipe } from '../../../../shared/pipes/institution-label/institution-label-pipe';
 import { MinorUnitsCurrencyPipe } from '../../../../shared/pipes/minor-units-currency/minor-units-currency-pipe';
 import { TransactionStreamFacade } from '../../data-access/transaction-stream-facade';
 
-/** The live tape: hard cap of 200 rendered rows, newest first; a held row is marked in text as well as colour. */
+/** Fixed row height is what makes windowing exact: the spacers stand in for every row not in the DOM. */
+const ROW_HEIGHT_PX = 34;
+const OVERSCAN_ROWS = 8;
+/** jsdom and the first frame have no layout; assume a tall viewport rather than render nothing. */
+const FALLBACK_VIEWPORT_PX = 640;
+
+/**
+ * The live tape (T§6): a hard cap of 200 rows held, newest first, and virtualised — only the rows in view plus
+ * an overscan are in the DOM, so a full tape costs the same to render as a short one. A held row is marked in
+ * text as well as colour.
+ */
 @Component({
   selector: 'sentinel-transaction-tape',
   imports: [DatePipe, MinorUnitsCurrencyPipe, InstitutionLabelPipe],
@@ -19,6 +29,7 @@ import { TransactionStreamFacade } from '../../data-access/transaction-stream-fa
       @if (facade.tapeRows().length === 0) {
         <p class="empty">Waiting for the first scored transaction…</p>
       } @else {
+        <div class="viewport sentinel-scroll" (scroll)="onScroll($event)">
         <table>
           <thead>
             <tr>
@@ -31,7 +42,10 @@ import { TransactionStreamFacade } from '../../data-access/transaction-stream-fa
             </tr>
           </thead>
           <tbody>
-            @for (row of facade.tapeRows(); track row.transactionId) {
+            @if (window().before > 0) {
+              <tr class="spacer" aria-hidden="true" [style.height.px]="window().before"></tr>
+            }
+            @for (row of window().rows; track row.transactionId) {
               <tr
                 [class.held]="row.decision === 'HOLD'"
                 [class.focused]="row.accountId === facade.focusedAccountId()"
@@ -53,8 +67,12 @@ import { TransactionStreamFacade } from '../../data-access/transaction-stream-fa
                 </td>
               </tr>
             }
+            @if (window().after > 0) {
+              <tr class="spacer" aria-hidden="true" [style.height.px]="window().after"></tr>
+            }
           </tbody>
         </table>
+        </div>
       }
     </section>
   `,
@@ -65,7 +83,9 @@ import { TransactionStreamFacade } from '../../data-access/transaction-stream-fa
       border-radius: var(--sentinel-radius-medium);
       padding: var(--sentinel-space-4);
       box-shadow: var(--sentinel-elevation-panel);
-      max-height: 72vh;
+    }
+    .viewport {
+      max-height: 68vh;
       overflow: auto;
     }
     header {
@@ -99,6 +119,13 @@ import { TransactionStreamFacade } from '../../data-access/transaction-stream-fa
       position: sticky;
       top: 0;
       background: var(--sentinel-color-surface);
+    }
+    tbody tr {
+      height: 34px;
+    }
+    tr.spacer {
+      padding: 0;
+      border: 0;
     }
     td {
       white-space: nowrap;
@@ -143,4 +170,23 @@ import { TransactionStreamFacade } from '../../data-access/transaction-stream-fa
 export class TransactionTape {
   protected readonly facade = inject(TransactionStreamFacade);
   protected readonly maxRows = TRANSACTION_TAPE_MAX_ROWS;
+  private readonly scrollTop = signal(0);
+  private readonly viewportHeight = signal(FALLBACK_VIEWPORT_PX);
+
+  protected readonly window = computed(() => {
+    const rows = this.facade.tapeRows();
+    const first = Math.max(0, Math.floor(this.scrollTop() / ROW_HEIGHT_PX) - OVERSCAN_ROWS);
+    const last = Math.min(rows.length, first + Math.ceil(this.viewportHeight() / ROW_HEIGHT_PX) + 2 * OVERSCAN_ROWS);
+    return {
+      rows: rows.slice(first, last),
+      before: first * ROW_HEIGHT_PX,
+      after: (rows.length - last) * ROW_HEIGHT_PX,
+    };
+  });
+
+  protected onScroll(event: Event): void {
+    const viewport = event.target as HTMLElement;
+    this.scrollTop.set(viewport.scrollTop);
+    if (viewport.clientHeight > 0) this.viewportHeight.set(viewport.clientHeight);
+  }
 }

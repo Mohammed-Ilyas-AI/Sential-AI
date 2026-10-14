@@ -1,4 +1,4 @@
-import { buildDemoTakeover01, INSTANT_TIMELINE, playScenario } from '@sentinel/scenarios';
+import { buildDemoTakeover01, INSTANT_TIMELINE, newScenarioRunId, playScenario } from '@sentinel/scenarios';
 import { HttpBankReportingClient } from './bank-reporting/bank-reporting.client.js';
 import { loadSimulatorRuntimeConfig } from './configuration/simulator-config.js';
 import { CoreHttpClient } from './decision-api/core-http.client.js';
@@ -22,8 +22,11 @@ const lifecycle: TransactionEventPublisher =
     : new DirectPushTransactionEventPublisher(config.transport.pushEndpoint);
 const bank = new SimulatorBankConnector(new HttpBankReportingClient(core), new HttpSecurityEventApiClient(core), new HttpDecisionApiClient(core), lifecycle);
 
-const scenario = buildDemoTakeover01(new Date().toISOString());
-logger.info({ scenarioId: scenario.id, steps: scenario.timeline.length, transport: config.transport.kind, timeline: config.timeline }, 'scenario starting');
+// Each start is a new run with its own identifiers, so a repeat demo is new activity, not a replay of stored
+// events; SIMULATOR_RUN_ID replays one run exactly, and the core deduplicates every event in it.
+const runId = config.runId ?? newScenarioRunId(Date.now());
+const scenario = buildDemoTakeover01(new Date().toISOString(), { runId });
+logger.info({ scenarioId: scenario.id, runId, steps: scenario.timeline.length, transport: config.transport.kind, timeline: config.timeline }, 'scenario starting');
 
 try {
   const report = await playScenario(scenario, bank, config.timeline === 'instant' ? INSTANT_TIMELINE : new RealTimeScenarioTimeline(), (step) => {
@@ -31,7 +34,7 @@ try {
   });
   const held = report.transfers.filter((transfer) => transfer.response.decision === 'HOLD');
   logger.info(
-    { transfers: report.transfers.length, held: held.map((transfer) => ({ transactionId: transfer.response.transactionId, riskScore: transfer.response.riskScore })) },
+    { runId, transfers: report.transfers.length, held: held.map((transfer) => ({ transactionId: transfer.response.transactionId, riskScore: transfer.response.riskScore })) },
     'scenario complete',
   );
 } finally {

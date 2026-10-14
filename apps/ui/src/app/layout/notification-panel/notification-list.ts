@@ -24,7 +24,7 @@ const SEVERITY_ICON: Readonly<Record<NotificationSeverity, IconName>> = {
       <ul>
         @for (notification of items(); track notification.id) {
           <li>
-            <button type="button" (click)="center.open(notification)" [attr.data-severity]="notification.severity">
+            <button type="button" (click)="center.markRead(notification)" [attr.data-severity]="notification.severity" [attr.aria-label]="notification.title + ', ' + notification.description + (center.isUnread(notification) ? ', unread, mark as read' : '')">
               <span class="tile"><sentinel-icon [name]="icon[notification.severity]" [size]="18" /></span>
               <span class="body">
                 <span class="title">{{ notification.title }}</span>
@@ -67,7 +67,7 @@ const SEVERITY_ICON: Readonly<Record<NotificationSeverity, IconName>> = {
       transition: background var(--sentinel-motion-duration-fast) var(--sentinel-motion-easing-standard);
     }
     button:hover {
-      background: rgb(255 255 255 / 0.03);
+      background: var(--sentinel-color-hover);
     }
     .tile {
       display: grid;
@@ -81,7 +81,7 @@ const SEVERITY_ICON: Readonly<Record<NotificationSeverity, IconName>> = {
     }
     [data-severity='critical'] { --tone: var(--sentinel-color-critical); }
     [data-severity='warning'] { --tone: var(--sentinel-color-warning); }
-    [data-severity='info'] { --tone: var(--sentinel-color-accent); }
+    [data-severity='info'] { --tone: var(--sentinel-color-info); }
     [data-severity='success'] { --tone: var(--sentinel-color-success); }
     .body {
       display: flex;

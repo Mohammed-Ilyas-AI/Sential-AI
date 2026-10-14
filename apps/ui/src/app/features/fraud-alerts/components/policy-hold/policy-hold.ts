@@ -24,6 +24,9 @@ import { RiskBandBadge } from '../../../../shared/ui/risk-band-badge/risk-band-b
           {{ decision.amount | minorUnitsCurrency }} from {{ decision.accountReference ?? decision.accountId }} ·
           drain {{ decision.assessment.drain.drainPct | number: '1.1-1' }}% of
           {{ decision.assessment.drain.balanceAtWindowStart | minorUnitsCurrency }}
+          @if (decision.cascadeOfTransactionId; as trigger) {
+            · held by the cascade after {{ trigger }}
+          }
         </p>
         @if (intervention(); as intervention) {
           <p class="intervention">
@@ -118,6 +121,7 @@ export class PolicyHold {
     if (decision.decision === 'ALLOW') return 'Gate not met — no hold';
     const intervention = this.intervention();
     if (intervention && intervention.state !== 'HELD') return `Hold ended: ${intervention.state}`;
-    return decision.decision === 'HOLD' ? '24-hour policy hold in force' : 'Rejected by policy';
+    if (decision.decision !== 'HOLD') return 'Rejected by policy';
+    return decision.cascadeOfTransactionId ? 'Hold cascade in force: the account is in the hold state' : '24-hour policy hold in force';
   });
 }

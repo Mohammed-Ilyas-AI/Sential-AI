@@ -12,8 +12,8 @@ import type {
 
 /** Read-only access to everything an evidence bundle may contain, each read already capped. */
 export interface EvidenceSource {
-  accountProfile(accountId: string): Promise<AccountProfile>;
-  assessment(assessmentId: string): Promise<RecordedRiskAssessment>;
+  accountProfile(accountId: string): Promise<AccountProfile | null>;
+  assessment(assessmentId: string): Promise<RecordedRiskAssessment | null>;
   recentTransactions(accountId: string, limit: number): Promise<readonly Transaction[]>;
   deviceHistory(accountId: string): Promise<readonly DeviceEvent[]>;
   payeeHistory(accountId: string): Promise<readonly PayeeEvent[]>;

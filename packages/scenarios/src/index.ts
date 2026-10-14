@@ -1,6 +1,7 @@
 export type { Scenario, ScenarioAction, ScenarioStep } from './scenario.js';
 export { createSeededRandom, type SeededRandom } from './seed/seeded-random.js';
 export { syntheticToken } from './identity/synthetic-token.js';
+export { isScenarioRunId, newScenarioRunId, runScopedToken, type ScenarioRunId } from './identity/scenario-run.js';
 export { SYNTHETIC_ACCOUNTS, ESTABLISHED_PAYEES, SYNTHETIC_AMOUNT_P95, type SyntheticAccount } from './catalogue/synthetic-roster.js';
 export { ScenarioEventFactory, type TransferSpecification } from './catalogue/scenario-event-factory.js';
 export type { ScenarioGenerator } from './generators/scenario-generator.js';
@@ -8,6 +9,6 @@ export { baselineGenerator, type BaselineInput } from './generators/baseline.gen
 export { noiseGenerator } from './generators/noise.generator.js';
 export { takeoverGenerator, type TakeoverInput } from './generators/takeover.generator.js';
 export { muleNetworkGenerator, type MuleNetworkInput } from './generators/mule-network.generator.js';
-export { buildDemoTakeover01, type BuildDemoScenario } from './demo/demo-takeover-01.js';
+export { buildDemoTakeover01, type BuildDemoScenario, type DemoScenarioOptions } from './demo/demo-takeover-01.js';
 export { INSTANT_TIMELINE, type BankConnector, type ScenarioTimeline } from './playback/bank-connector.js';
 export { playScenario, type PlaybackReport, type PlayedTransfer } from './playback/scenario-playback.js';

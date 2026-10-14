@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, inject, input, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, effect, inject, input, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ThemePreferences } from '../../../../core/theme/theme-preferences';
+import { hexWithAlpha, readHexToken } from '../../../../shared/ui/canvas/css-color-token';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { isLand } from '../../geo/land-mask';
 import type { ThreatLandscapeView } from '../../models/operations-overview';
@@ -39,22 +41,31 @@ export class ThreatLandscape {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly theme = inject(ThemePreferences);
+  private redraw: () => void = () => undefined;
 
   constructor() {
     const destroyRef = inject(DestroyRef);
+    effect(() => {
+      this.theme.brand();
+      this.theme.appearance();
+      this.redraw();
+    });
     afterNextRender(() => {
       if (typeof ResizeObserver !== 'function' || typeof matchMedia !== 'function') return;
       const canvas = this.canvas().nativeElement;
       const context = canvas.getContext('2d');
       if (!context) return;
+      let size = { width: 0, height: 0 };
+      this.redraw = () => this.drawDots(context, size.width, size.height);
       const observer = new ResizeObserver(([entry]) => {
         if (!entry) return;
         const ratio = Math.min(2, devicePixelRatio || 1);
-        const { width, height } = entry.contentRect;
-        canvas.width = Math.round(width * ratio);
-        canvas.height = Math.round(height * ratio);
+        size = { width: entry.contentRect.width, height: entry.contentRect.height };
+        canvas.width = Math.round(size.width * ratio);
+        canvas.height = Math.round(size.height * ratio);
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
-        this.drawDots(context, width, height);
+        this.redraw();
       });
       observer.observe(canvas);
       destroyRef.onDestroy(() => observer.disconnect());
@@ -81,7 +92,7 @@ export class ThreatLandscape {
     const cellWidth = width / columns;
     const cellHeight = height / rows;
     const size = Math.max(1, Math.min(cellWidth, cellHeight) * 0.5);
-    context.fillStyle = 'rgba(120, 160, 220, 0.42)';
+    context.fillStyle = hexWithAlpha(readHexToken(this.host.nativeElement, '--sentinel-map-land', '#78a0dc'), 0.42);
     for (let row = 0; row < rows; row += 1) {
       const latitude = NORTH - (row + 0.5) * STEP_DEGREES;
       for (let column = 0; column < columns; column += 1) {

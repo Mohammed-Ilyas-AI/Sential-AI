@@ -1,6 +1,46 @@
-/* Synthetic tenant theme for the tenant lens. Not the branding of any real institution. */
-[data-tenant-theme='bank-c'] {
-  --sentinel-color-accent: #a3e635;
-  --sentinel-color-accent-strong: #4ade80;
-  --sentinel-color-accent-soft: rgb(163 230 53 / 0.12);
+/*
+ * Bank C · Straits Indigo — a synthetic tenant lens, not the branding of any real institution.
+ * Indigo accent with an azure partner on neutral graphite-slate; DM Sans type.
+ */
+:root[data-tenant-theme='bank-c'] {
+  --sentinel-color-background: #090a12;
+  --sentinel-color-surface: #10121c;
+  --sentinel-color-elevated: #161926;
+  --sentinel-color-border: #2a2e43;
+  --sentinel-color-border-soft: rgb(42 46 67 / 0.6);
+  --sentinel-color-text: #f1f3fb;
+  --sentinel-color-text-secondary: #aab0c9;
+  --sentinel-color-text-muted: #7c82a2;
+  --sentinel-color-accent: #8088ff;
+  --sentinel-color-accent-strong: #4ea8ff;
+  --sentinel-color-accent-tertiary: #a78bfa;
+  --sentinel-color-signal: #8088ff;
+  --sentinel-color-nav: #6366f1;
+
+  --sentinel-font-family-display: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-family-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sentinel-font-weight-display: 700;
+  --sentinel-letter-spacing-display: -0.02em;
+  --sentinel-letter-spacing-ui: 0;
+}
+
+:root[data-tenant-theme='bank-c'][data-appearance='light'] {
+  --sentinel-color-background: #f4f5fb;
+  --sentinel-color-surface: #ffffff;
+  --sentinel-color-elevated: #f8f9fd;
+  --sentinel-color-border: #dde0ef;
+  --sentinel-color-border-soft: rgb(221 224 239 / 0.75);
+  --sentinel-color-text: #12142b;
+  --sentinel-color-text-secondary: #474b6b;
+  --sentinel-color-text-muted: #5e6383;
+  --sentinel-color-accent: #4f46e5;
+  --sentinel-color-accent-strong: #0369a1;
+  --sentinel-color-accent-tertiary: #6d28d9;
+  --sentinel-color-signal: #4f46e5;
+  --sentinel-color-nav: #4f46e5;
+}
+
+/* Swatch for the Settings preset picker: always available, whichever preset is active. */
+:root {
+  --sentinel-swatch-bank-c: linear-gradient(135deg, #8088ff, #4ea8ff);
 }

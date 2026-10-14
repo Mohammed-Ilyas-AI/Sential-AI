@@ -9,7 +9,7 @@ import type {
   TransactionLifecycleStatus,
   TransactionType,
 } from '@sentinel/domain';
-import { syntheticToken } from '../identity/synthetic-token.js';
+import { runScopedToken, type ScenarioRunId } from '../identity/scenario-run.js';
 import { SYNTHETIC_AMOUNT_P95, homeDeviceOf, type SyntheticAccount, ESTABLISHED_PAYEES } from './synthetic-roster.js';
 
 const HOUR_MS = 3_600_000;
@@ -33,10 +33,21 @@ export class ScenarioEventFactory {
   private transactionCount = 0;
   private securityCount = 0;
 
+  /** Prefix of every event and transaction ID: the scenario code, then the run when there is one. */
+  private readonly idPrefix: string;
+
   constructor(
-    private readonly scenarioCode: string,
+    scenarioCode: string,
     private readonly epochMs: number,
-  ) {}
+    readonly runId?: ScenarioRunId,
+  ) {
+    this.idPrefix = runId ? `${scenarioCode}-${runId}` : scenarioCode;
+  }
+
+  /** The synthetic token for a display identifier in this run (see identity/scenario-run.ts). */
+  token(prefix: 'acct' | 'dev' | 'ben', identifier: string): string {
+    return runScopedToken(prefix, identifier, this.runId);
+  }
 
   at(offsetMs: number): string {
     return new Date(this.epochMs + offsetMs).toISOString();
@@ -50,14 +61,14 @@ export class ScenarioEventFactory {
     return {
       schemaVersion: '1.0',
       tenantId: account.institutionId,
-      accountToken: syntheticToken('acct', account.displayId),
+      accountToken: this.token('acct', account.displayId),
       institutionId: account.institutionId,
       displayReference: account.displayId,
       openedAt: account.openedAt,
       balance,
       balanceAsOf: this.hoursBefore(24),
-      knownDeviceTokens: [syntheticToken('dev', homeDeviceOf(account.displayId))],
-      knownPayeeTokens: ESTABLISHED_PAYEES.map((payee) => syntheticToken('ben', payee)),
+      knownDeviceTokens: [this.token('dev', homeDeviceOf(account.displayId))],
+      knownPayeeTokens: ESTABLISHED_PAYEES.map((payee) => this.token('ben', payee)),
       behaviour: { velocityRatio, amountP95: SYNTHETIC_AMOUNT_P95, observedAt },
     };
   }
@@ -69,16 +80,16 @@ export class ScenarioEventFactory {
     subject: { readonly deviceId?: string; readonly payeeId?: string } = {},
   ): AccountSecurityEvent {
     this.securityCount += 1;
-    const eventId = `SEC-${this.scenarioCode}-${String(this.securityCount).padStart(4, '0')}`;
+    const eventId = `SEC-${this.idPrefix}-${String(this.securityCount).padStart(4, '0')}`;
     return {
       schemaVersion: '1.0',
       tenantId: account.institutionId,
       eventId,
       idempotencyKey: `idem-${eventId}`,
-      accountToken: syntheticToken('acct', account.displayId),
+      accountToken: this.token('acct', account.displayId),
       eventType,
-      ...(subject.deviceId ? { deviceToken: syntheticToken('dev', subject.deviceId) } : {}),
-      ...(subject.payeeId ? { beneficiaryToken: syntheticToken('ben', subject.payeeId) } : {}),
+      ...(subject.deviceId ? { deviceToken: this.token('dev', subject.deviceId) } : {}),
+      ...(subject.payeeId ? { beneficiaryToken: this.token('ben', subject.payeeId) } : {}),
       occurredAt,
     };
   }
@@ -89,7 +100,7 @@ export class ScenarioEventFactory {
     readonly lifecycleOnAllow: readonly TransactionEvent[];
   } {
     this.transactionCount += 1;
-    const transactionId = `TX-${this.scenarioCode}-${String(this.transactionCount).padStart(4, '0')}`;
+    const transactionId = `TX-${this.idPrefix}-${String(this.transactionCount).padStart(4, '0')}`;
     const event = (status: TransactionLifecycleStatus, occurredAt: string): TransactionEvent => ({
       schemaVersion: '1.0',
       tenantId: specification.source.institutionId,
@@ -98,12 +109,12 @@ export class ScenarioEventFactory {
       accountSequence: this.nextSequence(specification.source.displayId),
       transactionId,
       status,
-      sourceAccountToken: syntheticToken('acct', specification.source.displayId),
+      sourceAccountToken: this.token('acct', specification.source.displayId),
       destinationInstitutionId: specification.destinationInstitutionId,
-      destinationAccountToken: syntheticToken('acct', specification.payeeId),
+      destinationAccountToken: this.token('acct', specification.payeeId),
       networkReference: `FAST-${transactionId}`,
-      deviceToken: syntheticToken('dev', specification.deviceId),
-      beneficiaryToken: syntheticToken('ben', specification.payeeId),
+      deviceToken: this.token('dev', specification.deviceId),
+      beneficiaryToken: this.token('ben', specification.payeeId),
       amount: specification.amount,
       currency: 'SGD',
       channel: 'APP',

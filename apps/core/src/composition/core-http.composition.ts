@@ -7,6 +7,7 @@ import {
   type PushAuthenticator,
 } from '../infrastructure/messaging/pubsub/push-authentication/push-authenticator.js';
 import type { Logger } from '../infrastructure/telemetry/logger.js';
+import type { ModelGateway } from '../modules/intelligence/application/ports/model-gateway.port.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
 import type { Clock } from '../platform/time/clock.js';
 import { composeControlPath, type ControlPath } from './control-path.composition.js';
@@ -27,6 +28,8 @@ export interface CoreHttpInputs {
   readonly clock: Clock;
   readonly ids: IdGenerator;
   readonly logger: Logger;
+  /** Tests only: a scripted model in place of Vertex AI. */
+  readonly modelGateway?: ModelGateway;
 }
 
 function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticator {
@@ -36,7 +39,7 @@ function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticat
 }
 
 /** The whole HTTP surface for a given persistence: used by main.ts with Atlas and by tests with in-memory adapters. */
-export function composeCoreHttp({ config, persistence, clock, ids, logger }: CoreHttpInputs): CoreHttpComposition {
+export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway }: CoreHttpInputs): CoreHttpComposition {
   const controlPath = composeControlPath({
     persistence,
     rapidDrainPolicy: config.rapidDrainPolicy,
@@ -47,7 +50,7 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger }: Cor
     ids,
     logger,
   });
-  const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids });
+  const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids, clock, ...(modelGateway ? { modelGateway } : {}) });
   const app = createApp({
     routes: [...controlPath.routes, ...intelligencePath.routes],
     corsAllowedOrigin: config.corsAllowedOrigin,

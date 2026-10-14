@@ -10,7 +10,12 @@ import type { PolicyGateView } from '../../models/operations-overview';
   imports: [DecimalPipe, Icon, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2>Policy Gate</h2>
+    <header>
+      <h2>Policy Gate</h2>
+      @if (view()?.demoTime) {
+        <span class="demo-time sentinel-mono" title="The 24-hour hold runs as 24 seconds for the demonstration">demo time ×3600</span>
+      }
+    </header>
     @if (view(); as view) {
       <div class="rule" [attr.data-decision]="view.decision">
         <span class="badge">
@@ -19,7 +24,11 @@ import type { PolicyGateView } from '../../models/operations-overview';
         </span>
         <span class="rule-text">
           <span class="rule-name">SG-RD-50 Rapid Drain Rule</span>
-          <span class="rule-detail">24h outflow {{ view.drainPct | number: '1.1-1' }}% (&gt; {{ view.gatePercent }}%)</span>
+          @if (view.cascade) {
+            <span class="rule-detail">Hold cascade · account held after a breach</span>
+          } @else {
+            <span class="rule-detail">24h outflow {{ view.drainPct | number: '1.1-1' }}% (&gt; {{ view.gatePercent }}%)</span>
+          }
         </span>
       </div>
       <div class="meter" role="meter" aria-label="24-hour outflow against the gate" [attr.aria-valuenow]="view.drainPct" aria-valuemin="0" aria-valuemax="100">
