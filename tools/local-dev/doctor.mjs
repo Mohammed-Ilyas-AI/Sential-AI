@@ -9,6 +9,8 @@ const out = (line) => process.stdout.write(`${line}\n`);
 const results = [];
 const pass = (label, detail = '') => results.push({ ok: true, label, detail });
 const fail = (label, fix) => results.push({ ok: false, label, detail: fix });
+// Advisory only: shown with its fix, never counted as a failure, so it cannot block "npm run demo".
+const warn = (label, fix) => results.push({ ok: true, warning: true, label, detail: fix });
 
 const env = process.env;
 const REQUIRED_KEYS = [
@@ -35,6 +37,29 @@ if (env.SIMULATOR_EVENT_TRANSPORT && env.SIMULATOR_EVENT_TRANSPORT !== 'direct-p
 }
 if (env.PUBSUB_PUSH_VERIFICATION && env.PUBSUB_PUSH_VERIFICATION !== 'disabled-for-local-development') {
   fail('PUBSUB_PUSH_VERIFICATION is not disabled locally', 'Set PUBSUB_PUSH_VERIFICATION=disabled-for-local-development in .env for a local run.');
+}
+
+// 2b. Gemini on Vertex AI (advisory only: the control path works without it, so these are warnings in words,
+// not failures). Never prints a token; only checks that local Application Default Credentials exist.
+const geminiMissing = ['GCP_PROJECT_ID', 'GEMINI_FAST_MODEL', 'GEMINI_DEEP_MODEL'].filter((key) => !env[key]?.trim());
+if (geminiMissing.length === 0) {
+  pass('Gemini configured', `${env.GEMINI_FAST_MODEL} / ${env.GEMINI_DEEP_MODEL} in ${env.VERTEX_LOCATION || 'asia-southeast1'}`);
+} else {
+  warn(
+    `Gemini is not configured (missing ${geminiMissing.join(', ')})`,
+    'Explain and Summarise will fall back. Copy the Gemini lines from .env.example into .env (see the verified values there).',
+  );
+}
+const adcFile =
+  env.GOOGLE_APPLICATION_CREDENTIALS ||
+  (process.platform === 'win32' ? `${env.APPDATA}\\gcloud\\application_default_credentials.json` : `${env.HOME}/.config/gcloud/application_default_credentials.json`);
+const { existsSync } = await import('node:fs');
+if (geminiMissing.length > 0) {
+  // already reported
+} else if (existsSync(adcFile)) {
+  pass('Google Application Default Credentials found');
+} else {
+  warn('No Google Application Default Credentials', 'Run "gcloud auth application-default login" with the account that owns the project, then retry.');
 }
 
 // 3. MongoDB Atlas
@@ -114,6 +139,11 @@ out('');
 out('SENTINEL AI local preflight');
 out('───────────────────────────');
 for (const result of results) {
+  if (result.warning) {
+    out(`  ! ${result.label}`);
+    out(`      → ${result.detail}`);
+    continue;
+  }
   out(`${result.ok ? '  ✔' : '  ✘'} ${result.label}${result.ok && result.detail ? `  (${result.detail})` : ''}`);
   if (!result.ok) out(`      → ${result.detail}`);
 }

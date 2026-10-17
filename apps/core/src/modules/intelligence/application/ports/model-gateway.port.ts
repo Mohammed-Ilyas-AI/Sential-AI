@@ -8,10 +8,13 @@ export interface ModelGateway {
   generate(job: ModelJob, evidence: EvidenceBundle): Promise<unknown>;
 }
 
-/** NOT_CONFIGURED is not retried: no model ID is set for the job's tier. UNAVAILABLE covers timeouts and errors. */
+/**
+ * NOT_CONFIGURED (no model ID for the job's tier) and CREDENTIALS (no application default credentials) are not
+ * retried: a second call cannot succeed. UNAVAILABLE covers timeouts, HTTP errors and truncated responses.
+ */
 export class ModelUnavailableError extends Error {
   constructor(
-    readonly reason: 'NOT_CONFIGURED' | 'UNAVAILABLE',
+    readonly reason: 'NOT_CONFIGURED' | 'CREDENTIALS' | 'UNAVAILABLE',
     message: string,
   ) {
     super(message);

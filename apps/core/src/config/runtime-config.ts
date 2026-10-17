@@ -6,7 +6,16 @@ export interface VertexAiSettings {
   /** Model identifiers are configuration, never literals in code; verify available IDs before the demo. */
   readonly fastModel?: string;
   readonly deepModel?: string;
+  /**
+   * Optional Gemini 3 thinkingConfig.thinkingLevel per tier; unset sends no thinkingConfig (the model default).
+   * Model-family specific, so it is configuration beside the model ID, never a literal in the gateway.
+   */
+  readonly fastThinkingLevel?: GeminiThinkingLevel;
+  readonly deepThinkingLevel?: GeminiThinkingLevel;
 }
+
+export const GEMINI_THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH'] as const;
+export type GeminiThinkingLevel = (typeof GEMINI_THINKING_LEVELS)[number];
 
 /** Pub/Sub push requests are verified as Google-signed OIDC tokens; only local development may switch it off. */
 export type PubSubPushVerification =

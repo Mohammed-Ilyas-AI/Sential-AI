@@ -30,7 +30,7 @@ spec:
             - name: GCP_PROJECT_ID
               value: __PROJECT_ID__
             - name: VERTEX_LOCATION
-              value: __REGION__
+              value: __VERTEX_LOCATION__
             - name: MONGODB_DATABASE
               value: sentinel_ai
             - name: CORS_ALLOWED_ORIGIN
@@ -49,6 +49,10 @@ spec:
               value: '__GEMINI_FAST_MODEL__'
             - name: GEMINI_DEEP_MODEL
               value: '__GEMINI_DEEP_MODEL__'
+            - name: GEMINI_FAST_THINKING_LEVEL
+              value: '__GEMINI_FAST_THINKING_LEVEL__'
+            - name: GEMINI_DEEP_THINKING_LEVEL
+              value: '__GEMINI_DEEP_THINKING_LEVEL__'
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:

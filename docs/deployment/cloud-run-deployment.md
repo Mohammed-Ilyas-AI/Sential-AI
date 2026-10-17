@@ -32,7 +32,7 @@ first Cloud Build run is their validation.
 
 | Item | Why |
 |---|---|
-| Model IDs | `_GEMINI_FAST_MODEL` / `_GEMINI_DEEP_MODEL` are empty until verified on Vertex AI; until then the advisory reports `MODEL_NOT_CONFIGURED` |
+| Model IDs | `_GEMINI_FAST_MODEL` / `_GEMINI_DEEP_MODEL` default to `gemini-3.5-flash` (verified 17 Oct 2026); `_VERTEX_LOCATION` defaults to `global`; `_GEMINI_FAST_THINKING_LEVEL` defaults to `MINIMAL` so Explain answers within its timeout. Empty model IDs make the advisory report `MODEL_NOT_CONFIGURED` |
 | Demo login | The single labelled demo login is not built; the core REST API has no authentication |
 
 ## IAM deviation from C§8

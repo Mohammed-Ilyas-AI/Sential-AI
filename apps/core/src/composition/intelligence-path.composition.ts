@@ -20,6 +20,7 @@ import { InvestigationAdvisor } from '../modules/investigations/application/inve
 import type { EvidenceSource } from '../modules/investigations/application/ports/evidence-source.port.js';
 import { InvestigationController } from '../modules/investigations/presentation/investigation.controller.js';
 import { investigationRoutes } from '../modules/investigations/presentation/investigation.routes.js';
+import type { Logger } from '../infrastructure/telemetry/logger.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
 import type { Clock } from '../platform/time/clock.js';
 
@@ -35,6 +36,8 @@ export interface IntelligencePathDependencies {
   readonly vertex: VertexAiSettings;
   readonly ids: IdGenerator;
   readonly clock: Clock;
+  /** Gateway failures (timeouts, HTTP errors, missing credentials) are explained here, never to the browser. */
+  readonly logger?: Logger;
   /** Tests substitute a scripted model; production always reaches Vertex AI through VertexModelGateway. */
   readonly modelGateway?: ModelGateway;
 }
@@ -49,9 +52,9 @@ export interface IntelligencePath {
  * Wires the asynchronous, best-effort intelligence path and the network ingest. Nothing here is reachable from
  * POST /v1/decision/transactions. AI explains.
  */
-export function composeIntelligencePath({ persistence, vertex, ids, clock, modelGateway }: IntelligencePathDependencies): IntelligencePath {
+export function composeIntelligencePath({ persistence, vertex, ids, clock, logger, modelGateway }: IntelligencePathDependencies): IntelligencePath {
   const intelligence = new IntelligenceService({
-    modelGateway: modelGateway ?? new VertexModelGateway(new ModelRouter(vertex), vertex),
+    modelGateway: modelGateway ?? new VertexModelGateway(new ModelRouter(vertex), vertex, undefined, logger),
     explanations: persistence.explanations,
     responseSchemas: new ResponseSchemaValidator(),
     sourceFields: new SourceFieldValidator(),

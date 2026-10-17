@@ -152,6 +152,38 @@ describe('IntelligenceService', () => {
     expect(model.jobs).toEqual(['RISK_EXPLANATION']);
   });
 
+  it('explains on the fast job and returns the validated explanation', async () => {
+    const model = new ScriptedModel(['{"primaryReason":"A 65.4% drain followed a new device","recommendedAction":"Contact the customer on the number held on file"}']);
+    expect(await serviceWith(model).explainRisk(bundle, 'assess-3')).toEqual({
+      status: 'GENERATED',
+      attempts: 1,
+      droppedClaims: 0,
+      advisory: {
+        assessmentId: 'assess-3',
+        primaryReason: 'A 65.4% drain followed a new device',
+        recommendedAction: 'Contact the customer on the number held on file',
+        generatedAt: '2026-09-24T11:32:00.000Z',
+      },
+    });
+    expect(model.jobs).toEqual(['RISK_EXPLANATION']);
+  });
+
+  it('rejects an explanation longer than the contract allows, as Gemini returned on 17 Oct, and falls back', async () => {
+    const tooLong = { primaryReason: 'x'.repeat(601), recommendedAction: 'Contact the customer' };
+    expect(await serviceWith(new ScriptedModel([tooLong, tooLong])).explainRisk(bundle, 'assess-4')).toEqual({
+      status: 'FALLBACK',
+      advisory: null,
+      reason: 'INVALID_RESPONSE',
+      attempts: 2,
+    });
+  });
+
+  it('falls back immediately, without retrying, when the server has no Google credentials', async () => {
+    const model = new ScriptedModel([new ModelUnavailableError('CREDENTIALS', 'no application default credentials'), grounded]);
+    expect(await serviceWith(model).explainRisk(bundle, 'assess-5')).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_CREDENTIALS_UNAVAILABLE', attempts: 1 });
+    expect(model.jobs).toHaveLength(1);
+  });
+
   it('never caches a fallback', async () => {
     const cache = new MemoryCache();
     await serviceWith(new ScriptedModel(['x', 'y']), cache).explainRisk(bundle, 'assess-2');

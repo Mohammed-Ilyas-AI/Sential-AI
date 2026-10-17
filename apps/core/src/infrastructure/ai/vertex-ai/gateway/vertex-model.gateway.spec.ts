@@ -81,4 +81,65 @@ describe('VertexModelGateway', () => {
     const { transport } = recordingTransport(new Response(JSON.stringify({ candidates: [{ finishReason: 'SAFETY' }] }), { status: 200 }));
     expect(await new VertexModelGateway(router, { projectId: 'p', location: 'asia-southeast1' }, transport).generate('CASE_SUMMARY', evidence)).toBeNull();
   });
+
+  it('sends the explanation to the fast model at its configured thinking level, and the summary at the deep tier without one', async () => {
+    const { transport, requests } = recordingTransport(vertexReply('{}'));
+    const vertex = { projectId: 'p', location: 'global', fastThinkingLevel: 'MINIMAL' };
+    const gateway = new VertexModelGateway(router, vertex, transport);
+    await gateway.generate('RISK_EXPLANATION', evidence);
+    await gateway.generate('CASE_SUMMARY', evidence);
+
+    const [explain, summarise] = requests.map((request) => ({
+      url: request.url,
+      generationConfig: (JSON.parse(String(request.init.body)) as { generationConfig: Record<string, unknown> }).generationConfig,
+    }));
+    expect(explain?.url).toBe('https://aiplatform.googleapis.com/v1/projects/p/locations/global/publishers/google/models/configured-fast-model:generateContent');
+    expect(explain?.generationConfig).toMatchObject({ responseMimeType: 'application/json', thinkingConfig: { thinkingLevel: 'MINIMAL' } });
+    expect(summarise?.url).toContain('/locations/global/publishers/google/models/configured-deep-model:generateContent');
+    expect(summarise?.generationConfig).not.toHaveProperty('thinkingConfig');
+  });
+
+  it('sends no thinkingConfig when no level is configured', async () => {
+    const { transport, requests } = recordingTransport(vertexReply('{}'));
+    await new VertexModelGateway(router, { projectId: 'p', location: 'global' }, transport).generate('RISK_EXPLANATION', evidence);
+    expect(JSON.parse(String(requests[0]?.init.body))).not.toHaveProperty('generationConfig.thinkingConfig');
+  });
+
+  it('reports missing application default credentials as CREDENTIALS, without a model call', async () => {
+    const warnings: string[] = [];
+    const diagnostics = { warn: (_details: object, message: string) => warnings.push(message) };
+    for (const accessToken of [async () => null, async () => Promise.reject(new Error('Could not load the default credentials'))]) {
+      const { transport, requests } = recordingTransport(vertexReply('{}'));
+      const call = new VertexModelGateway(router, { projectId: 'p', location: 'global' }, { ...transport, accessToken }, diagnostics).generate('RISK_EXPLANATION', evidence);
+      await expect(call).rejects.toMatchObject({ reason: 'CREDENTIALS' });
+      expect(requests).toHaveLength(0);
+    }
+    expect(warnings).toHaveLength(2);
+    expect(warnings.every((warning) => warning.includes('no application default credentials'))).toBe(true);
+  });
+
+  it('logs why a call failed, with the Vertex AI status, and never the access token', async () => {
+    const logged: { details: object; message: string }[] = [];
+    const diagnostics = { warn: (details: object, message: string) => logged.push({ details, message }) };
+    const notFound = new Response(JSON.stringify({ error: { code: 404, status: 'NOT_FOUND', message: 'Publisher model not found' } }), { status: 404 });
+    for (const failure of [notFound, new DOMException('timed out', 'TimeoutError')]) {
+      const { transport } = recordingTransport(failure);
+      await expect(new VertexModelGateway(router, { projectId: 'p', location: 'global' }, transport, diagnostics).generate('RISK_EXPLANATION', evidence)).rejects.toMatchObject({
+        reason: 'UNAVAILABLE',
+      });
+    }
+    expect(logged[0]?.message).toContain('HTTP 404 NOT_FOUND: Publisher model not found');
+    expect(logged[0]?.details).toMatchObject({ job: 'RISK_EXPLANATION', tier: 'FAST', model: 'configured-fast-model', location: 'global' });
+    expect(logged[1]?.message).toContain('no complete response within 15000 ms');
+    expect(JSON.stringify(logged)).not.toContain('test-access-token');
+  });
+
+  it('returns a truncated answer for the validator to reject, and logs its finishReason', async () => {
+    const logged: string[] = [];
+    const truncated = new Response(JSON.stringify({ candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '{"primaryReason":"A 65' }] } }] }), { status: 200 });
+    const { transport } = recordingTransport(truncated);
+    const gateway = new VertexModelGateway(router, { projectId: 'p', location: 'global' }, transport, { warn: (_details, message) => logged.push(message) });
+    expect(await gateway.generate('RISK_EXPLANATION', evidence)).toBe('{"primaryReason":"A 65');
+    expect(logged).toEqual(['Vertex AI RISK_EXPLANATION finished with MAX_TOKENS']);
+  });
 });

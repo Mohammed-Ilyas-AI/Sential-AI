@@ -23,6 +23,9 @@ rendered="$(sed \
   -e "s|__DEMO_TIME_COMPRESSION__|${DEMO_TIME_COMPRESSION:-true}|g" \
   -e "s|__GEMINI_FAST_MODEL__|${GEMINI_FAST_MODEL:-}|g" \
   -e "s|__GEMINI_DEEP_MODEL__|${GEMINI_DEEP_MODEL:-}|g" \
+  -e "s|__VERTEX_LOCATION__|${VERTEX_LOCATION:-${REGION}}|g" \
+  -e "s|__GEMINI_FAST_THINKING_LEVEL__|${GEMINI_FAST_THINKING_LEVEL:-}|g" \
+  -e "s|__GEMINI_DEEP_THINKING_LEVEL__|${GEMINI_DEEP_THINKING_LEVEL:-}|g" \
   "${template}")"
 
 # Comment lines may mention tokens; only configuration lines must be fully rendered.

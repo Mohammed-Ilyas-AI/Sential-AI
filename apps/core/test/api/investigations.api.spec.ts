@@ -116,6 +116,16 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect((await persistence.interventions.findByTransactionId(record?.transactionId ?? '')).map((intervention) => intervention.state)).toEqual(['HELD']);
   });
 
+  it('explains on the fast job and keeps the hold and the score when the explanation falls back', async () => {
+    model.script = [new ModelUnavailableError('UNAVAILABLE', 'timeout'), new ModelUnavailableError('UNAVAILABLE', 'timeout')];
+    expect((await post<RiskExplanation>('explanation')).body).toMatchObject({ status: 'FALLBACK', reason: 'MODEL_UNAVAILABLE', attempts: 2 });
+    expect(model.calls.map((call) => call.job)).toEqual(['RISK_EXPLANATION', 'RISK_EXPLANATION']);
+    const record = await persistence.decisions.findByIdempotencyKey(
+      playback.transfers.filter((transfer) => transfer.step.request.sourceAccountToken === VICTIM).at(-1)?.step.request.idempotencyKey ?? '',
+    );
+    expect(record).toMatchObject({ decision: 'HOLD', riskScore: 95 });
+  });
+
   it('caches the explanation by assessmentId: the second request makes no model call', async () => {
     model.script = [{ primaryReason: 'A 65.4% drain followed a new device and a new payee', recommendedAction: 'Contact the customer before anything else' }];
     expect((await post<RiskExplanation>('explanation')).body).toMatchObject({ status: 'GENERATED', attempts: 1 });

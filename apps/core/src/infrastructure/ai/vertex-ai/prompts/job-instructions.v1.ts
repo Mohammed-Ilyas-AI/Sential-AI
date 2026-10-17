@@ -8,7 +8,8 @@ export const JOB_INSTRUCTIONS_V1: Partial<Readonly<Record<ModelJob, string>>> = 
   RISK_EXPLANATION: [
     'Task: explain, for a fraud analyst, why the deterministic engine scored this assessment as it did.',
     'primaryReason: the largest contributions in plain English, using only facts in the evidence bundle.',
-    'recommendedAction: the next investigative step for the analyst. Never suggest releasing a held transfer.',
+    'Keep primaryReason to at most three sentences and under 450 characters.',
+    'recommendedAction: the next investigative step for the analyst, under 300 characters. Never suggest releasing a held transfer.',
   ].join('\n'),
   CASE_SUMMARY: [
     'Task: summarise this case for a fraud analyst as a hypothesis grounded in the evidence bundle.',

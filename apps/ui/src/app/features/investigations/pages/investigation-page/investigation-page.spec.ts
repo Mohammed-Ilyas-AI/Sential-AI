@@ -112,6 +112,38 @@ describe('InvestigationPage', () => {
     expect(advisory).toContain('1 ungrounded claim removed');
   });
 
+  it('renders a generated explanation from the fast tier', async () => {
+    focusDemoAccount();
+    api.explain.mockReturnValue(
+      of({
+        status: 'GENERATED' as const,
+        attempts: 1,
+        droppedClaims: 0,
+        advisory: {
+          assessmentId: 'assessment-under-test',
+          primaryReason: 'A 65.4% drain followed a new device and a new payee.',
+          recommendedAction: 'Contact the customer on the number held on file.',
+          generatedAt: '2026-09-24T11:32:00.000Z',
+        },
+      }),
+    );
+    const { host, settle } = await render();
+    (host.querySelector('sentinel-gemini-advisory button') as HTMLButtonElement).click();
+    await settle();
+    const advisory = text(host.querySelector('sentinel-gemini-advisory'));
+    expect(advisory).toContain('A 65.4% drain followed a new device and a new payee.');
+    expect(advisory).toContain('Contact the customer on the number held on file.');
+  });
+
+  it('says when sentinel-core has no Google credentials', async () => {
+    focusDemoAccount();
+    api.explain.mockReturnValue(of({ status: 'FALLBACK' as const, advisory: null, reason: 'MODEL_CREDENTIALS_UNAVAILABLE' as const, attempts: 1 }));
+    const { host, settle } = await render();
+    (host.querySelector('sentinel-gemini-advisory button') as HTMLButtonElement).click();
+    await settle();
+    expect(text(host.querySelector('sentinel-gemini-advisory [role="status"]'))).toContain('gcloud auth application-default login');
+  });
+
   it('says plainly when Gemini is unavailable and keeps the attribution on screen', async () => {
     focusDemoAccount();
     const pending = new Subject<AdvisoryOutcome<RiskExplanation>>();

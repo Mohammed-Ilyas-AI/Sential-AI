@@ -77,6 +77,7 @@ export class IntelligenceService implements ExplainAndSummarise {
       } catch (error) {
         if (!(error instanceof ModelUnavailableError)) throw error;
         if (error.reason === 'NOT_CONFIGURED') return { status: 'FALLBACK', advisory: null, reason: 'MODEL_NOT_CONFIGURED', attempts };
+        if (error.reason === 'CREDENTIALS') return { status: 'FALLBACK', advisory: null, reason: 'MODEL_CREDENTIALS_UNAVAILABLE', attempts };
         reason = 'MODEL_UNAVAILABLE';
       }
     }

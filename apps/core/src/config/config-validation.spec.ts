@@ -61,6 +61,30 @@ describe('loadCoreRuntimeConfig', () => {
     const { vertex } = loadCoreRuntimeConfig(minimalEnvironment);
     expect(vertex.fastModel).toBeUndefined();
     expect(vertex.deepModel).toBeUndefined();
+    expect(vertex.fastThinkingLevel).toBeUndefined();
+    expect(vertex.deepThinkingLevel).toBeUndefined();
+  });
+
+  it('reads the Gemini models, location and per-tier thinking level, and refuses an unknown level', () => {
+    const { vertex } = loadCoreRuntimeConfig({
+      ...minimalEnvironment,
+      GCP_PROJECT_ID: 'sentinel-test',
+      VERTEX_LOCATION: 'global',
+      GEMINI_FAST_MODEL: 'fast-model',
+      GEMINI_DEEP_MODEL: 'deep-model',
+      GEMINI_FAST_THINKING_LEVEL: 'minimal',
+    });
+    expect(vertex).toEqual({
+      projectId: 'sentinel-test',
+      location: 'global',
+      fastModel: 'fast-model',
+      deepModel: 'deep-model',
+      fastThinkingLevel: 'MINIMAL',
+      deepThinkingLevel: undefined,
+    });
+    expect(problemsOf({ ...minimalEnvironment, GEMINI_DEEP_THINKING_LEVEL: 'turbo' })).toEqual([
+      'GEMINI_DEEP_THINKING_LEVEL must be one of MINIMAL, LOW, MEDIUM, HIGH, got "turbo"',
+    ]);
   });
 
   it('requires an audience and service account for OIDC push verification', () => {

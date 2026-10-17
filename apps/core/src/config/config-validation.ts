@@ -1,6 +1,6 @@
 import { DEFAULT_RAPID_DRAIN_POLICY, type RapidDrainPolicy } from '@sentinel/domain';
 import type { EnvironmentVariables } from './environment.js';
-import type { CoreRuntimeConfig, PubSubPushVerification } from './runtime-config.js';
+import { GEMINI_THINKING_LEVELS, type CoreRuntimeConfig, type GeminiThinkingLevel, type PubSubPushVerification } from './runtime-config.js';
 
 export class ConfigurationError extends Error {
   constructor(readonly problems: readonly string[]) {
@@ -25,6 +25,13 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
     const value = Number(raw);
     if (!Number.isInteger(value)) problems.push(`${name} must be an integer, got "${raw}"`);
     return value;
+  };
+  const thinkingLevel = (name: string): GeminiThinkingLevel | undefined => {
+    const raw = optional(name);
+    if (raw === undefined) return undefined;
+    const level = GEMINI_THINKING_LEVELS.find((candidate) => candidate === raw.toUpperCase());
+    if (!level) problems.push(`${name} must be one of ${GEMINI_THINKING_LEVELS.join(', ')}, got "${raw}"`);
+    return level;
   };
 
   const rapidDrainPolicy: RapidDrainPolicy = {
@@ -63,6 +70,8 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
       location: optional('VERTEX_LOCATION') ?? 'asia-southeast1',
       fastModel: optional('GEMINI_FAST_MODEL'),
       deepModel: optional('GEMINI_DEEP_MODEL'),
+      fastThinkingLevel: thinkingLevel('GEMINI_FAST_THINKING_LEVEL'),
+      deepThinkingLevel: thinkingLevel('GEMINI_DEEP_THINKING_LEVEL'),
     },
     rapidDrainPolicy,
     designatedBillingPayeeIds: new Set(

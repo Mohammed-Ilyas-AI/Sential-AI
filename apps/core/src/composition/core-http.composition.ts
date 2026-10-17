@@ -50,7 +50,7 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
     ids,
     logger,
   });
-  const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids, clock, ...(modelGateway ? { modelGateway } : {}) });
+  const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids, clock, logger, ...(modelGateway ? { modelGateway } : {}) });
   const app = createApp({
     routes: [...controlPath.routes, ...intelligencePath.routes],
     corsAllowedOrigins: config.corsAllowedOrigins,

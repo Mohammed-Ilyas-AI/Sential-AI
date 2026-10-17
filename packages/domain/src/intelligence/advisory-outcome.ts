@@ -1,7 +1,7 @@
 import type { EvidenceBundle } from './evidence-bundle.js';
 
 /** Why the analyst sees the deterministic attribution alone (T§7). The protection is never affected. */
-export type AdvisoryFallbackReason = 'MODEL_NOT_CONFIGURED' | 'MODEL_UNAVAILABLE' | 'INVALID_RESPONSE';
+export type AdvisoryFallbackReason = 'MODEL_NOT_CONFIGURED' | 'MODEL_CREDENTIALS_UNAVAILABLE' | 'MODEL_UNAVAILABLE' | 'INVALID_RESPONSE';
 
 /**
  * The result of one advisory request. GENERATED and CACHED carry schema-validated, grounded output; FALLBACK

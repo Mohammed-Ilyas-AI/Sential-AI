@@ -4,7 +4,8 @@ import type { AdvisoryState } from '../../models/investigation-view';
 
 const FALLBACK_REASON: Readonly<Record<AdvisoryFallbackReason, string>> = {
   MODEL_NOT_CONFIGURED: 'No Gemini model is configured for this environment.',
-  MODEL_UNAVAILABLE: 'Gemini did not answer in time, twice.',
+  MODEL_CREDENTIALS_UNAVAILABLE: 'sentinel-core has no Google credentials for Vertex AI (locally: gcloud auth application-default login).',
+  MODEL_UNAVAILABLE: 'Gemini did not return a usable answer in time, twice. The sentinel-core log has the cause.',
   INVALID_RESPONSE: 'Gemini’s answer failed schema or grounding checks, twice.',
 };
 
