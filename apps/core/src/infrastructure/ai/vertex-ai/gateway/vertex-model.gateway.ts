@@ -1,4 +1,4 @@
-import { LATENCY_BUDGETS_MS, MODEL_JOB_TIER, type EvidenceBundle, type ModelJob, type ModelTier } from '@sentinel/domain';
+import { MODEL_JOB_TIER, MODEL_RESPONSE_MAX_RETRIES, type EvidenceBundle, type ModelJob } from '@sentinel/domain';
 import { GoogleAuth } from 'google-auth-library';
 import { ModelUnavailableError, type ModelGateway } from '../../../../modules/intelligence/application/ports/model-gateway.port.js';
 import { ModelNotConfiguredError, type ModelRouter } from '../model-router/model-router.js';
@@ -32,15 +32,17 @@ const RESPONSE_SCHEMAS: Partial<Readonly<Record<ModelJob, object>>> = {
 };
 
 /**
- * Whole structured responses, not streamed first tokens, so both tiers get the completion ceiling (T§10).
- * The fast tier's first-token ceiling (x4 = 8 s) was too short for a complete answer: measured on 17 Oct,
- * gemini-3.5-flash took 11.8 s for the explanation at its default thinking level and 2-8 s at MINIMAL, so every
- * Explain timed out twice and fell back. The fast tier stays fast through its thinking level, not its timeout.
+ * No per-feature deadline: a slow answer at a higher thinking level is still a valid answer. The only bound is
+ * the platform's. sentinel-core's Cloud Run request timeout is 300 s (infra/cloud-run/sentinel-core/service.yaml);
+ * 30 s is kept back so the analyst gets an honest fallback instead of a 504, and the rest is shared by the most
+ * calls one request can make (a first call plus MODEL_RESPONSE_MAX_RETRIES), so even the worst case fits.
  */
-const TIMEOUT_MS: Readonly<Record<ModelTier, number>> = {
-  FAST: LATENCY_BUDGETS_MS.geminiDeepComplete.ceiling,
-  DEEP: LATENCY_BUDGETS_MS.geminiDeepComplete.ceiling,
-};
+const CLOUD_RUN_REQUEST_TIMEOUT_MS = 300_000;
+const RESPONSE_MARGIN_MS = 30_000;
+export const MODEL_CALL_CEILING_MS = Math.floor((CLOUD_RUN_REQUEST_TIMEOUT_MS - RESPONSE_MARGIN_MS) / (1 + MODEL_RESPONSE_MAX_RETRIES));
+
+/** 429 and 5xx are worth one more try; any other 4xx will fail the same way again. */
+const isTransientStatus = (status: number): boolean => status === 429 || status >= 500;
 
 /** Vertex AI's Schema type is an upper-case enum; the schemas here are written in JSON Schema case. */
 function toVertexSchema(schema: unknown): unknown {
@@ -111,8 +113,8 @@ export class VertexModelGateway implements ModelGateway {
     const { projectId, location } = this.vertex;
     const thinkingLevel = tier === 'FAST' ? this.vertex.fastThinkingLevel : this.vertex.deepThinkingLevel;
     const url = `https://${endpointHost(location)}/v1/projects/${encodeURIComponent(projectId)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(model)}:generateContent`;
-    const failure = (reason: 'CREDENTIALS' | 'UNAVAILABLE', detail: string): ModelUnavailableError => {
-      this.diagnostics?.warn({ job, tier, model, location, reason, detail }, `Vertex AI ${job} failed: ${detail}`);
+    const failure = (reason: 'CREDENTIALS' | 'TIMED_OUT' | 'REJECTED' | 'TRANSIENT', detail: string): ModelUnavailableError => {
+      this.diagnostics?.warn({ job, tier, model, location, thinkingLevel, reason, detail }, `Vertex AI ${job} failed: ${detail}`);
       return new ModelUnavailableError(reason, `Vertex AI ${job}: ${detail}`);
     };
 
@@ -139,13 +141,16 @@ export class VertexModelGateway implements ModelGateway {
             ...(thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}),
           },
         }),
-        signal: AbortSignal.timeout(TIMEOUT_MS[tier]),
+        signal: AbortSignal.timeout(MODEL_CALL_CEILING_MS),
       });
     } catch (error) {
       const name = error instanceof Error ? error.name : 'unknown error';
-      throw failure('UNAVAILABLE', name === 'TimeoutError' ? `no complete response within ${TIMEOUT_MS[tier]} ms` : `request failed (${name})`);
+      if (name === 'TimeoutError') throw failure('TIMED_OUT', `no complete response within the ${MODEL_CALL_CEILING_MS} ms platform ceiling`);
+      throw failure('TRANSIENT', `request failed (${name})`);
     }
-    if (!response.ok) throw failure('UNAVAILABLE', `HTTP ${response.status} ${await vertexError(response)}`);
+    if (!response.ok) {
+      throw failure(isTransientStatus(response.status) ? 'TRANSIENT' : 'REJECTED', `HTTP ${response.status} ${await vertexError(response)}`);
+    }
 
     const candidate = firstCandidate(await response.json().catch(() => null));
     if (candidate?.finishReason !== undefined && candidate.finishReason !== 'STOP') {

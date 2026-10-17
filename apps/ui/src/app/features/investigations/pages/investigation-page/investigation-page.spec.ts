@@ -135,6 +135,17 @@ describe('InvestigationPage', () => {
     expect(advisory).toContain('Contact the customer on the number held on file.');
   });
 
+  it('says when Gemini did not finish within the server limit, without inventing an answer', async () => {
+    focusDemoAccount();
+    api.explain.mockReturnValue(of({ status: 'FALLBACK' as const, advisory: null, reason: 'MODEL_TIMED_OUT' as const, attempts: 1 }));
+    const { host, settle } = await render();
+    (host.querySelector('sentinel-gemini-advisory button') as HTMLButtonElement).click();
+    await settle();
+    const advisory = text(host.querySelector('sentinel-gemini-advisory'));
+    expect(advisory).toContain('did not finish within the server’s request limit');
+    expect(advisory).not.toContain('Generated, schema-validated');
+  });
+
   it('says when sentinel-core has no Google credentials', async () => {
     focusDemoAccount();
     api.explain.mockReturnValue(of({ status: 'FALLBACK' as const, advisory: null, reason: 'MODEL_CREDENTIALS_UNAVAILABLE' as const, attempts: 1 }));
@@ -152,6 +163,7 @@ describe('InvestigationPage', () => {
     (host.querySelector('sentinel-gemini-advisory button') as HTMLButtonElement).click();
     await settle();
     expect(text(host.querySelector('sentinel-gemini-advisory button'))).toBe('Explaining…');
+    expect(text(host.querySelector('sentinel-gemini-advisory [role="status"]'))).toContain('Gemini is reasoning over the evidence bundle');
     pending.next({ status: 'FALLBACK', advisory: null, reason: 'MODEL_NOT_CONFIGURED', attempts: 1 });
     await settle();
     expect(text(host.querySelector('sentinel-gemini-advisory [role="status"]'))).toContain('No Gemini model is configured');

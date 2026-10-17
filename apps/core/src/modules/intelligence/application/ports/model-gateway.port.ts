@@ -9,12 +9,16 @@ export interface ModelGateway {
 }
 
 /**
- * NOT_CONFIGURED (no model ID for the job's tier) and CREDENTIALS (no application default credentials) are not
- * retried: a second call cannot succeed. UNAVAILABLE covers timeouts, HTTP errors and truncated responses.
+ * Only TRANSIENT is retried (once): a network failure, 429 or 5xx. The rest cannot succeed on an identical call:
+ * NOT_CONFIGURED (no model ID for the tier), CREDENTIALS (no application default credentials), REJECTED (any
+ * other 4xx) and TIMED_OUT (no answer before the platform ceiling; repeating the same expensive call would only
+ * bill twice for the same delay).
  */
+export type ModelUnavailableReason = 'NOT_CONFIGURED' | 'CREDENTIALS' | 'TIMED_OUT' | 'REJECTED' | 'TRANSIENT';
+
 export class ModelUnavailableError extends Error {
   constructor(
-    readonly reason: 'NOT_CONFIGURED' | 'CREDENTIALS' | 'UNAVAILABLE',
+    readonly reason: ModelUnavailableReason,
     message: string,
   ) {
     super(message);

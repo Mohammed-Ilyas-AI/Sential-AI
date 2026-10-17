@@ -1,5 +1,5 @@
 import type { EvidenceBundle, ModelJob, RiskExplanation } from '@sentinel/domain';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { IntelligenceService } from './intelligence.service.js';
 import type { ExplanationCache } from './ports/explanation-cache.port.js';
 import { ModelUnavailableError, type ModelGateway } from './ports/model-gateway.port.js';
@@ -138,9 +138,44 @@ describe('IntelligenceService', () => {
     expect(await serviceWith(model).summariseCase(bundle)).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_NOT_CONFIGURED', attempts: 1 });
   });
 
-  it('retries an outage once, then reports MODEL_UNAVAILABLE', async () => {
-    const outage = () => new ModelUnavailableError('UNAVAILABLE', 'timeout');
+  it('retries a transient outage once, then reports MODEL_UNAVAILABLE', async () => {
+    const outage = () => new ModelUnavailableError('TRANSIENT', 'HTTP 503');
     expect(await serviceWith(new ScriptedModel([outage(), outage()])).summariseCase(bundle)).toMatchObject({ status: 'FALLBACK', reason: 'MODEL_UNAVAILABLE', attempts: 2 });
+  });
+
+  it('retries a transient outage once and returns the answer that follows', async () => {
+    const model = new ScriptedModel([new ModelUnavailableError('TRANSIENT', 'HTTP 429'), grounded]);
+    expect(await serviceWith(model).summariseCase(bundle)).toMatchObject({ status: 'GENERATED', attempts: 2 });
+  });
+
+  it('never repeats a call that reached the platform ceiling or was rejected: one call, one bill', async () => {
+    const timedOut = new ScriptedModel([new ModelUnavailableError('TIMED_OUT', 'ceiling'), grounded]);
+    expect(await serviceWith(timedOut).summariseCase(bundle)).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_TIMED_OUT', attempts: 1 });
+    expect(timedOut.jobs).toHaveLength(1);
+    const rejected = new ScriptedModel([new ModelUnavailableError('REJECTED', 'HTTP 400'), grounded]);
+    expect(await serviceWith(rejected).summariseCase(bundle)).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_UNAVAILABLE', attempts: 1 });
+    expect(rejected.jobs).toHaveLength(1);
+  });
+
+  it('shares one model call between simultaneous Explain requests for the same assessment', async () => {
+    let release: (value: unknown) => void = () => undefined;
+    const calls: ModelJob[] = [];
+    const slowModel: ModelGateway = {
+      generate: (job) => {
+        calls.push(job);
+        return new Promise((resolve) => {
+          release = resolve;
+        });
+      },
+    };
+    const service = serviceWith(slowModel);
+    const first = service.explainRisk(bundle, 'assess-6');
+    const second = service.explainRisk(bundle, 'assess-6');
+    await vi.waitFor(() => expect(calls).toHaveLength(1));
+    release({ primaryReason: 'A 65.4% drain followed a new device', recommendedAction: 'Contact the customer' });
+    expect(await first).toMatchObject({ status: 'GENERATED', attempts: 1 });
+    expect(await second).toBe(await first);
+    expect(calls).toEqual(['RISK_EXPLANATION']);
   });
 
   it('caches a generated explanation by assessmentId and serves it without a model call', async () => {

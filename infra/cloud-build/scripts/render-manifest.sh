@@ -14,6 +14,8 @@ rendered="$(sed \
   -e "s|__MIN_INSTANCES__|${MIN_INSTANCES:-0}|g" \
   -e "s|__UI_ORIGINS__|${UI_ORIGINS}|g" \
   -e "s|__UI_ORIGIN__|${UI_ORIGIN}|g" \
+  -e "s|__PUBLIC_UI_ORIGIN__|${PUBLIC_UI_ORIGIN}|g" \
+  -e "s|__PUBLIC_UI_HOST__|${PUBLIC_UI_HOST}|g" \
   -e "s|__CORE_URL__|${CORE_URL}|g" \
   -e "s|__STREAM_URL__|${STREAM_URL}|g" \
   -e "s|__CORE_PUSH_AUDIENCE__|${CORE_PUSH_AUDIENCE}|g" \

@@ -16,6 +16,8 @@ COPY infra/cloud-run/sentinel-ui/default.conf.template /etc/nginx/templates/defa
 # Local defaults; Cloud Run sets the deployed values (infra/cloud-run/sentinel-ui/service.yaml).
 ENV CORE_API_BASE_URL=http://localhost:8080 \
     STREAM_URL=ws://localhost:8081/stream \
-    DEMO_TIME_COMPRESSION=true
+    DEMO_TIME_COMPRESSION=true \
+    PUBLIC_UI_ORIGIN=http://localhost:8080 \
+    PUBLIC_UI_HOST=localhost
 COPY --from=build /workspace/apps/ui/dist/sentinel-ui/browser /usr/share/nginx/html
 EXPOSE 8080

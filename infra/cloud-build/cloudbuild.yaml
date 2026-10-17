@@ -13,17 +13,17 @@ substitutions:
   _MIN_INSTANCES: '0'
   # The 24-hour hold runs as 24 seconds and the UI labels it "demo time ×3600".
   _DEMO_TIME_COMPRESSION: 'true'
-  # Other exact addresses the UI is opened under (comma-separated), added to the core CORS and stream origin
-  # allowlists next to the derived run.app URL. Exact origins only: never a wildcard.
-  _EXTRA_UI_ORIGINS: 'https://sentinal-ai.cloud.run'
+  # The one public address of the application, and the only browser origin core and stream accept. The generated
+  # run.app UI addresses redirect here, so judges and users only ever see this hostname. Exact origin, no path.
+  _PUBLIC_UI_ORIGIN: 'https://sentinal-ai.cloud.run'
   # Vertex AI model IDs, verified on 17 Oct 2026 with a direct generateContent call in the global location.
   # Empty means the investigation advisory reports MODEL_NOT_CONFIGURED.
   _GEMINI_FAST_MODEL: 'gemini-3.5-flash'
   _GEMINI_DEEP_MODEL: 'gemini-3.5-flash'
-  # Gemini 3 thinkingConfig.thinkingLevel per tier ('' sends none). Explain (fast tier) needs MINIMAL to answer
-  # within its timeout; the case summary keeps the model default.
-  _GEMINI_FAST_THINKING_LEVEL: 'MINIMAL'
-  _GEMINI_DEEP_THINKING_LEVEL: ''
+  # Gemini 3 thinkingConfig.thinkingLevel per tier ('' sends none): Explain reasons at MEDIUM, the case summary
+  # at HIGH. Requests are bounded only by the Cloud Run request timeout, not a per-feature deadline.
+  _GEMINI_FAST_THINKING_LEVEL: 'MEDIUM'
+  _GEMINI_DEEP_THINKING_LEVEL: 'HIGH'
   # Vertex AI location for Gemini calls. 'global' serves every current Gemini model; a region may not.
   _VERTEX_LOCATION: 'global'
 
@@ -103,7 +103,7 @@ steps:
       - TAG=$SHORT_SHA
       - MIN_INSTANCES=${_MIN_INSTANCES}
       - DEMO_TIME_COMPRESSION=${_DEMO_TIME_COMPRESSION}
-      - EXTRA_UI_ORIGINS=${_EXTRA_UI_ORIGINS}
+      - PUBLIC_UI_ORIGIN=${_PUBLIC_UI_ORIGIN}
       - GEMINI_FAST_MODEL=${_GEMINI_FAST_MODEL}
       - GEMINI_DEEP_MODEL=${_GEMINI_DEEP_MODEL}
       - VERTEX_LOCATION=${_VERTEX_LOCATION}
@@ -124,6 +124,6 @@ steps:
           gcloud run services add-iam-policy-binding "$${service}" --region "${_REGION}" \
             --member=allUsers --role=roles/run.invoker --quiet > /dev/null
         done
-        echo "UI:     $${UI_ORIGIN}"
+        echo "UI:     $${PUBLIC_UI_ORIGIN}"
         echo "Core:   $${CORE_URL}"
         echo "Stream: $${STREAM_URL}"

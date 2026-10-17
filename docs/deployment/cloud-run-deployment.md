@@ -23,6 +23,7 @@ first Cloud Build run is their validation.
 |---|---|
 | UI runtime configuration | `sentinel-ui` renders `/runtime-config.json` from `CORE_API_BASE_URL`, `STREAM_URL` and `DEMO_TIME_COMPRESSION` at container start (nginx template); the browser never falls back to localhost |
 | Service URLs | Derived from `$PROJECT_NUMBER` and the region (`service-urls.sh`), so the first deploy knows every URL |
+| Public address | `_PUBLIC_UI_ORIGIN` (`https://sentinal-ai.cloud.run`) is the only address users and judges open and the only browser origin in the core CORS and stream allowlists. `sentinel-ui` answers any other hostname (its generated run.app URLs) with a 301 to it. The core and stream run.app URLs stay as they are: the browser calls them for the API and the live stream |
 | Push authentication | The subscription signs its OIDC token for the push endpoint URL as `sentinel-pubsub-push`; `sentinel-core` verifies exactly that audience and account |
 | Atlas network access | Direct VPC egress from core and stream through Cloud NAT with one reserved IP, allowed in Atlas as a `/32` |
 | Idle cost | `_MIN_INSTANCES=0` by default; raise to `1` for demo windows |
@@ -32,7 +33,7 @@ first Cloud Build run is their validation.
 
 | Item | Why |
 |---|---|
-| Model IDs | `_GEMINI_FAST_MODEL` / `_GEMINI_DEEP_MODEL` default to `gemini-3.5-flash` (verified 17 Oct 2026); `_VERTEX_LOCATION` defaults to `global`; `_GEMINI_FAST_THINKING_LEVEL` defaults to `MINIMAL` so Explain answers within its timeout. Empty model IDs make the advisory report `MODEL_NOT_CONFIGURED` |
+| Model IDs | `_GEMINI_FAST_MODEL` / `_GEMINI_DEEP_MODEL` default to `gemini-3.5-flash` (verified 17 Oct 2026); `_VERTEX_LOCATION` defaults to `global`; `_GEMINI_FAST_THINKING_LEVEL` defaults to `MEDIUM` (Explain) and `_GEMINI_DEEP_THINKING_LEVEL` to `HIGH` (case summary); a model call is bounded only by the Cloud Run request timeout (300 s, of which each call may use 135 s). Empty model IDs make the advisory report `MODEL_NOT_CONFIGURED` |
 | Demo login | The single labelled demo login is not built; the core REST API has no authentication |
 
 ## IAM deviation from C§8

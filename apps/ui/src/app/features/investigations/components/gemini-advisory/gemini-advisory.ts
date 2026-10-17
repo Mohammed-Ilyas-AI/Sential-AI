@@ -5,7 +5,8 @@ import type { AdvisoryState } from '../../models/investigation-view';
 const FALLBACK_REASON: Readonly<Record<AdvisoryFallbackReason, string>> = {
   MODEL_NOT_CONFIGURED: 'No Gemini model is configured for this environment.',
   MODEL_CREDENTIALS_UNAVAILABLE: 'sentinel-core has no Google credentials for Vertex AI (locally: gcloud auth application-default login).',
-  MODEL_UNAVAILABLE: 'Gemini did not return a usable answer in time, twice. The sentinel-core log has the cause.',
+  MODEL_TIMED_OUT: 'Gemini did not finish within the server’s request limit. Try again; the sentinel-core log has the details.',
+  MODEL_UNAVAILABLE: 'Gemini returned an error or could not be reached. The sentinel-core log has the cause.',
   INVALID_RESPONSE: 'Gemini’s answer failed schema or grounding checks, twice.',
 };
 
@@ -31,6 +32,9 @@ const FALLBACK_REASON: Readonly<Record<AdvisoryFallbackReason, string>> = {
           </button>
         </div>
         @switch (explanation().status) {
+          @case ('LOADING') {
+            <p class="provenance" role="status" aria-live="polite">{{ waiting }}</p>
+          }
           @case ('FAILED') {
             <p class="fallback" role="status">sentinel-core could not be reached. The deterministic attribution stands.</p>
           }
@@ -56,6 +60,9 @@ const FALLBACK_REASON: Readonly<Record<AdvisoryFallbackReason, string>> = {
           </button>
         </div>
         @switch (summary().status) {
+          @case ('LOADING') {
+            <p class="provenance" role="status" aria-live="polite">{{ waiting }}</p>
+          }
           @case ('FAILED') {
             <p class="fallback" role="status">sentinel-core could not be reached. The deterministic attribution stands.</p>
           }
@@ -188,4 +195,5 @@ export class GeminiAdvisory {
   readonly explain = output();
   readonly summarise = output();
   protected readonly fallbackReason = FALLBACK_REASON;
+  protected readonly waiting = 'Gemini is reasoning over the evidence bundle; this can take up to a minute. The deterministic attribution stands meanwhile.';
 }

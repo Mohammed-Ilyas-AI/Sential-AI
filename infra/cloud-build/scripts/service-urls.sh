@@ -8,8 +8,15 @@
 
 export CORE_URL="https://sentinel-core-${PROJECT_NUMBER}.${REGION}.run.app"
 export UI_ORIGIN="https://sentinel-ui-${PROJECT_NUMBER}.${REGION}.run.app"
-# Every exact origin the browser may call core and stream from: the derived URL plus any others the UI is served at.
-export UI_ORIGINS="${UI_ORIGIN}${EXTRA_UI_ORIGINS:+,${EXTRA_UI_ORIGINS}}"
+# The public address users and judges open. Defaults to the derived URL so a fresh project still works.
+export PUBLIC_UI_ORIGIN="${PUBLIC_UI_ORIGIN:-${UI_ORIGIN}}"
+if [[ ! "${PUBLIC_UI_ORIGIN}" =~ ^https://[a-z0-9.-]+$ ]]; then
+  echo "service-urls: PUBLIC_UI_ORIGIN must be an exact https origin with no path, got '${PUBLIC_UI_ORIGIN}'" >&2
+  return 1
+fi
+export PUBLIC_UI_HOST="${PUBLIC_UI_ORIGIN#https://}"
+# The only browser origin core and stream accept: the run.app UI addresses redirect to the public one.
+export UI_ORIGINS="${PUBLIC_UI_ORIGIN}"
 export STREAM_URL="wss://sentinel-stream-${PROJECT_NUMBER}.${REGION}.run.app/stream"
 export PUSH_ENDPOINT="${CORE_URL}/internal/pubsub/transaction-events"
 # The push subscription signs its OIDC token for this audience, and sentinel-core accepts no other.

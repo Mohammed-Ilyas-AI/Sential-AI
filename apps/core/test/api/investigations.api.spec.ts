@@ -107,7 +107,7 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
   });
 
   it('falls back during an outage, and the hold and the score are exactly as before', async () => {
-    model.script = [new ModelUnavailableError('UNAVAILABLE', 'timeout'), new ModelUnavailableError('UNAVAILABLE', 'timeout')];
+    model.script = [new ModelUnavailableError('TRANSIENT', 'HTTP 503'), new ModelUnavailableError('TRANSIENT', 'HTTP 503')];
     expect((await post<CaseSummary>('case-summary')).body).toMatchObject({ status: 'FALLBACK', reason: 'MODEL_UNAVAILABLE', attempts: 2 });
     const record = await persistence.decisions.findByIdempotencyKey(
       playback.transfers.filter((transfer) => transfer.step.request.sourceAccountToken === VICTIM).at(-1)?.step.request.idempotencyKey ?? '',
@@ -117,9 +117,19 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
   });
 
   it('explains on the fast job and keeps the hold and the score when the explanation falls back', async () => {
-    model.script = [new ModelUnavailableError('UNAVAILABLE', 'timeout'), new ModelUnavailableError('UNAVAILABLE', 'timeout')];
+    model.script = [new ModelUnavailableError('TRANSIENT', 'HTTP 503'), new ModelUnavailableError('TRANSIENT', 'HTTP 503')];
     expect((await post<RiskExplanation>('explanation')).body).toMatchObject({ status: 'FALLBACK', reason: 'MODEL_UNAVAILABLE', attempts: 2 });
     expect(model.calls.map((call) => call.job)).toEqual(['RISK_EXPLANATION', 'RISK_EXPLANATION']);
+    const record = await persistence.decisions.findByIdempotencyKey(
+      playback.transfers.filter((transfer) => transfer.step.request.sourceAccountToken === VICTIM).at(-1)?.step.request.idempotencyKey ?? '',
+    );
+    expect(record).toMatchObject({ decision: 'HOLD', riskScore: 95 });
+  });
+
+  it('reports a call that reached the platform ceiling once, without retrying, and the decision is untouched', async () => {
+    model.script = [new ModelUnavailableError('TIMED_OUT', 'ceiling'), { primaryReason: 'never used', recommendedAction: 'never used' }];
+    expect((await post<RiskExplanation>('explanation')).body).toEqual({ status: 'FALLBACK', advisory: null, reason: 'MODEL_TIMED_OUT', attempts: 1 });
+    expect(model.calls).toHaveLength(1);
     const record = await persistence.decisions.findByIdempotencyKey(
       playback.transfers.filter((transfer) => transfer.step.request.sourceAccountToken === VICTIM).at(-1)?.step.request.idempotencyKey ?? '',
     );

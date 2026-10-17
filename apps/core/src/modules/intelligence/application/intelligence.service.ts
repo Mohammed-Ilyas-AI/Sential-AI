@@ -10,7 +10,7 @@ import {
 import type { Clock } from '../../../platform/time/clock.js';
 import type { ExplainAndSummarise } from './explain-and-summarise.use-case.js';
 import type { ExplanationCache } from './ports/explanation-cache.port.js';
-import { ModelUnavailableError, type ModelGateway } from './ports/model-gateway.port.js';
+import { ModelUnavailableError, type ModelGateway, type ModelUnavailableReason } from './ports/model-gateway.port.js';
 import type { ResponseSchemaValidator } from './response-schema.validator.js';
 import type { SourceFieldValidator } from './source-field.validator.js';
 
@@ -21,6 +21,14 @@ export interface IntelligenceServiceDependencies {
   readonly sourceFields: SourceFieldValidator;
   readonly clock: Clock;
 }
+
+/** Failures that end the request at once: an identical second call cannot succeed or would only bill twice. */
+const FINAL_FAILURES: Readonly<Partial<Record<ModelUnavailableReason, AdvisoryFallbackReason>>> = {
+  NOT_CONFIGURED: 'MODEL_NOT_CONFIGURED',
+  CREDENTIALS: 'MODEL_CREDENTIALS_UNAVAILABLE',
+  TIMED_OUT: 'MODEL_TIMED_OUT',
+  REJECTED: 'MODEL_UNAVAILABLE',
+};
 
 interface Accepted<TAdvisory> {
   readonly advisory: TAdvisory;
@@ -33,9 +41,20 @@ interface Accepted<TAdvisory> {
  * renders the deterministic attribution alone. Nothing here can change a score, a decision or a hold.
  */
 export class IntelligenceService implements ExplainAndSummarise {
+  /** One model call per assessment at a time: a second Explain while the first is running shares its result. */
+  private readonly explaining = new Map<string, Promise<AdvisoryOutcome<RiskExplanation>>>();
+
   constructor(private readonly dependencies: IntelligenceServiceDependencies) {}
 
-  async explainRisk(evidence: EvidenceBundle, assessmentId: string): Promise<AdvisoryOutcome<RiskExplanation>> {
+  explainRisk(evidence: EvidenceBundle, assessmentId: string): Promise<AdvisoryOutcome<RiskExplanation>> {
+    const running = this.explaining.get(assessmentId);
+    if (running) return running;
+    const explanation = this.explainOnce(evidence, assessmentId).finally(() => this.explaining.delete(assessmentId));
+    this.explaining.set(assessmentId, explanation);
+    return explanation;
+  }
+
+  private async explainOnce(evidence: EvidenceBundle, assessmentId: string): Promise<AdvisoryOutcome<RiskExplanation>> {
     const { explanations, responseSchemas, clock } = this.dependencies;
     const cached = await explanations.find(assessmentId);
     if (cached) return { status: 'CACHED', advisory: cached, attempts: 0, droppedClaims: 0 };
@@ -76,8 +95,8 @@ export class IntelligenceService implements ExplainAndSummarise {
         reason = 'INVALID_RESPONSE';
       } catch (error) {
         if (!(error instanceof ModelUnavailableError)) throw error;
-        if (error.reason === 'NOT_CONFIGURED') return { status: 'FALLBACK', advisory: null, reason: 'MODEL_NOT_CONFIGURED', attempts };
-        if (error.reason === 'CREDENTIALS') return { status: 'FALLBACK', advisory: null, reason: 'MODEL_CREDENTIALS_UNAVAILABLE', attempts };
+        const final = FINAL_FAILURES[error.reason];
+        if (final) return { status: 'FALLBACK', advisory: null, reason: final, attempts };
         reason = 'MODEL_UNAVAILABLE';
       }
     }

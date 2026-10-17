@@ -72,15 +72,16 @@ describe('loadCoreRuntimeConfig', () => {
       VERTEX_LOCATION: 'global',
       GEMINI_FAST_MODEL: 'fast-model',
       GEMINI_DEEP_MODEL: 'deep-model',
-      GEMINI_FAST_THINKING_LEVEL: 'minimal',
+      GEMINI_FAST_THINKING_LEVEL: 'medium',
+      GEMINI_DEEP_THINKING_LEVEL: 'HIGH',
     });
     expect(vertex).toEqual({
       projectId: 'sentinel-test',
       location: 'global',
       fastModel: 'fast-model',
       deepModel: 'deep-model',
-      fastThinkingLevel: 'MINIMAL',
-      deepThinkingLevel: undefined,
+      fastThinkingLevel: 'MEDIUM',
+      deepThinkingLevel: 'HIGH',
     });
     expect(problemsOf({ ...minimalEnvironment, GEMINI_DEEP_THINKING_LEVEL: 'turbo' })).toEqual([
       'GEMINI_DEEP_THINKING_LEVEL must be one of MINIMAL, LOW, MEDIUM, HIGH, got "turbo"',

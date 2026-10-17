@@ -14,11 +14,16 @@ deterministic policy gate, and uses Gemini on Vertex AI to explain decisions tha
 Built for the AI Builder Cup 2026, theme **BFSI — Intelligent Risk, Fraud & Financial Experiences**. Designed as
 a multi-tenant platform; demonstrated as a single deployment on synthetic data.
 
+**Live application:** <https://sentinal-ai.cloud.run> — the investigation workspace is at
+<https://sentinal-ai.cloud.run/investigations>. This is the only public address; the generated Cloud Run UI
+addresses redirect to it.
+
 ## Status
 
-Architecture skeleton. Contracts, boundaries, composition roots, test boundaries and deployment manifests are in
-place; business capabilities are wired but not implemented (they answer `501 not_implemented`). Nothing is
-deployed yet.
+Deployed on Cloud Run (asia-southeast1) from Cloud Build on every push to `main`. The deterministic control path,
+the SG-RD-50 gate with its hold cascade, the live stream, the Control Tower, Alerts & Cases and the investigation
+workspace with Gemini on Vertex AI (`gemini-3.5-flash`, explanation and case summary) are working. The entity-graph
+screen and the case report are not built yet.
 
 ## Stack
 

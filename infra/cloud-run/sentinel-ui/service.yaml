@@ -28,3 +28,7 @@ spec:
               value: __STREAM_URL__
             - name: DEMO_TIME_COMPRESSION
               value: '__DEMO_TIME_COMPRESSION__'
+            - name: PUBLIC_UI_ORIGIN
+              value: __PUBLIC_UI_ORIGIN__
+            - name: PUBLIC_UI_HOST
+              value: __PUBLIC_UI_HOST__
