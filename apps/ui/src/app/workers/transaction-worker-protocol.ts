@@ -13,6 +13,11 @@ export interface TapeRow {
   readonly decision: DecisionRecord['decision'];
   readonly occurredAt: string;
   readonly decidedAt: string;
+  /** For the audit log: the policy and ruleset in force, why, and the trace that joins logs and events. */
+  readonly reasonCodes: readonly string[];
+  readonly policyVersion: string;
+  readonly rulesetVersion: string;
+  readonly traceId: string;
 }
 
 /** Only accounts that changed in a batch, each with its latest decision. */

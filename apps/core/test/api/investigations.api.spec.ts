@@ -86,6 +86,20 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect(JSON.stringify(evidence)).not.toContain(DEMO_TAKEOVER_01.accountDisplayId);
   });
 
+  it('follows the money: the account own transfers lead to the flagged entities observed around the destination', async () => {
+    const { body } = await callJson<InvestigationEvidence>(harness.baseUrl, 'GET', `/v1/investigations/${finalAssessmentId()}/evidence`);
+    const { neighbourhood } = body.evidence;
+    expect(neighbourhood.rootId).toBe(VICTIM);
+    const ownTransfers = neighbourhood.edges.filter((edge) => edge.from === VICTIM && edge.kind === 'TRANSFERRED_TO');
+    expect(ownTransfers.length).toBeGreaterThan(0);
+    expect(ownTransfers.every((edge) => edge.evidence.linkage === 'DIRECT' && edge.evidence.tenantScope === 'OWN')).toBe(true);
+    const destinations = new Set(ownTransfers.map((edge) => edge.to));
+    const secondHop = neighbourhood.edges.filter((edge) => destinations.has(edge.from));
+    const flagged = new Set(neighbourhood.nodes.filter((node) => node.flagged).map((node) => node.id));
+    expect(secondHop.some((edge) => flagged.has(edge.to))).toBe(true);
+    expect(neighbourhood.nodes.length).toBeLessThanOrEqual(40);
+  });
+
   it('answers 404 for an assessment that does not exist', async () => {
     expect((await callJson(harness.baseUrl, 'GET', '/v1/investigations/no-such-assessment/evidence')).status).toBe(404);
   });

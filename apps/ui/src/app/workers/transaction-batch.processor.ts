@@ -16,6 +16,10 @@ function toTapeRow(decision: DecisionRecord): TapeRow {
     decision: decision.decision,
     occurredAt: decision.occurredAt,
     decidedAt: decision.decidedAt,
+    reasonCodes: decision.reasonCodes,
+    policyVersion: decision.policyVersion,
+    rulesetVersion: decision.rulesetVersion,
+    traceId: decision.traceId,
   };
 }
 

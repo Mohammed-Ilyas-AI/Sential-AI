@@ -8,6 +8,7 @@ import {
 } from '@sentinel/domain';
 import { ApplicationError } from '../../../platform/errors/application-error.js';
 import type { CompileEvidenceBundle } from './compile-evidence-bundle.use-case.js';
+import { joinOwnTransfers, ownTransferLinks } from './own-transfer.links.js';
 import type { EvidenceSource } from './ports/evidence-source.port.js';
 
 /** Device and payee history beyond this adds cost without adding evidence. */
@@ -29,7 +30,8 @@ function capped(neighbourhood: GraphNeighbourhood): GraphNeighbourhood {
 
 /**
  * Assembles the one typed object Gemini receives (T§7): synthetic identifiers only, the assessment with its
- * contributions[] exactly as recorded, the last 50 transactions, two hops capped at 40 nodes. Never a dump.
+ * contributions[] exactly as recorded, the last 50 transactions, two hops capped at 40 nodes (the account's own
+ * transfers, then what the network observed around each destination). Never a dump.
  */
 export class EvidenceBundleCompiler implements CompileEvidenceBundle {
   constructor(private readonly evidence: EvidenceSource) {}
@@ -50,6 +52,10 @@ export class EvidenceBundleCompiler implements CompileEvidenceBundle {
     ]);
     if (!account) throw new ApplicationError('NOT_FOUND', `No account for assessment ${assessmentId}`);
 
+    // Hop 1 is where this account's own money went; hop 2 is what the network observed around each destination.
+    const links = ownTransferLinks(accountId, recentTransactions);
+    const destinationNeighbourhoods = await Promise.all(links.map((link) => this.evidence.neighbourhood(link.destinationId, 1)));
+
     return {
       account,
       assessment,
@@ -59,7 +65,7 @@ export class EvidenceBundleCompiler implements CompileEvidenceBundle {
       payeeHistory: payeeHistory.slice(0, SECURITY_HISTORY_CAP),
       priorAlerts: priorAlerts.slice(0, PRIOR_ALERTS_CAP),
       interventions,
-      neighbourhood: capped(neighbourhood),
+      neighbourhood: capped(joinOwnTransfers(account, neighbourhood, links, destinationNeighbourhoods)),
     };
   }
 }

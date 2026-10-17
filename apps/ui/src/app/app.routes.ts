@@ -1,13 +1,5 @@
 import type { Routes } from '@angular/router';
 import { Shell } from './layout/shell/shell';
-import type { ModuleId } from './layout/module-overview/module-catalogue';
-
-const moduleOverview = (path: ModuleId, title: string) => ({
-  path,
-  title: `${title} · SENTINEL AI`,
-  data: { moduleId: path },
-  loadComponent: () => import('./layout/module-overview/module-overview-page').then((page) => page.ModuleOverviewPage),
-});
 
 /** Every feature is lazy-loaded through its public index.ts. */
 export const routes: Routes = [
@@ -41,12 +33,12 @@ export const routes: Routes = [
         path: 'cases',
         loadChildren: () => import('./features/cases').then((feature) => feature.CASES_ROUTES),
       },
-      moduleOverview('accounts', 'Accounts'),
-      moduleOverview('interventions', 'Interventions'),
-      moduleOverview('policy', 'Policy & rules'),
-      moduleOverview('analytics', 'Analytics & reports'),
-      moduleOverview('integrations', 'Integrations'),
-      moduleOverview('audit-logs', 'Audit logs'),
+      { path: 'accounts', loadChildren: () => import('./features/accounts').then((feature) => feature.ACCOUNTS_ROUTES) },
+      { path: 'interventions', loadChildren: () => import('./features/interventions').then((feature) => feature.INTERVENTIONS_ROUTES) },
+      { path: 'policy', loadChildren: () => import('./features/policy').then((feature) => feature.POLICY_ROUTES) },
+      { path: 'analytics', loadChildren: () => import('./features/analytics').then((feature) => feature.ANALYTICS_ROUTES) },
+      { path: 'integrations', loadChildren: () => import('./features/integrations').then((feature) => feature.INTEGRATIONS_ROUTES) },
+      { path: 'audit-logs', loadChildren: () => import('./features/audit-logs').then((feature) => feature.AUDIT_LOGS_ROUTES) },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -1,14 +1,17 @@
 import type { EdgeEvidence, GraphEdgeKind, NodeKind } from '@sentinel/domain';
 
-/** Renderer-agnostic scene. Any graph library renders this; none of them defines it. */
+/** Renderer-agnostic scene built from the evidence bundle's neighbourhood. */
 export interface GraphSceneNode {
   readonly id: string;
   readonly kind: NodeKind;
   readonly label: string;
   /** Flagged nodes carry a persistent mark, not only a colour. */
   readonly flagged: boolean;
-  /** The dashed "unobserved downstream" node where a trace stops. */
-  readonly unobserved: boolean;
+  /** Hops from the account under investigation: 0, 1 or 2. */
+  readonly hop: number;
+  readonly institutionId?: string;
+  readonly riskIndicators: readonly string[];
+  readonly txCount: number;
 }
 
 export interface GraphSceneEdge {
@@ -16,12 +19,9 @@ export interface GraphSceneEdge {
   readonly from: string;
   readonly to: string;
   readonly kind: GraphEdgeKind;
+  /** Minor units moved for TRANSFERRED_TO, otherwise an event count. */
+  readonly weight: number;
   readonly evidence: EdgeEvidence;
-}
-
-export interface GraphScene {
-  readonly nodes: readonly GraphSceneNode[];
-  readonly edges: readonly GraphSceneEdge[];
 }
 
 export interface NodePosition {
@@ -29,6 +29,10 @@ export interface NodePosition {
   readonly y: number;
 }
 
-export interface PositionedGraphScene extends GraphScene {
+export interface PositionedGraphScene {
+  readonly rootId: string;
+  readonly nodes: readonly GraphSceneNode[];
+  readonly edges: readonly GraphSceneEdge[];
   readonly positions: Readonly<Record<string, NodePosition>>;
+  readonly truncated: boolean;
 }
