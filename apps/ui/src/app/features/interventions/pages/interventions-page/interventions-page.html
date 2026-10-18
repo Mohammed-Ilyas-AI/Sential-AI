@@ -1,0 +1,81 @@
+<header class="head">
+  <p class="eyebrow">Interventions</p>
+  <h1>Intervention <span class="emphasis">Management</span></h1>
+  <p class="lede">Every policy hold the gate has placed, what has happened to it since, and its full audit trail.</p>
+</header>
+
+<section class="kpis" aria-label="Intervention figures">
+  <div class="kpi" data-tone="accent">
+    <span class="icon"><sentinel-icon name="intervention" [size]="22" /></span>
+    <span class="text"><span class="label">Total interventions</span><b class="sentinel-mono">{{ facade.kpis().total }}</b></span>
+    <span class="hint">{{ facade.kpis().records }} audit records</span>
+  </div>
+  <div class="kpi" data-tone="critical">
+    <span class="icon"><sentinel-icon name="lock" [size]="22" /></span>
+    <span class="text"><span class="label">Active holds</span><b class="sentinel-mono">{{ facade.kpis().held }}</b></span>
+  </div>
+  <div class="kpi" data-tone="success">
+    <span class="icon"><sentinel-icon name="check" [size]="22" /></span>
+    <span class="text"><span class="label">Released</span><b class="sentinel-mono">{{ facade.kpis().released }}</b></span>
+  </div>
+  <div class="kpi" data-tone="warning">
+    <span class="icon"><sentinel-icon name="shieldAlert" [size]="22" /></span>
+    <span class="text"><span class="label">Rejected / cancelled</span><b class="sentinel-mono">{{ facade.kpis().closed }}</b></span>
+    <span class="hint">{{ facade.kpis().rejected }} fraud · {{ facade.kpis().cancelled }} cancelled</span>
+  </div>
+</section>
+
+<div class="filters" role="search" aria-label="Search and filter interventions">
+  <label class="search">
+    <sentinel-icon name="search" [size]="18" />
+    <input type="search" placeholder="Search account, transaction or record…" aria-label="Search interventions" [value]="facade.filters().query" (input)="setFilter('query', $any($event.target).value)" />
+  </label>
+  <label>
+    <span>Intervention type</span>
+    <select [value]="facade.filters().kind" (change)="setFilter('kind', $any($event.target).value)">
+      <option value="ALL">All types</option>
+      <option value="THRESHOLD">Threshold hold</option>
+      <option value="CASCADE">Hold cascade</option>
+    </select>
+  </label>
+  <label>
+    <span>Status</span>
+    <select [value]="facade.filters().state" (change)="setFilter('state', $any($event.target).value)">
+      <option value="ALL">All statuses</option>
+      <option value="HELD">Held</option>
+      <option value="RELEASED">Released</option>
+      <option value="REJECTED">Rejected</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+  </label>
+  <label>
+    <span>Risk level</span>
+    <select [value]="facade.filters().band" (change)="setFilter('band', $any($event.target).value)">
+      <option value="ALL">All levels</option>
+      <option value="HIGH">High and critical</option>
+      <option value="ELEVATED">Elevated</option>
+      <option value="LOW">Low</option>
+    </select>
+  </label>
+  <label>
+    <span>Bank / institution</span>
+    <select [value]="facade.filters().institution" (change)="setFilter('institution', $any($event.target).value)">
+      <option value="ALL">All banks</option>
+      @for (institution of facade.institutions(); track institution) {
+        <option [value]="institution">{{ institution | institutionLabel }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span>Held</span>
+    <select [value]="facade.filters().range" (change)="setFilter('range', $any($event.target).value)">
+      <option value="ALL">Any time</option>
+      <option value="1H">Last hour</option>
+      <option value="24H">Last 24 hours</option>
+      <option value="7D">Last 7 days</option>
+    </select>
+  </label>
+</div>
+
+<sentinel-intervention-table class="table surface" aria-labelledby="interventions-title" />
+<sentinel-intervention-detail class="detail surface" />

@@ -8,6 +8,7 @@ const STATUS_BY_KIND: Readonly<Record<ApplicationErrorKind, number>> = {
   CONFLICT: 409,
   UNPROCESSABLE: 422,
   UNAUTHORISED: 401,
+  FORBIDDEN: 403,
 };
 
 const isBodyParseError = (error: unknown): boolean =>

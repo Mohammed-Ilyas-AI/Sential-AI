@@ -1,0 +1,276 @@
+:host {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.table-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 8px;
+}
+h2 {
+  margin: 0 auto 0 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+h2 span {
+  color: var(--sentinel-color-text-secondary);
+  font-weight: 500;
+}
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sentinel-color-accent) 6%, var(--sentinel-color-surface));
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tool:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 8px;
+}
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  border-bottom: 1px solid var(--sentinel-color-border-soft);
+  background: var(--sentinel-color-surface);
+  text-align: left;
+}
+th button,
+.plain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  color: var(--sentinel-color-text-secondary);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.plain {
+  cursor: default;
+}
+th.numeric button {
+  justify-content: flex-end;
+}
+.arrow {
+  opacity: 0.6;
+  font-size: 0.625rem;
+}
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--sentinel-color-border-soft);
+  white-space: nowrap;
+}
+td.numeric {
+  text-align: right;
+}
+.mono {
+  font-family: var(--sentinel-font-family-mono);
+}
+tbody tr {
+  cursor: pointer;
+}
+tbody tr:hover {
+  background: color-mix(in srgb, var(--sentinel-color-accent) 5%, transparent);
+}
+tbody tr[aria-selected='true'] {
+  background: color-mix(in srgb, var(--sentinel-color-accent) 11%, transparent);
+}
+tbody tr:focus-visible {
+  outline: 2px solid var(--sentinel-color-accent);
+  outline-offset: -2px;
+}
+.when,
+.sub,
+.actor,
+.reason {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.75rem;
+}
+.stack {
+  display: grid;
+}
+.reason {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pill,
+.risk {
+  --tone: var(--sentinel-color-success);
+  display: inline-flex;
+  padding: 2px 9px;
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--tone) 11%, transparent);
+  color: var(--tone);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.risk {
+  border-radius: 999px;
+  font-family: var(--sentinel-font-family-mono);
+}
+[data-state='HELD'],
+[data-state='REJECTED'],
+[data-decision='HOLD'],
+[data-decision='REJECT'],
+[data-band='HIGH'],
+[data-band='CRITICAL'],
+[data-kind='THRESHOLD'] {
+  --tone: var(--sentinel-color-critical);
+}
+[data-state='CANCELLED'],
+[data-band='ELEVATED'],
+[data-kind='CASCADE'] {
+  --tone: var(--sentinel-color-warning);
+}
+.pill:not([data-decision]):not([data-state]):not([data-kind]) {
+  --tone: var(--sentinel-color-text-secondary);
+}
+.row-action {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: 8px;
+  background: none;
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  cursor: pointer;
+}
+.empty-row td {
+  padding: 28px 10px;
+  color: var(--sentinel-color-text-secondary);
+  text-align: center;
+  white-space: normal;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px 10px;
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.8125rem;
+}
+.pager nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pager nav button {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: 8px;
+  background: var(--sentinel-color-surface);
+  color: var(--sentinel-color-text);
+  font: inherit;
+  cursor: pointer;
+}
+.pager nav button[aria-current='page'] {
+  border-color: var(--sentinel-color-accent);
+  background: var(--sentinel-color-accent);
+  color: var(--accent-ink, #fff);
+  font-weight: 700;
+}
+.pager nav button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.flip {
+  transform: scaleX(-1);
+}
+.size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.size select {
+  border: 0;
+  background: none;
+  color: var(--sentinel-color-text);
+  font: inherit;
+  font-weight: 600;
+}
+@container (max-width: 1000px) {
+  .wide-only {
+    display: none;
+  }
+}
+/* Interventions read as a ledger: a status rail on every row and the state path from the audit records. */
+tbody tr {
+  box-shadow: inset 4px 0 0 var(--rail, transparent);
+}
+tbody tr[data-rail='HELD'],
+tbody tr[data-rail='REJECTED'] {
+  --rail: var(--sentinel-color-critical);
+}
+tbody tr[data-rail='RELEASED'] {
+  --rail: var(--sentinel-color-success);
+}
+tbody tr[data-rail='CANCELLED'] {
+  --rail: var(--sentinel-color-warning);
+}
+.flow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.step {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+.step.current {
+  --tone: var(--sentinel-color-success);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  color: var(--tone);
+}
+.step.current[data-state='HELD'],
+.step.current[data-state='REJECTED'] {
+  --tone: var(--sentinel-color-critical);
+}
+.step.current[data-state='CANCELLED'] {
+  --tone: var(--sentinel-color-warning);
+}
+.to {
+  color: var(--sentinel-color-text-muted);
+  font-size: 0.6875rem;
+}

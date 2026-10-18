@@ -7,7 +7,12 @@ import {
   type PushAuthenticator,
 } from '../infrastructure/messaging/pubsub/push-authentication/push-authenticator.js';
 import type { Logger } from '../infrastructure/telemetry/logger.js';
+import { AuditTrail } from '../modules/audit/application/audit-trail.js';
+import { auditEventRoutes } from '../modules/audit/presentation/audit-event.routes.js';
 import type { ModelGateway } from '../modules/intelligence/application/ports/model-gateway.port.js';
+import { TenantAccessService } from '../modules/tenant-access/application/tenant-access.service.js';
+import { PerformanceMetrics } from '../modules/telemetry/application/performance-metrics.js';
+import { performanceRoutes } from '../modules/telemetry/presentation/performance.routes.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
 import type { Clock } from '../platform/time/clock.js';
 import { composeControlPath, type ControlPath } from './control-path.composition.js';
@@ -40,6 +45,9 @@ function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticat
 
 /** The whole HTTP surface for a given persistence: used by main.ts with Atlas and by tests with in-memory adapters. */
 export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway }: CoreHttpInputs): CoreHttpComposition {
+  const audit = new AuditTrail(persistence.auditLog, clock, ids);
+  const tenantAccess = new TenantAccessService(persistence.accounts, audit);
+  const performanceMetrics = new PerformanceMetrics(clock);
   const controlPath = composeControlPath({
     persistence,
     rapidDrainPolicy: config.rapidDrainPolicy,
@@ -49,12 +57,24 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
     clock,
     ids,
     logger,
+    audit,
+    tenantAccess,
   });
-  const intelligencePath = composeIntelligencePath({ persistence, vertex: config.vertex, ids, clock, logger, ...(modelGateway ? { modelGateway } : {}) });
+  const intelligencePath = composeIntelligencePath({
+    persistence,
+    vertex: config.vertex,
+    ids,
+    clock,
+    logger,
+    audit,
+    access: tenantAccess,
+    ...(modelGateway ? { modelGateway } : {}),
+  });
   const app = createApp({
-    routes: [...controlPath.routes, ...intelligencePath.routes],
+    routes: [...controlPath.routes, ...intelligencePath.routes, auditEventRoutes(audit), performanceRoutes(performanceMetrics)],
     corsAllowedOrigins: config.corsAllowedOrigins,
     logger,
+    performanceMetrics,
   });
   return { app, controlPath };
 }

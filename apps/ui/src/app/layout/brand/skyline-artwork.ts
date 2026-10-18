@@ -22,9 +22,10 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     .art {
       position: relative;
       width: 100%;
+      height: var(--art-height, auto);
       overflow: hidden;
-      border-radius: 12px;
-      aspect-ratio: 520 / 414;
+      border-radius: var(--art-radius, 12px);
+      aspect-ratio: var(--art-ratio, 520 / 414);
     }
     img {
       display: block;

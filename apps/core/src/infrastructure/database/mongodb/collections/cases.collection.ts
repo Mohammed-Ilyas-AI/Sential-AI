@@ -6,5 +6,8 @@ export type CaseDocument = MongoDocument<Case>;
 
 export const casesCollection: CollectionDefinition = {
   name: 'cases',
-  indexes: [{ key: { accountId: 1 }, name: 'accountId' }],
+  indexes: [
+    { key: { accountId: 1 }, name: 'accountId' },
+    { key: { alertIds: 1 }, name: 'alertIds', unique: true },
+  ],
 };

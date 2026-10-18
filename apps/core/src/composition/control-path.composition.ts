@@ -19,7 +19,11 @@ import { DecisionService } from '../modules/decision/application/decision.servic
 import type { DecisionRepository } from '../modules/decision/application/ports/decision-repository.port.js';
 import { DecisionController } from '../modules/decision/presentation/decision.controller.js';
 import { decisionRoutes } from '../modules/decision/presentation/decision.routes.js';
+import { AccountControlService } from '../modules/interventions/application/account-controls.service.js';
 import { InterventionService } from '../modules/interventions/application/intervention.service.js';
+import type { AccountControlRepository } from '../modules/interventions/application/ports/account-control-repository.port.js';
+import { AccountControlsController } from '../modules/interventions/presentation/account-controls.controller.js';
+import { accountControlsRoutes } from '../modules/interventions/presentation/account-controls.routes.js';
 import type { InterventionWorkflow } from '../modules/interventions/application/intervention-workflow.use-case.js';
 import type { InterventionRepository } from '../modules/interventions/application/ports/intervention-repository.port.js';
 import { InterventionController } from '../modules/interventions/presentation/intervention.controller.js';
@@ -35,6 +39,8 @@ import { securityEventRoutes } from '../modules/security-events/presentation/sec
 import type { TransactionEventLog } from '../modules/transactions/application/ports/transaction-event-log.port.js';
 import type { TransactionProjectionRepository } from '../modules/transactions/application/ports/transaction-projection-repository.port.js';
 import { TransactionProjectionService } from '../modules/transactions/application/transaction-projection.service.js';
+import type { AuditTrail } from '../modules/audit/application/audit-trail.js';
+import type { TenantAccessService } from '../modules/tenant-access/application/tenant-access.service.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
 import type { Clock } from '../platform/time/clock.js';
 
@@ -50,6 +56,7 @@ export interface ControlPathPersistence {
   readonly securityEvents: SecurityEventLog;
   readonly alerts: AlertRepository;
   readonly entityLinks: EntityLinkSource;
+  readonly accountControls: AccountControlRepository;
 }
 
 export interface ControlPathDependencies {
@@ -61,11 +68,14 @@ export interface ControlPathDependencies {
   readonly clock: Clock;
   readonly ids: IdGenerator;
   readonly logger: Logger;
+  readonly audit: AuditTrail;
+  readonly tenantAccess: TenantAccessService;
 }
 
 export interface ControlPath {
   readonly routes: readonly HttpRouteRegistration[];
   readonly interventions: InterventionWorkflow;
+  readonly accountControls: AccountControlService;
 }
 
 /**
@@ -81,9 +91,13 @@ export function composeControlPath(dependencies: ControlPathDependencies): Contr
   );
   const rollingWindow = new RollingWindowService(persistence.outflowWindow, policy);
   const transactionLifecycle = new TransactionProjectionService(persistence.transactionEvents, persistence.transactionProjections);
-  const interventions = new InterventionService(
-    persistence.interventions,
-    new MockPushCustomerNotificationPublisher(dependencies.logger),
+  const notifications = new MockPushCustomerNotificationPublisher(dependencies.logger);
+  const interventions = new InterventionService(persistence.interventions, notifications, clock, ids);
+  const accountControls = new AccountControlService(
+    persistence.accountControls,
+    notifications,
+    dependencies.tenantAccess,
+    dependencies.audit,
     clock,
     ids,
   );
@@ -97,6 +111,7 @@ export function composeControlPath(dependencies: ControlPathDependencies): Contr
     riskAssessment: new RiskAssessmentService({ assess, rules: RISK_RULES, rulesetVersion: RULESET_VERSION }, persistence.assessments, ids),
     transactionLifecycle,
     interventions,
+    killSwitches: accountControls,
     alerts: new AlertService(persistence.alerts, ids),
     clock,
     ids,
@@ -115,9 +130,11 @@ export function composeControlPath(dependencies: ControlPathDependencies): Contr
       accountRoutes(new AccountController(new AccountReportService(persistence.accounts, policy))),
       decisionRoutes(new DecisionController(decisions)),
       securityEventRoutes(new SecurityEventController(securityEvents)),
-      interventionRoutes(new InterventionController(interventions)),
+      interventionRoutes(new InterventionController(interventions, dependencies.tenantAccess)),
+      accountControlsRoutes(new AccountControlsController(accountControls)),
       transactionEventPushRoutes(transactionLifecycle, dependencies.pushAuthenticator),
     ],
     interventions,
+    accountControls,
   };
 }

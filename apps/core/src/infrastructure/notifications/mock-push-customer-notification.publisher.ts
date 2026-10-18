@@ -1,4 +1,4 @@
-import type { Intervention } from '@sentinel/domain';
+import type { CustomerContactRecord, Intervention } from '@sentinel/domain';
 import type { CustomerNotificationPublisher } from '../../modules/interventions/application/ports/customer-notification.port.js';
 import type { Logger } from '../telemetry/logger.js';
 
@@ -20,6 +20,21 @@ export class MockPushCustomerNotificationPublisher implements CustomerNotificati
         availableActions: ['CUSTOMER_VERIFIED_RELEASE', 'CUSTOMER_CANCELLATION'],
       },
       'customer notified of hold',
+    );
+  }
+
+  /** Records that a contact attempt was emitted on the mock channel. Identifiers only: never the analyst's note. */
+  async notifyContactAttempt(contact: CustomerContactRecord): Promise<void> {
+    this.logger.info(
+      {
+        event: 'customer_contact_attempt_emitted',
+        contactId: contact.id,
+        accountId: contact.accountId,
+        channel: contact.channel,
+        outcome: contact.outcome,
+        simulated: true,
+      },
+      'customer contact attempt recorded on the mock channel',
     );
   }
 }

@@ -1,0 +1,223 @@
+/*
+ * The workspace bleeds into <main>'s padding and is exactly the height below the top bar on desktop: only the
+ * table body and the detail drawer scroll. The panoramic artwork is a band behind the heading and KPIs only,
+ * faded into the page colour, never under the table or the drawer.
+ */
+:host {
+  --accent-ink: var(--sentinel-color-background);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-areas:
+    'head head'
+    'kpis kpis'
+    'filters filters'
+    'table detail';
+  gap: 12px;
+  margin: calc(-1 * var(--sentinel-space-4)) calc(-1 * var(--sentinel-space-6));
+  padding: var(--sentinel-space-4) var(--sentinel-space-6);
+  background: var(--sentinel-color-background);
+}
+:host::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: 300px;
+  background:
+    linear-gradient(180deg, transparent 45%, var(--sentinel-color-background)),
+    linear-gradient(90deg, var(--sentinel-color-background) 18%, color-mix(in srgb, var(--sentinel-color-background) 30%, transparent) 55%, transparent),
+    url('/backgrounds/interventions-bg.webp') right top / cover no-repeat;
+  pointer-events: none;
+}
+:host-context([data-appearance='light']) {
+  --accent-ink: #fff;
+}
+:host-context(:root:not([data-appearance='light']))::before {
+  opacity: 0.18;
+}
+.surface {
+  min-height: 0;
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: var(--sentinel-radius-large);
+  background: color-mix(in srgb, var(--sentinel-color-surface) 96%, transparent);
+  box-shadow: 0 8px 24px rgba(15, 27, 45, 0.05);
+}
+.head {
+  grid-area: head;
+}
+.eyebrow {
+  margin: 0 0 2px;
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.375rem, 1rem + 0.9vw, 1.875rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.emphasis {
+  color: var(--sentinel-color-nav, var(--sentinel-color-accent));
+}
+.lede {
+  margin: 4px 0 0;
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.875rem;
+}
+.kpis {
+  grid-area: kpis;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.kpi {
+  --tone: var(--sentinel-color-accent);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, var(--sentinel-surface-panel-border));
+  border-radius: var(--sentinel-radius-large);
+  background: color-mix(in srgb, var(--sentinel-color-surface) 94%, transparent);
+}
+.kpi[data-tone='critical'] { --tone: var(--sentinel-color-critical); }
+.kpi[data-tone='warning'] { --tone: var(--sentinel-color-warning); }
+.kpi[data-tone='success'] { --tone: var(--sentinel-color-success); }
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  color: var(--tone);
+}
+.text {
+  display: grid;
+}
+.label {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.8125rem;
+}
+.text b {
+  font-size: 1.75rem;
+  line-height: 1.1;
+}
+.hint {
+  margin-left: auto;
+  align-self: end;
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.filters {
+  grid-area: filters;
+  display: grid;
+  grid-template-columns: minmax(240px, 1.6fr) repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.filters label {
+  display: grid;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: 12px;
+  background: var(--sentinel-color-surface);
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.6875rem;
+}
+.filters .search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--sentinel-color-text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+select {
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--sentinel-color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.table {
+  grid-area: table;
+}
+.detail {
+  grid-area: detail;
+}
+
+@media (min-width: 1280px) and (min-height: 600px) {
+  :host {
+    height: calc(100dvh - var(--sentinel-top-bar-height));
+    overflow: hidden;
+  }
+}
+@media (min-width: 1280px) and (max-width: 1599px) {
+  :host {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+}
+@media (min-width: 1280px) and (max-height: 800px) {
+  :host {
+    gap: 10px;
+  }
+  .lede {
+    display: none;
+  }
+  .kpi {
+    padding: 8px 14px;
+  }
+  .icon {
+    width: 38px;
+    height: 38px;
+  }
+  .text b {
+    font-size: 1.5rem;
+  }
+}
+@media (max-width: 1279px) {
+  :host {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas: 'head' 'kpis' 'filters' 'table' 'detail';
+    margin-inline: calc(-1 * var(--sentinel-space-4));
+    padding-inline: var(--sentinel-space-4);
+  }
+  .filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .filters .search {
+    grid-column: 1 / -1;
+  }
+  .table {
+    height: 620px;
+  }
+  .detail {
+    max-height: 720px;
+  }
+}
+@media (max-width: 767px) {
+  .kpis,
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

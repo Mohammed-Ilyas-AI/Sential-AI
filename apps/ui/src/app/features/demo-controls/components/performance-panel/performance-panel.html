@@ -1,0 +1,58 @@
+<header class="heading">
+  <div>
+    <p class="eyebrow">Runtime telemetry</p>
+    <h1>Performance</h1>
+    <p class="lede">Measured request latency from this SENTINEL AI core instance.</p>
+  </div>
+  @if (snapshot(); as data) {
+    <p class="window" [attr.data-stale]="stale()">
+      {{ data.windowSeconds }}s rolling window · captured {{ data.capturedAt | date: 'd MMM y, HH:mm:ss' : 'UTC' }} UTC
+    </p>
+  }
+</header>
+
+@if (loading() && !snapshot()) {
+  <p class="state" role="status">Loading measured performance…</p>
+} @else if (failed() && !snapshot()) {
+  <p class="state error" role="alert">Performance measurements are unavailable. The metrics service did not respond.</p>
+} @else if (snapshot(); as data) {
+  @if (failed()) {
+    <p class="state error" role="status">Refresh failed; showing the last recorded snapshot.</p>
+  }
+  @if (stale()) {
+    <p class="state warning" role="status">This snapshot is stale. Waiting for a fresh metrics response.</p>
+  }
+  <section class="metrics surface" aria-label="Measured request performance">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th scope="col">Measured path</th><th scope="col">Requests</th><th scope="col">Failures</th><th scope="col">p50</th><th scope="col">p95</th><th scope="col">p99</th><th scope="col">Max</th><th scope="col">Rate</th></tr>
+        </thead>
+        <tbody>
+          @for (path of data.paths; track path.path) {
+            <tr>
+              <th scope="row">{{ label(path.path) }}</th>
+              <td>{{ path.requests }}</td>
+              <td>{{ path.failures }}</td>
+              @if (path.latency.samples === 0) {
+                <td colspan="4" class="empty">No samples in this window</td>
+              } @else {
+                <td>{{ path.latency.p50Ms | number: '1.1-1' }} ms</td>
+                <td>{{ path.latency.p95Ms | number: '1.1-1' }} ms</td>
+                <td>{{ path.latency.p99Ms | number: '1.1-1' }} ms</td>
+                <td>{{ path.latency.maxMs | number: '1.1-1' }} ms</td>
+              }
+              <td>{{ path.requestsPerSecond | number: '1.2-2' }}/s</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Window: {{ data.windowStartedAt | date: 'HH:mm:ss' : 'UTC' }}–{{ data.capturedAt | date: 'HH:mm:ss' : 'UTC' }} UTC. Percentiles use only completed requests.</p>
+  </section>
+  <p class="unavailable">
+    Stream delivery, WebSocket-to-render delay, worker-batch duration and browser row-render latency are not measured by this core instance and are unavailable here.
+  </p>
+} @else {
+  <p class="state">No performance snapshot is available yet.</p>
+}

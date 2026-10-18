@@ -2,6 +2,7 @@ export * from './time/iso-timestamp.js';
 export * from './money/minor-units.js';
 export * from './tenant/tenant-identifiers.js';
 export * from './tenant/tenant-config.js';
+export * from './tenant/field-visibility.js';
 
 export * from './account/account.js';
 export * from './account/account-behaviour.js';
@@ -34,9 +35,14 @@ export * from './decision/decision-record.js';
 
 export * from './intervention/intervention.js';
 export * from './intervention/intervention-reason-codes.js';
+export * from './intervention/account-controls.js';
 export * from './alert/alert.js';
 export * from './alert/alert-summary.js';
 export * from './case/case.js';
+export * from './case/case-report.js';
+export * from './audit/audit-event.js';
+export * from './telemetry/performance-snapshot.js';
+export * from './scenario/scenario-run.js';
 
 export * from './intelligence/evidence-history.js';
 export * from './intelligence/evidence-bundle.js';
@@ -51,6 +57,7 @@ export * from './graph/edge-evidence.js';
 export * from './graph/graph-neighbourhood.js';
 export * from './graph/fund-trace.js';
 export * from './graph/network-observation.js';
+export * from './graph/network-exploration.js';
 
 export * from './realtime/stream-message.js';
 export * from './realtime/stream-client-message.js';

@@ -6,4 +6,5 @@ export const INTERVENTION_REASON = {
   customerVerifiedRelease: 'CUSTOMER_VERIFIED_RELEASE',
   customerCancelled: 'CUSTOMER_CANCELLED',
   analystConfirmedFraud: 'ANALYST_CONFIRMED_FRAUD',
+  killSwitch: 'ANALYST_KILL_SWITCH',
 } as const;

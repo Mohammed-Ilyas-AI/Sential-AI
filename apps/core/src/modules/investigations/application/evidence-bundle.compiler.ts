@@ -34,6 +34,12 @@ function capped(neighbourhood: GraphNeighbourhood): GraphNeighbourhood {
 export class EvidenceBundleCompiler implements CompileEvidenceBundle {
   constructor(private readonly evidence: EvidenceSource) {}
 
+  async accountIdForAssessment(assessmentId: string): Promise<string> {
+    const recorded = await this.evidence.assessment(assessmentId);
+    if (!recorded) throw new ApplicationError('NOT_FOUND', `No assessment ${assessmentId}`);
+    return recorded.accountId;
+  }
+
   async compile(assessmentId: string): Promise<EvidenceBundle> {
     const recorded = await this.evidence.assessment(assessmentId);
     if (!recorded) throw new ApplicationError('NOT_FOUND', `No assessment ${assessmentId}`);

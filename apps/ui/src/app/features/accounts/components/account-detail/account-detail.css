@@ -1,0 +1,217 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 16px;
+}
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.caption {
+  margin: 2px 0 0;
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.6875rem;
+}
+.mono {
+  font-family: var(--sentinel-font-family-mono);
+}
+.close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--sentinel-color-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sentinel-color-text);
+  cursor: pointer;
+}
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chip {
+  --tone: var(--sentinel-color-success);
+  padding: 4px 12px;
+  border: 1px solid color-mix(in srgb, var(--tone) 50%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: var(--tone);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+[data-status='ON HOLD'],
+[data-status='REJECTED'],
+[data-band='HIGH'],
+[data-band='CRITICAL'],
+[data-decision='HOLD'],
+[data-decision='REJECT'] {
+  --tone: var(--sentinel-color-critical);
+}
+[data-status='ALERT OPEN'],
+[data-band='ELEVATED'] {
+  --tone: var(--sentinel-color-warning);
+}
+[data-decision='ALLOW'],
+[data-band='LOW'] {
+  --tone: var(--sentinel-color-success);
+}
+.score {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.8125rem;
+}
+.score b,
+dd[data-band],
+dd[data-decision] {
+  color: var(--tone);
+  font-weight: 700;
+}
+.score b {
+  font-size: 1.0625rem;
+}
+.tabs {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--sentinel-color-border-soft);
+}
+.tabs button {
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--sentinel-color-text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tabs [aria-selected='true'] {
+  border-color: var(--sentinel-color-accent);
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font-weight: 700;
+}
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+h3 {
+  margin: 4px 0 6px;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+dl {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+}
+dl div {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 8px;
+}
+dt {
+  color: var(--sentinel-color-text-secondary);
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+.activity li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+.when {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.75rem;
+}
+.tag {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: var(--tone);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+.list li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: 8px;
+}
+.id {
+  font-size: 0.75rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.line {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.75rem;
+}
+.empty {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.8125rem;
+}
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.actions button,
+.primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid var(--sentinel-color-accent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.primary {
+  min-height: 42px;
+  border: 0;
+  background: var(--sentinel-color-accent);
+  color: var(--accent-ink, #fff);
+  font-size: 0.875rem;
+}

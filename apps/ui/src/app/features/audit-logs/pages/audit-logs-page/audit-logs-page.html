@@ -1,0 +1,114 @@
+<header class="head">
+  <div>
+    <p class="eyebrow">System</p>
+    <h1>Audit logs</h1>
+    <p class="lede">Every policy decision, intervention transition and alert recorded in this session. Read-only and immutable.</p>
+  </div>
+  <button type="button" class="export" [disabled]="!facade.filtered().length" (click)="exportCsv()">
+    <sentinel-icon name="arrowDownRight" [size]="16" /> Export logs ({{ facade.filtered().length }})
+  </button>
+</header>
+
+<section class="kpis" aria-label="Audit figures">
+  <sentinel-kpi-tile tone="accent" icon="audit" label="Total events" [value]="facade.kpis().total" />
+  <sentinel-kpi-tile tone="success" icon="account" label="Analyst &amp; customer actions" [value]="facade.kpis().analyst" />
+  <sentinel-kpi-tile tone="violet" icon="intervention" label="Intervention records" [value]="facade.kpis().interventions" />
+  <sentinel-kpi-tile tone="warning" icon="shieldAlert" label="Warnings" [value]="facade.kpis().warning" />
+  <sentinel-kpi-tile tone="critical" icon="alert" label="Critical" [value]="facade.kpis().critical" />
+</section>
+
+<div class="workspace">
+  <section class="list surface" aria-label="Audit events">
+    <div class="toolbar">
+      <label class="search"><sentinel-icon name="search" [size]="16" /><input type="search" placeholder="Search account, transaction, actor…" aria-label="Search audit events" [value]="facade.filters().query" (input)="filter('query', $event)" /></label>
+      <select aria-label="Date range" [value]="facade.filters().range" (change)="filter('range', $event)">
+        <option value="ALL">All time</option>
+        <option value="1H">Last hour</option>
+        <option value="24H">Last 24 hours</option>
+        <option value="7D">Last 7 days</option>
+      </select>
+      <select aria-label="Event type" [value]="facade.filters().category" (change)="filter('category', $event)">
+        <option value="ALL">All types</option>
+        <option value="DECISION">Decisions</option>
+        <option value="INTERVENTION">Interventions</option>
+        <option value="ALERT">Alerts</option>
+      </select>
+      <select aria-label="Actor" [value]="facade.filters().actor" (change)="filter('actor', $event)">
+        <option value="ALL">All actors</option>
+        <option value="POLICY_ENGINE">Policy gate</option>
+        <option value="SYSTEM">System</option>
+        <option value="CUSTOMER">Customer</option>
+        <option value="ANALYST">Analyst</option>
+      </select>
+      <select aria-label="Severity" [value]="facade.filters().severity" (change)="filter('severity', $event)">
+        <option value="ALL">All severities</option>
+        <option value="INFO">Info</option>
+        <option value="WARNING">Warning</option>
+        <option value="CRITICAL">Critical</option>
+      </select>
+      <select aria-label="Module" [value]="facade.filters().module" (change)="filter('module', $event)">
+        <option value="ALL">All modules</option>
+        <option value="Policy gate">Policy gate</option>
+        <option value="Interventions">Interventions</option>
+        <option value="Alerts & cases">Alerts &amp; cases</option>
+      </select>
+      <button type="button" class="ghost" (click)="facade.resetFilters()">Reset</button>
+      <div class="zone" role="group" aria-label="Displayed time zone">
+        <button type="button" [attr.aria-pressed]="facade.zone() === 'UTC'" (click)="facade.zone.set('UTC')">UTC</button>
+        <button type="button" [attr.aria-pressed]="facade.zone() === 'SGT'" (click)="facade.zone.set('SGT')">SGT</button>
+      </div>
+    </div>
+    <div class="scroller sentinel-scroll">
+      <table>
+        <thead>
+          <tr>
+            @for (column of columns; track column.key) {
+              <th scope="col" [attr.aria-sort]="ariaSort(column.key)">
+                <button type="button" (click)="facade.sortBy(column.key)">
+                  {{ column.label }}{{ column.key === 'at' ? ' (' + facade.zone() + ')' : '' }} <span aria-hidden="true">{{ arrow(column.key) }}</span>
+                </button>
+              </th>
+            }
+            <th scope="col">Resource</th>
+            <th scope="col">Details</th>
+            <th scope="col" [attr.aria-sort]="ariaSort('severity')">
+              <button type="button" (click)="facade.sortBy('severity')">Result <span aria-hidden="true">{{ arrow('severity') }}</span></button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (event of facade.visible(); track event.id) {
+            <tr tabindex="0" [attr.aria-selected]="facade.selectedId() === event.id" (click)="choose(event.id)" (keydown)="onKey($event, event.id)">
+              <td class="mono when">{{ event.at | date: 'd MMM, HH:mm:ss' : offset[facade.zone()] }}</td>
+              <td><span class="actor" [attr.data-actor]="event.actorKind">{{ event.actor }}</span></td>
+              <td><b>{{ event.action }}</b></td>
+              <td>{{ event.module }}</td>
+              <td class="mono">{{ event.resource }}</td>
+              <td class="details">{{ event.details }}</td>
+              <td><span class="severity" [attr.data-severity]="event.severity">{{ event.result }}</span></td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty">{{ facade.events().length ? 'No event matches these filters.' : 'No events recorded yet. They appear as the stream delivers decisions.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <footer class="pager">
+      <span>
+        @if (facade.filtered().length) {
+          {{ facade.currentPage() * pageSize + 1 }}–{{ facade.currentPage() * pageSize + facade.visible().length }} of {{ facade.filtered().length }} events · times in {{ facade.zone() === 'UTC' ? 'UTC' : 'SGT (UTC+8)' }}
+        } @else {
+          0 events
+        }
+      </span>
+      <span class="pages">
+        <button type="button" aria-label="Previous page" [disabled]="facade.currentPage() === 0" (click)="facade.page.set(facade.currentPage() - 1)"><sentinel-icon class="flip" name="chevronRight" [size]="14" /></button>
+        <span>Page {{ facade.currentPage() + 1 }} of {{ facade.pageCount() }}</span>
+        <button type="button" aria-label="Next page" [disabled]="facade.currentPage() >= facade.pageCount() - 1" (click)="facade.page.set(facade.currentPage() + 1)"><sentinel-icon name="chevronRight" [size]="14" /></button>
+      </span>
+    </footer>
+  </section>
+  <sentinel-audit-event-detail class="detail surface" />
+</div>

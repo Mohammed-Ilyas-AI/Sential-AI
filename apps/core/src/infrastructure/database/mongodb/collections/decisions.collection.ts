@@ -9,5 +9,6 @@ export const decisionsCollection: CollectionDefinition = {
   indexes: [
     { key: { idempotencyKey: 1 }, name: 'idempotencyKey_unique', unique: true },
     { key: { accountId: 1, decidedAt: -1 }, name: 'accountId_decidedAt' },
+    { key: { transactionId: 1 }, name: 'transactionId' },
   ],
 };

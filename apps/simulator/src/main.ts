@@ -1,4 +1,4 @@
-import { buildDemoTakeover01, INSTANT_TIMELINE, newScenarioRunId, playScenario } from '@sentinel/scenarios';
+import { buildDemoTakeover01, buildSeededNoiseScenario, INSTANT_TIMELINE, newScenarioRunId, playScenario } from '@sentinel/scenarios';
 import { HttpBankReportingClient } from './bank-reporting/bank-reporting.client.js';
 import { loadSimulatorRuntimeConfig } from './configuration/simulator-config.js';
 import { CoreHttpClient } from './decision-api/core-http.client.js';
@@ -37,6 +37,16 @@ try {
     { runId, transfers: report.transfers.length, held: held.map((transfer) => ({ transactionId: transfer.response.transactionId, riskScore: transfer.response.riskScore })) },
     'scenario complete',
   );
+  if (config.noise.enabled) {
+    const noiseRunId = newScenarioRunId(Date.now());
+    const noise = buildSeededNoiseScenario(new Date().toISOString(), config.noise.seed, noiseRunId, config.noise.ratePerMinute);
+    const noiseTimeline = config.timeline === 'instant' ? INSTANT_TIMELINE : new RealTimeScenarioTimeline();
+    const noiseReport = await playScenario(noise, bank, noiseTimeline);
+    logger.info(
+      { scenarioId: noise.id, runId: noise.runId, seed: noise.seed, ratePerMinute: config.noise.ratePerMinute, transfers: noiseReport.transfers.length },
+      'isolated synthetic background noise complete',
+    );
+  }
 } finally {
   await lifecycle.close();
 }

@@ -6,7 +6,7 @@ export { SYNTHETIC_ACCOUNTS, ESTABLISHED_PAYEES, SYNTHETIC_AMOUNT_P95, type Synt
 export { ScenarioEventFactory, type TransferSpecification } from './catalogue/scenario-event-factory.js';
 export type { ScenarioGenerator } from './generators/scenario-generator.js';
 export { baselineGenerator, type BaselineInput } from './generators/baseline.generator.js';
-export { noiseGenerator } from './generators/noise.generator.js';
+export { buildSeededNoiseScenario, noiseGenerator, type NoiseInput } from './generators/noise.generator.js';
 export { takeoverGenerator, type TakeoverInput } from './generators/takeover.generator.js';
 export { muleNetworkGenerator, type MuleNetworkInput } from './generators/mule-network.generator.js';
 export { buildDemoTakeover01, type BuildDemoScenario, type DemoScenarioOptions } from './demo/demo-takeover-01.js';

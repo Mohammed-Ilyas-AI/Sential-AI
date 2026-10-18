@@ -144,23 +144,28 @@ ul {
   visibility: visible;
   transform: none;
 }
-/* The whole artwork, sized so the navigation above it never has to scroll. */
+/*
+ * The whole artwork, stretched edge to edge across the rail (it bleeds through the rail's side padding) at a
+ * fixed height per viewport tier, so the navigation above it never has to scroll and nothing overflows sideways.
+ */
 .atmosphere {
+  --art-ratio: auto;
+  --art-radius: 0;
+  --art-height: 168px;
   flex: none;
-  width: min(100%, 210px);
-  margin: auto auto var(--sentinel-space-3);
-  transition: width var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
+  width: calc(100% + 2 * var(--sentinel-space-3));
+  margin: auto calc(-1 * var(--sentinel-space-3)) 0;
 }
-/* The collapsed rail keeps a small emblem of the same artwork. */
+/* The collapsed rail keeps the same artwork as a short strip. */
 :host(.collapsed) .atmosphere {
-  width: 100%;
+  --art-height: 64px;
 }
 @media (max-height: 940px) {
   :host {
     padding-top: var(--sentinel-space-4);
   }
   .atmosphere {
-    width: min(100%, 180px);
+    --art-height: 150px;
   }
   ul {
     gap: 2px;
@@ -171,8 +176,7 @@ ul {
 }
 @media (max-height: 800px) {
   .atmosphere {
-    width: min(100%, 140px);
-    margin-bottom: var(--sentinel-space-2);
+    --art-height: 116px;
   }
   .item {
     height: 36px;

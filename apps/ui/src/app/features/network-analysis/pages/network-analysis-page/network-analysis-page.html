@@ -1,0 +1,139 @@
+<header class="head">
+  <div class="titles">
+    <p class="eyebrow">Network analysis</p>
+    <h1>Transaction &amp; Entity <span class="emphasis">Network</span></h1>
+    <p class="lede">Explore relationships, trace fund flows and see the connections the evidence records around a case.</p>
+  </div>
+  <form class="search" role="search" (submit)="search($event)">
+    <sentinel-icon name="search" [size]="18" />
+    <input
+      type="search"
+      placeholder="Search account, payee, device, institution…"
+      aria-label="Search entities in the graph"
+      [value]="facade.query()"
+      (input)="facade.query.set($any($event.target).value)"
+    />
+    @if (facade.query()) {
+      <span class="matches">{{ facade.matches().length }} {{ facade.matches().length === 1 ? 'match' : 'matches' }}</span>
+    }
+  </form>
+  <label class="case">
+    <span>Case context</span>
+    <select aria-label="Case context" [value]="facade.selectedCase()?.alertId ?? ''" (change)="facade.chooseCase($any($event.target).value)" [disabled]="facade.cases().length === 0">
+      @for (option of facade.cases(); track option.alertId) {
+        <option [value]="option.alertId">{{ option.label }}</option>
+      } @empty {
+        <option value="">No open cases</option>
+      }
+    </select>
+  </label>
+</header>
+
+<div class="filters" role="group" aria-label="Graph filters">
+  <label>
+    <span>Entity type</span>
+    <select [value]="facade.filters().entity" (change)="setFilter('entity', $any($event.target).value)">
+      @for (option of entityOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span>Relation type</span>
+    <select [value]="facade.filters().relation" (change)="setFilter('relation', $any($event.target).value)">
+      @for (option of relationOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span>Date range</span>
+    <select [value]="facade.filters().range" (change)="setFilter('range', $any($event.target).value)">
+      @for (option of rangeOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span>Risk level</span>
+    <select [value]="facade.filters().risk" (change)="setFilter('risk', $any($event.target).value)">
+      @for (option of riskOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span>Status</span>
+    <select [value]="facade.filters().status" (change)="setFilter('status', $any($event.target).value)">
+      @for (option of statusOptions; track option.value) {
+        <option [value]="option.value">{{ option.label }}</option>
+      }
+    </select>
+  </label>
+  <button type="button" class="clear" [disabled]="!facade.filtered()" (click)="facade.clearFilters()">
+    <sentinel-icon name="close" [size]="16" /> Clear filters
+  </button>
+</div>
+
+<section class="legend surface" aria-label="Legend">
+  <h2>Entity types</h2>
+  <ul>
+    <li data-kind="INSTITUTION"><span class="swatch"><sentinel-icon name="bank" [size]="13" /></span>Bank / institution</li>
+    <li data-kind="ACCOUNT"><span class="swatch"><sentinel-icon name="account" [size]="13" /></span>Account</li>
+    <li data-kind="PAYEE"><span class="swatch"><sentinel-icon name="account" [size]="13" /></span>Beneficiary</li>
+    <li data-kind="DEVICE"><span class="swatch"><sentinel-icon name="server" [size]="13" /></span>Device</li>
+  </ul>
+  <h2>Relation types</h2>
+  <ul class="relations">
+    <li data-relation="TRANSFERRED_TO"><span class="stroke"></span>Fund transfer</li>
+    <li data-relation="PAYEE_OF"><span class="stroke"></span>Beneficiary link</li>
+    <li data-relation="USED_DEVICE"><span class="stroke"></span>Device link</li>
+    <li data-relation="HELD_AT"><span class="stroke"></span>Held at</li>
+    <li data-relation="CANDIDATE"><span class="stroke"></span>Candidate link</li>
+  </ul>
+  <h2>Risk</h2>
+  <ul class="risk">
+    <li data-tone="held">Held / high risk</li>
+    <li data-tone="elevated">Elevated</li>
+    <li data-tone="normal">No risk signal</li>
+  </ul>
+  <p class="note">People, businesses, wallets and IP addresses appear only when the evidence records them.</p>
+</section>
+
+<section class="graph surface" aria-label="Entity graph">
+  @switch (facade.status()) {
+    @case ('LOADING') {
+      <p class="state" role="status">Loading the case evidence…</p>
+    }
+    @case ('FAILED') {
+      <p class="state" role="alert">The evidence for this case could not be loaded. The rest of the workspace is unaffected.</p>
+    }
+    @case ('IDLE') {
+      <p class="state" role="status">{{ facade.cases().length === 0 ? 'No open cases. The graph appears when an alert is raised.' : 'Choose a case to see its network.' }}</p>
+    }
+  }
+  <sentinel-graph-canvas
+    [scene]="facade.scene()"
+    [selection]="facade.selection()"
+    [highlight]="facade.highlight()"
+    [framing]="framing()"
+    (selected)="select($event)"
+    (resetRequested)="resetView()"
+  />
+  @if (counts(); as count) {
+    <p class="counts">{{ count.nodes }} entities · {{ count.edges }} relationships{{ facade.filtered() ? ' (filtered)' : '' }}{{ facade.scene()?.truncated ? ' · neighbourhood truncated by the core' : '' }}</p>
+  }
+</section>
+
+<sentinel-entity-inspector
+  class="inspector surface"
+  [scene]="facade.scene()"
+  [selection]="facade.selection()"
+  [evidence]="facade.evidence()"
+  [canOpen]="facade.selectedCase() !== null"
+  (selected)="facade.select($event)"
+  (cleared)="facade.clearFocus()"
+  (openInvestigation)="facade.openInvestigation()"
+/>
+
+<sentinel-flow-timeline class="timeline surface" [entries]="facade.timeline()" [active]="facade.activeEntry()" (chosen)="facade.focusEntry($event)" />

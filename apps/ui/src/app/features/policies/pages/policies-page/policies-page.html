@@ -1,0 +1,43 @@
+<header class="head">
+  <div>
+    <p class="eyebrow">Compliance &amp; detection</p>
+    <h1>Policies <span class="amp">&amp;</span> Rules</h1>
+    <p class="lede">The deterministic rules that score risk and the policy gate that decides, exactly as sentinel-core runs them.</p>
+  </div>
+  <button type="button" class="export" (click)="export()"><sentinel-icon name="arrowDownRight" [size]="16" /> Export ruleset</button>
+</header>
+
+<section class="kpis" aria-label="Policy figures">
+  <div class="kpi" data-tone="accent">
+    <span class="icon"><sentinel-icon name="policy" [size]="22" /></span>
+    <span class="text"><span class="label">Detection rules</span><b class="sentinel-mono">{{ facade.kpis().rules }}</b></span>
+    <span class="hint mono">{{ facade.rulesetVersion }}</span>
+  </div>
+  <div class="kpi" data-tone="success">
+    <span class="icon"><sentinel-icon name="shieldCheck" [size]="22" /></span>
+    <span class="text"><span class="label">Policy gate</span><b class="sentinel-mono">{{ facade.ruleId }}</b></span>
+    <span class="hint mono">{{ facade.policy.policyVersion }}</span>
+  </div>
+  <div class="kpi" data-tone="violet">
+    <span class="icon"><sentinel-icon name="activity" [size]="22" /></span>
+    <span class="text"><span class="label">Rule hits</span><b class="sentinel-mono">{{ facade.kpis().hits }}</b></span>
+    <span class="hint">on {{ facade.accountsScored() }} accounts</span>
+  </div>
+  <div class="kpi" data-tone="critical">
+    <span class="icon"><sentinel-icon name="lock" [size]="22" /></span>
+    <span class="text"><span class="label">Gate actions</span><b class="sentinel-mono">{{ facade.kpis().holds + facade.kpis().rejects }}</b></span>
+    <span class="hint">{{ facade.kpis().holds }} hold · {{ facade.kpis().rejects }} reject</span>
+  </div>
+</section>
+
+<nav class="tabs" role="tablist" aria-label="Policies and rules">
+  @for (tab of tabs; track tab.id) {
+    <button type="button" role="tab" [attr.aria-selected]="facade.tab() === tab.id" (click)="facade.tab.set(tab.id)">{{ tab.label }}</button>
+  }
+</nav>
+
+@if (facade.tab() === 'rules') {
+  <sentinel-rule-library class="content" />
+} @else {
+  <sentinel-policy-panels class="content" [view]="facade.tab() === 'gate' ? 'gate' : facade.tab() === 'logic' ? 'logic' : 'versions'" />
+}

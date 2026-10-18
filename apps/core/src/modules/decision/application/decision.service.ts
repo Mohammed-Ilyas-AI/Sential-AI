@@ -17,6 +17,7 @@ import type { ComputeRollingWindow } from '../../accounts/application/compute-ro
 import type { AccountRepository } from '../../accounts/application/ports/account-repository.port.js';
 import type { AccountSecurityStateRepository } from '../../accounts/application/ports/account-security-state-repository.port.js';
 import type { RaiseAlert } from '../../alerts/application/raise-alert.use-case.js';
+import type { KillSwitchLookup } from '../../interventions/application/account-controls.use-case.js';
 import type { InterventionWorkflow } from '../../interventions/application/intervention-workflow.use-case.js';
 import type { EvaluateRapidDrainGate, RapidDrainGateOutcome } from '../../policy/application/evaluate-rapid-drain-gate.use-case.js';
 import type { AssessTransactionRisk } from '../../risk/application/assess-transaction-risk.use-case.js';
@@ -37,6 +38,7 @@ export interface DecisionServiceDependencies {
   readonly riskAssessment: AssessTransactionRisk;
   readonly transactionLifecycle: ApplyTransactionLifecycleEvent;
   readonly interventions: InterventionWorkflow;
+  readonly killSwitches: KillSwitchLookup;
   readonly alerts: RaiseAlert;
   readonly clock: Clock;
   readonly ids: IdGenerator;
@@ -95,13 +97,16 @@ export class DecisionService implements DecideTransaction {
     await deps.transactionLifecycle.apply(request, { drainExcluded: gate.drain.excluded });
 
     const decidedAt = deps.clock.now();
+    // The analyst's kill switch holds every eligible outflow on the account pending customer verification.
     // The hold cascade: once a transfer breaches the threshold, every subsequent eligible outflow is held too.
-    // Excluded payment types stay outside it, exactly as they stay outside the gate. The score is untouched.
+    // Excluded payment types stay outside both, exactly as they stay outside the gate. The score is untouched.
+    const eligibleForAccountHold = !gate.drain.thresholdMet && !gate.drain.excluded;
+    const killSwitch = eligibleForAccountHold ? await deps.killSwitches.activeKillSwitch(account.id) : null;
     const cascade =
-      gate.drain.thresholdMet || gate.drain.excluded
-        ? null
-        : await deps.interventions.activeHoldCascade(account.id, evaluatedAt, decidedAt.toISOString());
-    const hold = gate.drain.thresholdMet || cascade !== null;
+      eligibleForAccountHold && killSwitch === null
+        ? await deps.interventions.activeHoldCascade(account.id, evaluatedAt, decidedAt.toISOString())
+        : null;
+    const hold = gate.drain.thresholdMet || killSwitch !== null || cascade !== null;
     const record: DecisionRecord = {
       decisionId: deps.ids.next(),
       tenantId: request.tenantId,
@@ -109,8 +114,8 @@ export class DecisionService implements DecideTransaction {
       idempotencyKey: request.idempotencyKey,
       decision: hold ? 'HOLD' : 'ALLOW',
       riskScore: assessment.score,
-      policyCodes: hold ? ['RAPID_DRAIN'] : [],
-      reasonCodes: [cascade ? DECISION_REASON.holdCascade : reasonFor(gate)],
+      policyCodes: killSwitch ? ['KILL_SWITCH'] : hold ? ['RAPID_DRAIN'] : [],
+      reasonCodes: [killSwitch ? DECISION_REASON.killSwitch : cascade ? DECISION_REASON.holdCascade : reasonFor(gate)],
       assessmentId: assessment.assessmentId,
       rulesetVersion: assessment.rulesetVersion,
       policyVersion: gate.policy.policyVersion,

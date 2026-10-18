@@ -1,0 +1,68 @@
+<header class="head">
+  <div>
+    <p class="eyebrow">System</p>
+    <h1>Integrations</h1>
+    <p class="lede">The connectors this deployment runs on: participating institutions, platform services, data and AI.</p>
+  </div>
+  <button type="button" class="add" disabled title="Connectors are provisioned through deployment configuration (Cloud Build); there is no runtime API to add one.">
+    <sentinel-icon name="plus" [size]="16" /> Add integration
+  </button>
+</header>
+
+<section class="kpis" aria-label="Integration figures">
+  <sentinel-kpi-tile tone="accent" icon="integrations" label="Total connectors" [value]="facade.kpis().total" />
+  <sentinel-kpi-tile tone="success" icon="shieldCheck" label="Healthy" [value]="facade.kpis().healthy" />
+  <sentinel-kpi-tile tone="critical" icon="alert" label="Issues" [value]="facade.kpis().issues" />
+  <sentinel-kpi-tile tone="muted" icon="lock" label="Server-side only" [value]="facade.kpis().unobservable" />
+  <sentinel-kpi-tile tone="warning" icon="activity" label="Decisions ingested" [value]="facade.kpis().decisions" />
+</section>
+
+<div class="workspace">
+  <section class="list surface" aria-label="Connectors">
+    <div class="toolbar">
+      <nav class="tabs" role="tablist" aria-label="Connector category">
+        @for (category of categories; track category) {
+          <button type="button" role="tab" [attr.aria-selected]="facade.category() === category" (click)="facade.category.set(category)">
+            {{ category === 'ALL' ? 'All' : category }} ({{ facade.counts()[category] }})
+          </button>
+        }
+      </nav>
+      <label class="search"><sentinel-icon name="search" [size]="16" /><input type="search" placeholder="Search connectors…" aria-label="Search connectors" [value]="facade.query()" (input)="facade.query.set($any($event.target).value)" /></label>
+      <select aria-label="Status" [value]="facade.status()" (change)="facade.status.set($any($event.target).value)">
+        <option value="ALL">All statuses</option>
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ statusLabel[status] }}</option>
+        }
+      </select>
+      <button type="button" class="refresh" [disabled]="facade.probing()" (click)="facade.refresh()"><sentinel-icon name="activity" [size]="16" /> {{ facade.probing() ? 'Probing…' : 'Refresh' }}</button>
+    </div>
+    <div class="scroller sentinel-scroll">
+      <table>
+        <thead>
+          <tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Endpoint / source</th><th scope="col">Environment</th><th scope="col">Status</th><th scope="col">Last confirmed</th></tr>
+        </thead>
+        <tbody>
+          @for (connector of facade.visible(); track connector.id) {
+            <tr tabindex="0" [attr.aria-selected]="facade.selectedId() === connector.id" (click)="choose(connector.id)" (keydown)="onKey($event, connector.id)">
+              <td>
+                <span class="name">
+                  <span class="glyph" [attr.data-category]="connector.category"><sentinel-icon [name]="icon[connector.category]" [size]="16" /></span>
+                  <span><b>{{ connector.name }}</b><small>{{ connector.description }}</small></span>
+                </span>
+              </td>
+              <td>{{ connector.kind }}</td>
+              <td class="mono endpoint">{{ connector.endpoint }}</td>
+              <td>{{ connector.environment }}</td>
+              <td><span class="status" [attr.data-status]="connector.status"><span class="dot"></span>{{ statusLabel[connector.status] }}</span></td>
+              <td class="when">{{ connector.lastSync ? (connector.lastSync | date: 'd MMM, HH:mm:ss' : 'UTC') + ' UTC' : '—' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="empty">No connector matches.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="foot">Statuses are observed (probe or live stream), inferred from data that could not arrive otherwise, or marked not observable. Nothing is assumed healthy.</p>
+  </section>
+  <sentinel-connector-detail class="detail surface" />
+</div>

@@ -1,3 +1,4 @@
+import { SCENARIO_NOISE_MAX_RATE_PER_MINUTE } from '@sentinel/domain';
 import { isScenarioRunId } from '@sentinel/scenarios';
 
 export type LifecycleTransport =
@@ -13,6 +14,7 @@ export interface SimulatorRuntimeConfig {
   readonly logLevel: string;
   /** Set to replay a specific run exactly (idempotent); unset, every start is a new run with fresh identifiers. */
   readonly runId: string | null;
+  readonly noise: { readonly enabled: boolean; readonly seed: number; readonly ratePerMinute: number };
 }
 
 export class SimulatorConfigurationError extends Error {
@@ -46,6 +48,15 @@ export function loadSimulatorRuntimeConfig(env: Readonly<Record<string, string |
   const runId = env['SIMULATOR_RUN_ID']?.trim().toUpperCase() || null;
   if (runId !== null && !isScenarioRunId(runId)) problems.push('SIMULATOR_RUN_ID must be 1-12 letters or digits');
 
+  const noiseSwitch = env['SIMULATOR_NOISE_ENABLED']?.trim().toLowerCase() ?? 'false';
+  if (noiseSwitch !== 'true' && noiseSwitch !== 'false') problems.push('SIMULATOR_NOISE_ENABLED must be true or false');
+  const noiseSeed = Number(env['SIMULATOR_NOISE_SEED'] ?? '20260924');
+  if (!Number.isSafeInteger(noiseSeed)) problems.push('SIMULATOR_NOISE_SEED must be a safe integer');
+  const ratePerMinute = Number(env['SIMULATOR_NOISE_RATE_PER_MINUTE'] ?? '4');
+  if (!Number.isInteger(ratePerMinute) || ratePerMinute < 1 || ratePerMinute > SCENARIO_NOISE_MAX_RATE_PER_MINUTE) {
+    problems.push(`SIMULATOR_NOISE_RATE_PER_MINUTE must be an integer from 1 to ${SCENARIO_NOISE_MAX_RATE_PER_MINUTE}`);
+  }
+
   if (problems.length > 0) throw new SimulatorConfigurationError(problems);
   return {
     coreBaseUrl,
@@ -54,5 +65,10 @@ export function loadSimulatorRuntimeConfig(env: Readonly<Record<string, string |
     timeline: timeline === 'instant' ? 'instant' : 'realtime',
     logLevel: env['LOG_LEVEL'] ?? 'info',
     runId,
+    noise: {
+      enabled: noiseSwitch === 'true',
+      seed: Number.isSafeInteger(noiseSeed) ? noiseSeed : 20260924,
+      ratePerMinute: Number.isInteger(ratePerMinute) ? Math.max(1, Math.min(SCENARIO_NOISE_MAX_RATE_PER_MINUTE, ratePerMinute)) : 4,
+    },
   };
 }

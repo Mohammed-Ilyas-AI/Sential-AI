@@ -16,4 +16,12 @@ export class CoreApiClient {
   post<TResponse>(path: string, body: unknown): Observable<TResponse> {
     return this.http.post<TResponse>(`${this.config.coreApiBaseUrl}${path}`, body);
   }
+
+  patch<TResponse>(path: string, body: unknown): Observable<TResponse> {
+    return this.http.patch<TResponse>(`${this.config.coreApiBaseUrl}${path}`, body);
+  }
+
+  getBlob(path: string): Observable<Blob> {
+    return this.http.get(`${this.config.coreApiBaseUrl}${path}`, { responseType: 'blob' });
+  }
 }

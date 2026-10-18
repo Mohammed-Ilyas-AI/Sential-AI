@@ -32,14 +32,19 @@ export class InterventionService implements InterventionWorkflow {
 
   /**
    * Evaluating → Held, by the system, immediately, with the customer notified. Idempotent per transaction.
-   * A cascaded hold records the cascade reason and the transaction that triggered it.
+   * A cascaded hold records the cascade reason and the transaction that triggered it; a kill-switch hold records
+   * the kill switch and has no holdUntil, so only customer verification (or cancellation, or rejection) ends it.
    */
   async placeHold(decision: DecisionRecord): Promise<Intervention> {
     const history = await this.interventions.findByTransactionId(decision.transactionId);
     const latest = history.at(-1);
     if (latest) return latest;
 
-    const cascaded = decision.reasonCodes.includes(DECISION_REASON.holdCascade);
+    const reason = decision.reasonCodes.includes(DECISION_REASON.killSwitch)
+      ? INTERVENTION_REASON.killSwitch
+      : decision.reasonCodes.includes(DECISION_REASON.holdCascade)
+        ? INTERVENTION_REASON.holdCascade
+        : INTERVENTION_REASON.thresholdExceeded;
     const hold: Intervention = {
       id: this.ids.next(),
       decisionId: decision.decisionId,
@@ -49,7 +54,7 @@ export class InterventionService implements InterventionWorkflow {
       state: 'HELD',
       ...(decision.holdUntil ? { holdUntil: decision.holdUntil } : {}),
       ...(decision.cascadeOfTransactionId ? { cascadeOfTransactionId: decision.cascadeOfTransactionId } : {}),
-      reasonCodes: [cascaded ? INTERVENTION_REASON.holdCascade : INTERVENTION_REASON.thresholdExceeded],
+      reasonCodes: [reason],
       actor: 'SYSTEM',
       actedAt: decision.decidedAt,
       policyVersion: decision.policyVersion,

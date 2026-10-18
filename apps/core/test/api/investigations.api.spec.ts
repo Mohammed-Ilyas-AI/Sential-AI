@@ -71,6 +71,23 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect((await callJson(harness.baseUrl, 'GET', '/v1/investigations/no-such-assessment/evidence')).status).toBe(404);
   });
 
+  it('denies a different bank lens before returning evidence or invoking the advisor', async () => {
+    const assessmentId = finalAssessmentId();
+    const lens = { 'x-sentinel-lens': 'BANK_B' };
+    const evidence = await callJson(harness.baseUrl, 'GET', `/v1/investigations/${assessmentId}/evidence`, undefined, lens);
+    const summary = await callJson(harness.baseUrl, 'POST', `/v1/investigations/${assessmentId}/case-summary`, {}, lens);
+    expect(evidence.status).toBe(403);
+    expect(summary.status).toBe(403);
+    expect(model.calls).toHaveLength(0);
+    expect(persistence.auditLog.all()).toContainEqual(
+      expect.objectContaining({
+        action: 'CROSS_TENANT_DENIED',
+        outcome: 'DENIED',
+        subject: expect.objectContaining({ accountId: VICTIM, institutionId: 'BANK_A' }),
+      }),
+    );
+  });
+
   it('returns a grounded case summary and drops the claim that cites a field the bundle does not have', async () => {
     model.script = [
       {
@@ -91,6 +108,10 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect(body.advisory?.evidence.map((item) => item.sourceField)).toEqual(['drain.thresholdMet', 'assessment.contributions[0].points']);
     expect(model.calls.map((call) => call.job)).toEqual(['CASE_SUMMARY']);
     expect(model.calls[0]?.evidence.assessment.score).toBe(95);
+    expect(await persistence.summaries.find(finalAssessmentId())).toMatchObject({
+      assessmentId: finalAssessmentId(),
+      summary: { hypothesis: 'Probable account takeover: a new device and new payee preceded a 65.4% drain of a protected balance.' },
+    });
   });
 
   it('retries a schema-invalid response once, then falls back to the deterministic attribution', async () => {

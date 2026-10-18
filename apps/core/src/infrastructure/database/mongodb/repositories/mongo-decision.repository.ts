@@ -18,6 +18,11 @@ export class MongoDecisionRepository implements DecisionRepository {
     return document ? fromDecisionDocument(document) : null;
   }
 
+  async findByTransactionId(transactionId: string): Promise<DecisionRecord | null> {
+    const document = await this.decisions.findOne({ transactionId });
+    return document ? fromDecisionDocument(document) : null;
+  }
+
   async record(decision: DecisionRecord): Promise<IdempotentWriteResult<DecisionRecord>> {
     try {
       await this.decisions.insertOne(toDecisionDocument(decision));

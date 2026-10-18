@@ -1,0 +1,104 @@
+<header class="head">
+  <div>
+    <p class="eyebrow">Insights &amp; analytics</p>
+    <h1>Analytics <span class="amp">&amp;</span> Reports</h1>
+    <p class="lede">Trends, risk exposure and report extracts from the decisions the live stream has delivered.</p>
+  </div>
+  <div class="scope" role="group" aria-label="Report scope">
+    <a class="primary" routerLink="performance">Performance</a>
+    <a class="primary" routerLink="scenario">Synthetic scenario</a>
+    <label>
+      <sentinel-icon name="clock" [size]="16" />
+      <select aria-label="Time range" [value]="facade.range()" (change)="facade.range.set($any($event.target).value)">
+        @for (range of ranges; track range.value) {
+          <option [value]="range.value">{{ range.label }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      <sentinel-icon name="bank" [size]="16" />
+      <select aria-label="Bank" [value]="facade.bank()" (change)="facade.bank.set($any($event.target).value)">
+        <option value="ALL">All banks</option>
+        @for (bank of facade.banks(); track bank) {
+          <option [value]="bank">{{ bank | institutionLabel }}</option>
+        }
+      </select>
+    </label>
+    <button type="button" class="primary" [disabled]="facade.kpis().transactions === 0" (click)="download('decisions')"><sentinel-icon name="arrowDownRight" [size]="16" /> Export report</button>
+  </div>
+</header>
+
+<section class="kpis" aria-label="Analytics figures">
+  <div class="kpi" data-tone="accent">
+    <span class="label">Transactions scored</span>
+    <b class="sentinel-mono">{{ facade.kpis().transactions }}</b>
+    <span class="hint">{{ facade.kpis().value | minorUnitsCurrency }} moved</span>
+  </div>
+  <div class="kpi" data-tone="critical">
+    <span class="label">High-risk transactions</span>
+    <b class="sentinel-mono">{{ facade.kpis().highRisk }}</b>
+    <span class="hint">{{ facade.kpis().transactions ? (facade.kpis().highRisk / facade.kpis().transactions * 100 | number: '1.1-1') : 0 }}% of scored</span>
+  </div>
+  <div class="kpi" data-tone="warning">
+    <span class="label">Held or rejected</span>
+    <b class="sentinel-mono">{{ facade.kpis().holds }}</b>
+    <span class="hint">{{ facade.kpis().interventions }} with intervention records</span>
+  </div>
+  <div class="kpi" data-tone="success">
+    <span class="label">Accounts monitored</span>
+    <b class="sentinel-mono">{{ facade.kpis().accounts }}</b>
+    <span class="hint">{{ facade.kpis().openAlerts }} open alerts</span>
+  </div>
+</section>
+
+<div class="grid">
+  <sentinel-volume-chart class="card trend" [buckets]="facade.volume()" />
+  <sentinel-risk-donut class="card donut" [distribution]="facade.distribution()" />
+
+  <section class="card banks" aria-labelledby="banks-title">
+    <h2 id="banks-title">Transactions by bank</h2>
+    <ul class="bars">
+      @for (bank of facade.byBank(); track bank.id) {
+        <li>
+          <span class="name">{{ bank.label }}</span>
+          <span class="bar"><span [style.width.%]="bank.share"></span></span>
+          <b class="mono">{{ bank.count }}</b>
+          <span class="sub mono">{{ bank.high }} high · {{ bank.held }} held</span>
+        </li>
+      } @empty {
+        <li class="empty">No transfers in this scope.</li>
+      }
+    </ul>
+  </section>
+
+  <section class="card signals" aria-labelledby="signals-title">
+    <h2 id="signals-title">Top risk signals <span>accounts' latest assessments</span></h2>
+    <ul class="bars">
+      @for (signal of facade.signals(); track signal.code) {
+        <li>
+          <span class="name">{{ signal.label }}</span>
+          <span class="bar warm"><span [style.width.%]="signal.share"></span></span>
+          <b class="mono">{{ signal.count }}</b>
+        </li>
+      } @empty {
+        <li class="empty">No rule fired in this scope.</li>
+      }
+    </ul>
+  </section>
+
+  <section class="card reports" aria-labelledby="reports-title">
+    <h2 id="reports-title">Reports</h2>
+    <ul>
+      @for (report of facade.reports(); track report.id) {
+        <li>
+          <span class="doc"><sentinel-icon name="audit" [size]="18" /></span>
+          <span class="what"><b>{{ report.title }}</b><span>{{ report.description }}</span></span>
+          <button type="button" [disabled]="report.rows === 0" [attr.aria-label]="'Download ' + report.title + ' as CSV, ' + report.rows + ' rows'" (click)="download(report.id)">
+            <sentinel-icon name="arrowDownRight" [size]="16" /> {{ report.rows }}
+          </button>
+        </li>
+      }
+    </ul>
+    <p class="note">CSV extracts of the records in scope; the tape keeps the latest {{ facade.tapeCapacity }} decisions.</p>
+  </section>
+</div>

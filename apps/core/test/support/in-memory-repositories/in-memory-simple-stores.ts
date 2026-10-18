@@ -24,6 +24,10 @@ export class InMemoryAlertRepository implements AlertRepository {
     return [...this.alerts.values()].find((alert) => alert.accountId === accountId && alert.status === 'OPEN') ?? null;
   }
 
+  async findById(alertId: string): Promise<Alert | null> {
+    return this.alerts.get(alertId) ?? null;
+  }
+
   async save(alert: Alert): Promise<void> {
     this.alerts.set(alert.id, alert);
   }

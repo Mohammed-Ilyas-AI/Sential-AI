@@ -1,0 +1,260 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.table-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 8px;
+}
+.table-head h2 {
+  margin: 0 auto 0 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.table-head h2 span {
+  color: var(--sentinel-color-text-secondary);
+  font-weight: 500;
+}
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sentinel-color-accent) 6%, var(--sentinel-color-surface));
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tool:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 8px;
+}
+/* Cells keep their natural width; when the panel is narrower, the table scrolls sideways inside it. */
+table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.8125rem;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  border-bottom: 1px solid var(--sentinel-color-border-soft);
+  background: var(--sentinel-color-surface);
+  text-align: left;
+}
+th button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  color: var(--sentinel-color-text-secondary);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+th.numeric button {
+  justify-content: flex-end;
+}
+.arrow {
+  opacity: 0.6;
+  font-size: 0.625rem;
+}
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--sentinel-color-border-soft);
+  white-space: nowrap;
+}
+td.numeric {
+  text-align: right;
+}
+tbody tr {
+  cursor: pointer;
+}
+tbody tr:hover {
+  background: color-mix(in srgb, var(--sentinel-color-accent) 5%, transparent);
+}
+tbody tr[aria-selected='true'] {
+  background: color-mix(in srgb, var(--sentinel-color-accent) 11%, transparent);
+  box-shadow: inset 3px 0 0 var(--sentinel-color-accent);
+}
+tbody tr:focus-visible {
+  outline: 2px solid var(--sentinel-color-accent);
+  outline-offset: -2px;
+}
+.account {
+  display: grid;
+}
+.token {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.6875rem;
+}
+.bank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.risk,
+.pill {
+  --tone: var(--sentinel-color-success);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+.pill {
+  padding: 2px 9px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: var(--tone);
+  font-size: 0.75rem;
+}
+[data-band='HIGH'],
+[data-band='CRITICAL'],
+[data-decision='HOLD'],
+[data-decision='REJECT'],
+[data-status='ON HOLD'],
+[data-status='REJECTED'] {
+  --tone: var(--sentinel-color-critical);
+}
+[data-band='ELEVATED'],
+[data-status='ALERT OPEN'] {
+  --tone: var(--sentinel-color-warning);
+}
+[data-status='MONITORED'] {
+  --tone: var(--sentinel-color-text-secondary);
+}
+.when {
+  color: var(--sentinel-color-text-secondary);
+  font-size: 0.75rem;
+}
+.row-action {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: 8px;
+  background: none;
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  cursor: pointer;
+}
+.empty-row td {
+  padding: 28px 10px;
+  color: var(--sentinel-color-text-secondary);
+  text-align: center;
+  white-space: normal;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px 10px;
+  font-size: 0.8125rem;
+  color: var(--sentinel-color-text-secondary);
+}
+.pager nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pager nav button {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border: 1px solid var(--sentinel-color-border-soft);
+  border-radius: 8px;
+  background: var(--sentinel-color-surface);
+  color: var(--sentinel-color-text);
+  font: inherit;
+  cursor: pointer;
+}
+.pager nav button[aria-current='page'] {
+  border-color: var(--sentinel-color-accent);
+  background: var(--sentinel-color-accent);
+  color: var(--accent-ink, #fff);
+  font-weight: 700;
+}
+.pager nav button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.flip {
+  transform: scaleX(-1);
+}
+.size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 767px) {
+  .pager {
+    flex-wrap: wrap;
+  }
+}
+/* Accounts read as a directory: an avatar per account, zebra rows and a risk meter. */
+tbody tr:nth-child(even):not([aria-selected='true']) {
+  background: color-mix(in srgb, var(--sentinel-color-text) 2.5%, transparent);
+}
+.account {
+  grid-template-columns: auto max-content;
+  column-gap: 10px;
+}
+.avatar {
+  --tone: var(--sentinel-color-success);
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  color: var(--tone);
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+.meter {
+  width: 46px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sentinel-color-border-soft);
+}
+.meter span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--tone);
+}

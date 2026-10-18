@@ -9,6 +9,10 @@ export class InMemoryDecisionRepository implements DecisionRepository {
     return this.byIdempotencyKey.get(idempotencyKey) ?? null;
   }
 
+  async findByTransactionId(transactionId: string): Promise<DecisionRecord | null> {
+    return [...this.byIdempotencyKey.values()].find((decision) => decision.transactionId === transactionId) ?? null;
+  }
+
   async record(decision: DecisionRecord): Promise<IdempotentWriteResult<DecisionRecord>> {
     const existing = this.byIdempotencyKey.get(decision.idempotencyKey);
     if (existing) return { outcome: 'DUPLICATE', record: existing };

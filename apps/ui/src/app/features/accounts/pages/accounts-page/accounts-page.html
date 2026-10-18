@@ -1,0 +1,101 @@
+<header class="head">
+  <p class="eyebrow">Accounts</p>
+  <h1>Account Monitoring &amp; Intelligence</h1>
+  <p class="lede">Every account the live stream has scored: its latest risk, decision and current status, across connected banks.</p>
+</header>
+
+<section class="kpis" aria-label="Account figures">
+  <div class="kpi" data-tone="accent">
+    <span class="icon"><sentinel-icon name="bank" [size]="22" /></span>
+    <span class="text"><span class="label">Monitored accounts</span><b class="sentinel-mono">{{ facade.kpis().total }}</b></span>
+  </div>
+  <div class="kpi" data-tone="critical">
+    <span class="icon"><sentinel-icon name="alert" [size]="22" /></span>
+    <span class="text"><span class="label">High-risk accounts</span><b class="sentinel-mono">{{ facade.kpis().highRisk }}</b></span>
+    <span class="hint">{{ facade.kpis().onHold }} on hold now</span>
+  </div>
+  <div class="kpi" data-tone="warning">
+    <span class="icon"><sentinel-icon name="shieldAlert" [size]="22" /></span>
+    <span class="text"><span class="label">Under review</span><b class="sentinel-mono">{{ facade.kpis().review }}</b></span>
+    <span class="hint">open alerts</span>
+  </div>
+  <div class="kpi" data-tone="success">
+    <span class="icon"><sentinel-icon name="check" [size]="22" /></span>
+    <span class="text"><span class="label">Normal accounts</span><b class="sentinel-mono">{{ facade.kpis().normal }}</b></span>
+  </div>
+</section>
+
+<div class="filters" role="search" aria-label="Search and filter accounts">
+  <label class="search">
+    <sentinel-icon name="search" [size]="18" />
+    <input type="search" placeholder="Search account reference or token…" aria-label="Search accounts" [value]="facade.filters().query" (input)="setFilter('query', $any($event.target).value)" />
+  </label>
+  <label>
+    <span>Bank / institution</span>
+    <select [value]="facade.filters().institution" (change)="setFilter('institution', $any($event.target).value)">
+      <option value="ALL">All banks</option>
+      @for (institution of facade.institutions(); track institution) {
+        <option [value]="institution">{{ institution | institutionLabel }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span>Risk level</span>
+    <select [value]="facade.filters().band" (change)="setFilter('band', $any($event.target).value)">
+      <option value="ALL">All risk levels</option>
+      <option value="HIGH">High and critical</option>
+      <option value="ELEVATED">Elevated</option>
+      <option value="LOW">Low</option>
+    </select>
+  </label>
+  <label>
+    <span>Latest decision</span>
+    <select [value]="facade.filters().decision" (change)="setFilter('decision', $any($event.target).value)">
+      <option value="ALL">All decisions</option>
+      <option value="HOLD">HOLD</option>
+      <option value="REJECT">REJECT</option>
+      <option value="ALLOW">ALLOW</option>
+    </select>
+  </label>
+  <label>
+    <span>Status</span>
+    <select [value]="facade.filters().status" (change)="setFilter('status', $any($event.target).value)">
+      <option value="ALL">All statuses</option>
+      <option value="ON HOLD">On hold</option>
+      <option value="ALERT OPEN">Alert open</option>
+      <option value="RELEASED">Released</option>
+      <option value="REJECTED">Rejected</option>
+      <option value="MONITORED">Monitored</option>
+    </select>
+  </label>
+  <label>
+    <span>Last activity</span>
+    <select [value]="facade.filters().activity" (change)="setFilter('activity', $any($event.target).value)">
+      <option value="ALL">Any time</option>
+      <option value="1H">Last hour</option>
+      <option value="24H">Last 24 hours</option>
+      <option value="7D">Last 7 days</option>
+    </select>
+  </label>
+</div>
+
+<sentinel-account-table class="directory surface" aria-labelledby="accounts-title" />
+
+@if (facade.selected(); as row) {
+  <sentinel-account-detail
+    class="detail surface"
+    [row]="row"
+    [evidence]="facade.evidence()"
+    [evidenceStatus]="facade.evidenceStatus()"
+    [activity]="facade.recentActivity()"
+    (closed)="facade.select(null)"
+    (network)="facade.openNetwork(row)"
+    (transactions)="facade.openTransactions(row)"
+    (investigation)="facade.openInvestigation(row)"
+  />
+} @else {
+  <aside class="detail surface placeholder">
+    <sentinel-icon name="account" [size]="28" />
+    <p>Select an account to see its details, transactions, connections and alerts.</p>
+  </aside>
+}

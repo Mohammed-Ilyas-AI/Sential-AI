@@ -25,4 +25,15 @@ describe('loadSimulatorRuntimeConfig', () => {
     expect(loadSimulatorRuntimeConfig({ ...base, SIMULATOR_RUN_ID: ' demo42 ' }).runId).toBe('DEMO42');
     expect(() => loadSimulatorRuntimeConfig({ ...base, SIMULATOR_RUN_ID: 'run 1!' })).toThrowError(SimulatorConfigurationError);
   });
+
+  it('keeps seeded background noise disabled by default and bounds an enabled rate', () => {
+    const base = { SIMULATOR_CORE_BASE_URL: 'http://core', SIMULATOR_EVENT_TRANSPORT: 'direct-push' };
+    expect(loadSimulatorRuntimeConfig(base).noise).toEqual({ enabled: false, seed: 20260924, ratePerMinute: 4 });
+    expect(loadSimulatorRuntimeConfig({ ...base, SIMULATOR_NOISE_ENABLED: 'true', SIMULATOR_NOISE_RATE_PER_MINUTE: '60' }).noise).toEqual({
+      enabled: true,
+      seed: 20260924,
+      ratePerMinute: 60,
+    });
+    expect(() => loadSimulatorRuntimeConfig({ ...base, SIMULATOR_NOISE_RATE_PER_MINUTE: '61' })).toThrowError(SimulatorConfigurationError);
+  });
 });

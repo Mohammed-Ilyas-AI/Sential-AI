@@ -17,6 +17,11 @@ export class MongoAlertRepository implements AlertRepository {
     return document ? withoutStorageFields(document) : null;
   }
 
+  async findById(alertId: string): Promise<Alert | null> {
+    const document = await this.alerts.findOne({ _id: alertId });
+    return document ? withoutStorageFields(document) : null;
+  }
+
   async save(alert: Alert): Promise<void> {
     await this.alerts.replaceOne({ _id: alert.id }, alert, { upsert: true });
   }
