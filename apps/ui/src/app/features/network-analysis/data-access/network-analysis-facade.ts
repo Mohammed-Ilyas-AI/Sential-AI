@@ -1,13 +1,14 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import type { Alert, EvidenceBundle, GraphEdgeKind, InvestigationEvidence, NodeKind } from '@sentinel/domain';
+import type { Alert, EvidenceBundle, FundTraceView, GraphEdgeKind, InvestigationEvidence, NetworkExploration, NodeKind } from '@sentinel/domain';
 import type { Observable } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
 import { alertsFeature } from '../../../state/alerts/alerts.feature';
 import { transactionsFeature } from '../../../state/transactions/transactions.feature';
-import { buildEvidenceGraph, type GraphTimelineEntry } from '../graph-engine/evidence-graph';
+import { TenantLensPreference } from '../../../core/tenancy/tenant-lens';
+import { buildEvidenceGraph, traceBoundaryId, type GraphTimelineEntry } from '../graph-engine/evidence-graph';
 import { layoutGraph } from '../graph-engine/graph-layout';
 import type { GraphTarget } from '../graph-engine/graph-renderer';
 import type { GraphSceneEdge, GraphTone, GraphTransfer, PositionedGraphScene } from '../models/graph-scene';
@@ -84,13 +85,26 @@ export class NetworkAnalysisFacade {
   });
   readonly status = computed(() => this.evidenceState().status);
 
+  /** sentinel-core's two-hop neighbourhood around the case transfer's destination, projected through the lens. */
+  private readonly explorationState = signal<{ readonly status: LoadStatus; readonly exploration: NetworkExploration | null }>({ status: 'IDLE', exploration: null });
+  readonly explorationStatus = computed(() => this.explorationState().status);
+  /** The last fund trace the analyst ran for this case. */
+  private readonly traceState = signal<{ readonly status: LoadStatus; readonly trace: FundTraceView | null }>({ status: 'IDLE', trace: null });
+  readonly trace = computed(() => this.traceState().trace);
+  readonly traceStatus = computed(() => this.traceState().status);
+  private readonly lens = inject(TenantLensPreference).lens;
+  private loadedLens: string | null = null;
+
   private readonly built = computed(() => {
     const evidence = this.evidenceState().evidence;
     const option = this.selectedCase();
     if (!evidence || !option) return null;
     const tape = new Map(this.tape().map((row) => [row.transactionId, row]));
     const reference = option.label.split(' · ')[0] ?? null;
-    const { scene, timeline } = buildEvidenceGraph(evidence, tape, reference);
+    const { scene, timeline } = buildEvidenceGraph(evidence, tape, reference, {
+      exploration: this.explorationState().exploration,
+      trace: this.traceState().trace,
+    });
     return { scene: layoutGraph(scene), timeline, evidence };
   });
   readonly evidence = computed(() => this.built()?.evidence ?? null);
@@ -134,6 +148,13 @@ export class NetworkAnalysisFacade {
   /** The timeline entry in focus: its nodes and edges stay bright, the rest dims. */
   readonly activeEntry = signal<string | null>(null);
   readonly highlight = computed(() => {
+    const trace = this.traceState().trace;
+    if (trace && this.activeEntry() === 'trace') {
+      const terminal = trace.hops.at(-1)?.to;
+      const nodes = [trace.rootId, ...trace.hops.map((hop) => hop.to), ...(terminal && !trace.observability.complete ? [traceBoundaryId(terminal)] : [])];
+      const edges = [...trace.hops.map((hop) => `net:${hop.kind}:${hop.from}>${hop.to}`), ...(terminal ? [`net:boundary:${terminal}`] : [])];
+      return { nodes, edges };
+    }
     const entry = this.timeline().find((candidate) => candidate.id === this.activeEntry());
     return entry ? { nodes: entry.nodeIds, edges: entry.edgeIds } : null;
   });
@@ -149,7 +170,13 @@ export class NetworkAnalysisFacade {
   constructor() {
     effect(() => {
       const assessmentId = this.selectedCase()?.assessmentId ?? null;
+      void this.lens();
       untracked(() => this.load(assessmentId));
+    });
+    // Once the evidence is in, ask sentinel-core for the network around where the case's money was going.
+    effect(() => {
+      const evidence = this.evidenceState().evidence;
+      untracked(() => this.loadExploration(evidence));
     });
     // A new case starts on its account, with nothing dimmed.
     effect(() => {
@@ -208,12 +235,56 @@ export class NetworkAnalysisFacade {
     void this.router.navigateByUrl('/investigations');
   }
 
+  /**
+   * Runs sentinel-core's fund trace from the case account. With a destination selected, the trace follows that
+   * transfer; otherwise the heaviest observed outflow. It ends where observation ends, never with an invented hop.
+   */
+  traceFunds(): void {
+    const evidence = this.evidenceState().evidence;
+    if (!evidence) return;
+    const root = evidence.account.accountId;
+    const selected = this.selection();
+    const via =
+      selected?.kind === 'node' && evidence.recentTransactions.some((transaction) => transaction.sourceAccountId === root && transaction.destAccountId === selected.id)
+        ? selected.id
+        : null;
+    this.traceState.set({ status: 'LOADING', trace: null });
+    const query = via ? `?via=${encodeURIComponent(via)}` : '';
+    this.core.get<FundTraceView>(`/v1/network/${encodeURIComponent(root)}/fund-trace${query}`).subscribe({
+      next: (trace) => {
+        this.traceState.set({ status: 'READY', trace });
+        this.activeEntry.set('trace');
+      },
+      error: () => this.traceState.set({ status: 'FAILED', trace: null }),
+    });
+  }
+
+  clearTrace(): void {
+    this.traceState.set({ status: 'IDLE', trace: null });
+    if (this.activeEntry() === 'trace') this.activeEntry.set(null);
+  }
+
+  private loadExploration(evidence: EvidenceBundle | null): void {
+    this.traceState.set({ status: 'IDLE', trace: null });
+    const destination = evidence?.recentTransactions.find((transaction) => transaction.id === evidence.assessment.transactionId)?.destAccountId;
+    if (!destination) {
+      this.explorationState.set({ status: 'IDLE', exploration: null });
+      return;
+    }
+    this.explorationState.set({ status: 'LOADING', exploration: null });
+    this.core.get<NetworkExploration>(`/v1/network/${encodeURIComponent(destination)}/neighbourhood?hops=2`).subscribe({
+      next: (exploration) => this.explorationState.set({ status: 'READY', exploration }),
+      error: () => this.explorationState.set({ status: 'FAILED', exploration: null }),
+    });
+  }
+
   private load(assessmentId: string | null): void {
     if (!assessmentId) {
       this.evidenceState.set({ status: 'IDLE', assessmentId: null, evidence: null });
       return;
     }
-    if (this.evidenceState().assessmentId === assessmentId && this.evidenceState().status !== 'FAILED') return;
+    if (this.evidenceState().assessmentId === assessmentId && this.evidenceState().status === 'READY' && this.loadedLens === this.lens()) return;
+    this.loadedLens = this.lens();
     this.evidenceState.set({ status: 'LOADING', assessmentId, evidence: null });
     this.fetch(assessmentId).subscribe({
       next: ({ assessmentId: loaded, evidence }) => {

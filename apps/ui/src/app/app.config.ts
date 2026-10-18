@@ -6,6 +6,7 @@ import { routes } from './app.routes';
 import { provideRuntimeConfig, type RuntimeConfig } from './core/config/runtime-config';
 import { SentinelErrorHandler } from './core/error-handling/sentinel-error-handler';
 import { traceIdInterceptor } from './core/http/interceptors/trace-id-interceptor';
+import { tenantLensInterceptor } from './core/http/interceptors/tenant-lens-interceptor';
 import { provideRealtimeStream } from './core/realtime/provide-realtime-stream';
 import { ThemePreferences } from './core/theme/theme-preferences';
 import { alertsFeature } from './state/alerts/alerts.feature';
@@ -18,7 +19,7 @@ export function appConfigFor(runtimeConfig: RuntimeConfig): ApplicationConfig {
     providers: [
       provideBrowserGlobalErrorListeners(),
       provideRouter(routes, withComponentInputBinding()),
-      provideHttpClient(withFetch(), withInterceptors([traceIdInterceptor])),
+      provideHttpClient(withFetch(), withInterceptors([traceIdInterceptor, tenantLensInterceptor])),
       provideStore(),
       provideState(sessionFeature),
       provideState(alertsFeature),

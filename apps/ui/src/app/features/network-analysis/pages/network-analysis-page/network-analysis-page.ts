@@ -4,6 +4,7 @@ import { Icon } from '../../../../shared/ui/icon/icon';
 import { EntityInspector } from '../../components/entity-inspector/entity-inspector';
 import { FlowTimeline } from '../../components/flow-timeline/flow-timeline';
 import { GraphCanvas } from '../../components/graph-canvas/graph-canvas';
+import { TraceFundsControl } from '../../components/trace-funds-control/trace-funds-control';
 import { NetworkAnalysisFacade, type DateRange, type GraphFilters, type RiskFilter, type StatusFilter } from '../../data-access/network-analysis-facade';
 import type { GraphTarget } from '../../graph-engine/graph-renderer';
 
@@ -19,7 +20,7 @@ interface FilterOption<T extends string> {
  */
 @Component({
   selector: 'sentinel-network-analysis-page',
-  imports: [Icon, GraphCanvas, EntityInspector, FlowTimeline],
+  imports: [Icon, GraphCanvas, EntityInspector, FlowTimeline, TraceFundsControl],
   providers: [NetworkAnalysisFacade],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './network-analysis-page.html',

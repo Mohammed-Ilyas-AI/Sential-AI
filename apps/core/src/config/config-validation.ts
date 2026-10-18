@@ -1,6 +1,12 @@
 import { DEFAULT_RAPID_DRAIN_POLICY, type RapidDrainPolicy } from '@sentinel/domain';
 import type { EnvironmentVariables } from './environment.js';
-import { GEMINI_THINKING_LEVELS, type CoreRuntimeConfig, type GeminiThinkingLevel, type PubSubPushVerification } from './runtime-config.js';
+import {
+  GEMINI_THINKING_LEVELS,
+  type CoreRuntimeConfig,
+  type GeminiThinkingLevel,
+  type PubSubPushVerification,
+  type ScenarioLauncherSettings,
+} from './runtime-config.js';
 
 export class ConfigurationError extends Error {
   constructor(readonly problems: readonly string[]) {
@@ -79,6 +85,7 @@ export function loadCoreRuntimeConfig(env: EnvironmentVariables): CoreRuntimeCon
     ),
     pubsubPush: readPushVerification(env, problems),
     demoTimeCompression: optional('DEMO_TIME_COMPRESSION_ENABLED') === 'true',
+    scenarioLauncher: readScenarioLauncher(env, problems),
   };
 
   if (problems.length > 0) throw new ConfigurationError(problems);
@@ -99,4 +106,24 @@ function readPushVerification(env: EnvironmentVariables, problems: string[]): Pu
   }
   problems.push('PUBSUB_PUSH_VERIFICATION must be google-oidc or disabled-for-local-development');
   return { mode: 'disabled-for-local-development' };
+}
+
+function readScenarioLauncher(env: EnvironmentVariables, problems: string[]): ScenarioLauncherSettings {
+  const mode = env['SCENARIO_LAUNCHER']?.trim() || 'disabled';
+  if (mode === 'disabled') return { mode };
+  if (mode === 'local-process') {
+    const workdir = env['SCENARIO_LAUNCHER_WORKDIR']?.trim() ?? '';
+    if (!workdir) problems.push('SCENARIO_LAUNCHER_WORKDIR (the repository root) is required when SCENARIO_LAUNCHER=local-process');
+    const port = env['PORT']?.trim() || '8080';
+    return { mode, workdir, coreBaseUrl: env['SCENARIO_LAUNCHER_CORE_BASE_URL']?.trim() || `http://localhost:${port}` };
+  }
+  if (mode === 'cloud-run-job') {
+    const projectId = env['GCP_PROJECT_ID']?.trim() ?? '';
+    const region = env['SCENARIO_LAUNCHER_REGION']?.trim() || 'asia-southeast1';
+    const job = env['SCENARIO_LAUNCHER_JOB']?.trim() || 'sentinel-simulator';
+    if (!projectId) problems.push('GCP_PROJECT_ID is required when SCENARIO_LAUNCHER=cloud-run-job');
+    return { mode, projectId, region, job };
+  }
+  problems.push(`SCENARIO_LAUNCHER must be disabled, local-process or cloud-run-job, got "${mode}"`);
+  return { mode: 'disabled' };
 }

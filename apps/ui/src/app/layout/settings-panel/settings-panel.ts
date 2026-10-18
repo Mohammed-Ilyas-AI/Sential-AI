@@ -6,12 +6,14 @@ import { Icon } from '../../shared/ui/icon/icon';
 import { sessionFeature } from '../../state/session/session.feature';
 import { ShellState } from '../shell/shell-state';
 import { AppearanceSettings } from './appearance-settings';
+import { DataLensSettings } from './data-lens-settings';
+import { ScenarioLauncher } from '../../features/demo-controls';
 import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
 
 /** A right-hand drawer. Everything here is either a real preference or a read-only fact about this deployment. */
 @Component({
   selector: 'sentinel-settings-panel',
-  imports: [Icon, AppearanceSettings],
+  imports: [Icon, AppearanceSettings, DataLensSettings, ScenarioLauncher],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <aside class="drawer sentinel-panel--elevated sentinel-scroll" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -26,6 +28,10 @@ import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
         <sentinel-appearance-settings />
       </section>
 
+      <section aria-labelledby="data-lens-title">
+        <sentinel-data-lens-settings />
+      </section>
+
       <section aria-labelledby="workspace-title">
         <h3 id="workspace-title"><sentinel-icon name="grid" [size]="16" />Workspace</h3>
         <button type="button" class="switch" role="switch" [attr.aria-checked]="shell.sidebarExpanded()" (click)="shell.toggleSidebar()">
@@ -34,6 +40,11 @@ import { KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
         <button type="button" class="switch" role="switch" [attr.aria-checked]="shell.focusMode()" (click)="shell.toggleFocusMode()">
           <span>Focus mode <small>hides the rail and secondary panels</small></span><span class="track" aria-hidden="true"></span>
         </button>
+      </section>
+
+      <section aria-labelledby="scenario-title">
+        <h3 id="scenario-title"><sentinel-icon name="play" [size]="16" />Demo scenario</h3>
+        <sentinel-scenario-launcher />
       </section>
 
       <section aria-labelledby="notifications-settings-title">

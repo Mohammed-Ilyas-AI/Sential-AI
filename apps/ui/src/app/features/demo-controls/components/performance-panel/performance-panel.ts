@@ -1,59 +1,84 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, catchError, switchMap, tap, timer } from 'rxjs';
-import type { PerformanceSnapshot } from '@sentinel/domain';
-import { CoreApiClient } from '../../../../core/http/api-client/core-api-client';
+import { ChangeDetectionStrategy, Component, inject, output, type OnDestroy, type OnInit } from '@angular/core';
+import { UI_PERFORMANCE_TARGETS } from '../../../../core/telemetry/performance-metrics';
+import { Icon } from '../../../../shared/ui/icon/icon';
+import { DemoControlsFacade } from '../../data-access/demo-controls-facade';
 
-const PATH_LABELS: Readonly<Record<string, string>> = {
-  decisionApi: 'Pre-transaction decision API',
-  securityEventIngest: 'Security event ingestion',
-  transactionLifecycleIngest: 'Transaction lifecycle ingestion',
-  graphQuery: 'Network graph queries',
-};
-
+/**
+ * Behind Ctrl+Shift+P (T§5): live event rate, main-thread time per batch, message-to-row latency and render
+ * passes in this browser, plus sentinel-core's measured request latency. Measured, not asserted: an empty window
+ * says "no samples", never zero.
+ */
 @Component({
   selector: 'sentinel-performance-panel',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, Icon],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './performance-panel.html',
+  template: `
+    <header>
+      <h2><sentinel-icon name="activity" [size]="16" /> Performance</h2>
+      <button type="button" aria-label="Close the performance panel" (click)="closed.emit()"><sentinel-icon name="close" [size]="14" /></button>
+    </header>
+    @if (facade.ui(); as ui) {
+      <h3>This browser · last {{ ui.windowSeconds }} s</h3>
+      <dl>
+        <div [attr.data-ok]="ui.eventsPerSecond > 0 ? ui.eventsPerSecond <= targets.eventsPerSecond : null">
+          <dt>Decisions received</dt><dd>{{ ui.eventsPerSecond | number: '1.0-1' }}/s <small>sustains {{ targets.eventsPerSecond }}/s</small></dd>
+        </div>
+        <div [attr.data-ok]="ui.mainThreadMsPerBatch.p95 === null ? null : ui.mainThreadMsPerBatch.p95 < targets.mainThreadMsPerBatch">
+          <dt>Main thread per batch</dt>
+          <dd>{{ ui.mainThreadMsPerBatch.p95 === null ? 'no samples' : 'p95 ' + (ui.mainThreadMsPerBatch.p95 | number: '1.1-1') + ' ms' }} <small>&lt; {{ targets.mainThreadMsPerBatch }} ms · {{ ui.mainThreadMsPerBatch.samples }} batches</small></dd>
+        </div>
+        <div [attr.data-ok]="ui.messageToRowMs.p95 === null ? null : ui.messageToRowMs.p95 < targets.messageToRowMs">
+          <dt>Message to row</dt>
+          <dd>{{ ui.messageToRowMs.p95 === null ? 'no samples' : 'p95 ' + (ui.messageToRowMs.p95 | number: '1.0-0') + ' ms' }} <small>&lt; {{ targets.messageToRowMs }} ms</small></dd>
+        </div>
+        <div [attr.data-ok]="ui.changeDetectionPassesPerSecond <= targets.changeDetectionPassesPerSecond">
+          <dt>Render passes</dt><dd>{{ ui.changeDetectionPassesPerSecond | number: '1.0-1' }}/s <small>≤ {{ targets.changeDetectionPassesPerSecond }}/s target</small></dd>
+        </div>
+      </dl>
+    }
+    <h3>sentinel-core · this instance</h3>
+    @switch (facade.serverStatus()) {
+      @case ('IDLE') {
+        <p class="muted">Loading…</p>
+      }
+      @case ('UNAVAILABLE') {
+        <p class="muted">Unavailable: sentinel-core did not answer.</p>
+      }
+      @default {
+        @if (facade.server(); as server) {
+          <dl>
+            @for (path of server.paths; track path.path) {
+              <div [attr.data-ok]="path.budget && path.latency.p95Ms !== null ? path.latency.p95Ms <= path.budget.targetMs : null">
+                <dt>{{ path.path }}</dt>
+                <dd>
+                  @if (path.latency.p95Ms === null) {
+                    no samples
+                  } @else {
+                    p50 {{ path.latency.p50Ms | number: '1.0-0' }} · p95 {{ path.latency.p95Ms | number: '1.0-0' }} ms
+                  }
+                  <small>{{ path.requests }} req · {{ path.failures }} failed{{ path.budget ? ' · target ' + path.budget.targetMs + ' ms' : '' }}</small>
+                </dd>
+              </div>
+            }
+          </dl>
+          <p class="muted">Window {{ server.windowSeconds / 60 }} min · captured {{ server.capturedAt | date: 'HH:mm:ss' : 'UTC' }} UTC · per instance</p>
+        }
+      }
+    }
+  `,
   styleUrl: './performance-panel.css',
 })
-export class PerformancePanel {
-  private readonly api = inject(CoreApiClient);
-  protected readonly snapshot = signal<PerformanceSnapshot | null>(null);
-  protected readonly loading = signal(true);
-  protected readonly failed = signal(false);
-  protected readonly now = signal(Date.now());
-  protected readonly stale = computed(() => {
-    const snapshot = this.snapshot();
-    return snapshot !== null && Date.parse(snapshot.capturedAt) < this.now() - 60_000;
-  });
-  protected readonly label = (path: string): string => PATH_LABELS[path] ?? path;
+export class PerformancePanel implements OnInit, OnDestroy {
+  readonly closed = output<void>();
+  protected readonly facade = inject(DemoControlsFacade);
+  protected readonly targets = UI_PERFORMANCE_TARGETS;
 
-  constructor() {
-    timer(0, 30_000)
-      .pipe(
-        tap(() => {
-          this.now.set(Date.now());
-          this.loading.set(this.snapshot() === null);
-        }),
-        switchMap(() =>
-          this.api.get<PerformanceSnapshot>('/v1/metrics/performance').pipe(
-            tap((snapshot) => {
-              this.snapshot.set(snapshot);
-              this.failed.set(false);
-              this.loading.set(false);
-            }),
-            catchError(() => {
-              this.failed.set(true);
-              this.loading.set(false);
-              return EMPTY;
-            }),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
+  ngOnInit(): void {
+    this.facade.startPanel();
+  }
+
+  ngOnDestroy(): void {
+    this.facade.stopPanel();
   }
 }

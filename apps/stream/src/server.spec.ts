@@ -12,9 +12,9 @@ const ORIGIN = 'http://localhost:4200';
 const SECOND_ORIGIN = 'https://sentinel.example.run';
 const snapshot: StreamSnapshot = { decisions: [], alerts: [], interventions: [] };
 
-function openClient(baseUrl: string, origin = ORIGIN): Promise<{ socket: WebSocket; messages: StreamMessage[]; next: () => Promise<StreamMessage> }> {
+function openClient(baseUrl: string, origin = ORIGIN, query = ''): Promise<{ socket: WebSocket; messages: StreamMessage[]; next: () => Promise<StreamMessage> }> {
   return new Promise((resolve, reject) => {
-    const socket = new WebSocket(`${baseUrl}${STREAM_PATH}`, { origin });
+    const socket = new WebSocket(`${baseUrl}${STREAM_PATH}${query}`, { origin });
     const messages: StreamMessage[] = [];
     const waiters: ((message: StreamMessage) => void)[] = [];
     socket.on('message', (data) => {
@@ -75,6 +75,31 @@ describe('sentinel-stream server', () => {
     expect(await second.next()).toEqual(decision);
     first.socket.close();
     second.socket.close();
+  });
+
+  it('applies the tenant lens: a lensed client receives only its own institution’s records', async () => {
+    const lensed = await openClient(baseUrl, ORIGIN, '?lens=BANK_A');
+    const operator = await openClient(baseUrl);
+    await lensed.next();
+    await operator.next();
+    const decision = (id: string, accountId: string, institutionId: string) =>
+      ({ kind: 'DECISION', cursor: id, emittedAt: 't', payload: { decisionId: id, accountId, institutionId } }) as unknown as StreamMessage;
+    const intervention = (accountId: string) =>
+      ({ kind: 'INTERVENTION', cursor: `i-${accountId}`, emittedAt: 't', payload: { id: `int-${accountId}`, accountId } }) as unknown as StreamMessage;
+    for (const message of [decision('d-b', 'acct_b', 'BANK_B'), decision('d-a', 'acct_a', 'BANK_A'), intervention('acct_b'), intervention('acct_a')]) {
+      registry.broadcast(message);
+    }
+    expect(await lensed.next()).toMatchObject({ payload: { decisionId: 'd-a' } });
+    expect(await lensed.next()).toMatchObject({ kind: 'INTERVENTION', payload: { accountId: 'acct_a' } });
+    expect(lensed.messages).toEqual([]);
+    const seen = [await operator.next(), await operator.next(), await operator.next(), await operator.next()];
+    expect(seen.map((message) => message.kind)).toEqual(['DECISION', 'DECISION', 'INTERVENTION', 'INTERVENTION']);
+    lensed.socket.close();
+    operator.socket.close();
+  });
+
+  it('refuses an unknown lens at the upgrade', async () => {
+    await expect(openClient(baseUrl, ORIGIN, '?lens=BANK_Z')).rejects.toThrow();
   });
 
   it('accepts every configured UI origin, each exactly', async () => {

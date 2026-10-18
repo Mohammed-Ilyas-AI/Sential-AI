@@ -1,4 +1,5 @@
-import type { AuditEvent, CustomerContactRecord, KillSwitchRecord } from '@sentinel/domain';
+import type { AuditEvent, CustomerContactRecord, KillSwitchRecord, ScenarioRun } from '@sentinel/domain';
+import type { ScenarioRunRepository } from '../../../src/modules/scenarios/application/ports/scenario-run-repository.port.js';
 import type { AuditLog, AuditLogQuery } from '../../../src/modules/audit/application/ports/audit-log.port.js';
 import type { AccountControlRepository } from '../../../src/modules/interventions/application/ports/account-control-repository.port.js';
 import { ApplicationError } from '../../../src/platform/errors/application-error.js';
@@ -57,5 +58,34 @@ export class InMemoryAuditLog implements AuditLog {
 
   all(): readonly AuditEvent[] {
     return [...this.events];
+  }
+}
+
+export class InMemoryScenarioRunRepository implements ScenarioRunRepository {
+  private readonly runs = new Map<string, ScenarioRun>();
+
+  async insert(run: ScenarioRun): Promise<IdempotentWriteResult<ScenarioRun>> {
+    const original = [...this.runs.values()].find((stored) => stored.idempotencyKey === run.idempotencyKey);
+    if (original) return { outcome: 'DUPLICATE', record: original };
+    this.runs.set(run.runId, run);
+    return { outcome: 'CREATED', record: run };
+  }
+
+  async findById(runId: string): Promise<ScenarioRun | null> {
+    return this.runs.get(runId) ?? null;
+  }
+
+  async findActive(): Promise<readonly ScenarioRun[]> {
+    return [...this.runs.values()].filter((run) => run.status === 'LAUNCHING' || run.status === 'RUNNING').reverse();
+  }
+
+  async list(limit: number): Promise<readonly ScenarioRun[]> {
+    return [...this.runs.values()].reverse().slice(0, limit);
+  }
+
+  async update(runId: string, patch: Parameters<ScenarioRunRepository['update']>[1]): Promise<ScenarioRun | null> {
+    const run = this.runs.get(runId);
+    if (run && (run.status === 'LAUNCHING' || run.status === 'RUNNING')) this.runs.set(runId, { ...run, ...patch });
+    return this.runs.get(runId) ?? null;
   }
 }

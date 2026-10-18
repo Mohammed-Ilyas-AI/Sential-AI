@@ -12,8 +12,18 @@ export interface NoiseInput {
 }
 
 const NOISE_WINDOW_MS = 60_000;
+/** S$125,000: protected, so the gate is evaluated, and large enough that noise never approaches it. */
+const NOISE_BALANCE = 12_500_000;
+/** Well above the S$3,000 P95, so behavioural deviation fires in full; at most S$5,000 per oddity. */
+const ODDITY_BASE_AMOUNT = 480_000;
+const ODDITY_JITTER = 20_000;
 
-/** Independent, low-frequency synthetic anomalies. Never reuses DEMO_TAKEOVER_01's victim or run-scoped IDs. */
+/**
+ * Low-level oddities that score ELEVATED but never trip the gate (T§9): an unseen device, a new payee and an
+ * amount just above the account's P95. Accounts are visited round-robin in a seeded order, so even at the maximum
+ * rate no account moves more than ceil(60/11) x S$5,000 = S$30,000 of its S$125,000 (24%, below the 25% where
+ * rapid-drain points begin and far below the 50% gate). Never reuses DEMO_TAKEOVER_01's victim or run-scoped IDs.
+ */
 export const noiseGenerator: ScenarioGenerator<NoiseInput, readonly ScenarioStep[]> = {
   name: 'noise',
   generate(random, { events, ratePerMinute }) {
@@ -29,11 +39,11 @@ export const noiseGenerator: ScenarioGenerator<NoiseInput, readonly ScenarioStep
     const steps: ScenarioStep[] = accounts.map((account) => ({
       atMs: 0,
       action: 'REPORT_ACCOUNT',
-      report: events.accountReport(account, 1_600_000, 1, events.at(0)),
+      report: events.accountReport(account, NOISE_BALANCE, 1, events.at(0)),
     }));
 
     for (let index = 0; index < ratePerMinute; index += 1) {
-      const account = accounts[Math.floor(random.next() * accounts.length)];
+      const account = accounts[index % accounts.length];
       if (!account) throw new Error('Noise account selection failed');
       const start = Math.floor((index * NOISE_WINDOW_MS) / ratePerMinute);
       const deviceId = `DEV-NOISE-${String(index + 1).padStart(2, '0')}`;
@@ -54,7 +64,7 @@ export const noiseGenerator: ScenarioGenerator<NoiseInput, readonly ScenarioStep
         source: account,
         payeeId,
         destinationInstitutionId: account.institutionId,
-        amount: 490_000,
+        amount: ODDITY_BASE_AMOUNT + Math.floor(random.next() * ODDITY_JITTER),
         deviceId,
         occurredAt: events.at(start + 300),
       });

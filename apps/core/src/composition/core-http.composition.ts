@@ -11,6 +11,15 @@ import { AuditTrail } from '../modules/audit/application/audit-trail.js';
 import { auditEventRoutes } from '../modules/audit/presentation/audit-event.routes.js';
 import type { ModelGateway } from '../modules/intelligence/application/ports/model-gateway.port.js';
 import { TenantAccessService } from '../modules/tenant-access/application/tenant-access.service.js';
+import { ScenarioLaunchService } from '../modules/scenarios/application/scenario-launch.service.js';
+import type { ScenarioRunner } from '../modules/scenarios/application/ports/scenario-runner.port.js';
+import { scenarioRunRoutes } from '../modules/scenarios/presentation/scenario-run.routes.js';
+import {
+  CloudRunJobScenarioRunner,
+  DisabledScenarioRunner,
+  LocalProcessScenarioRunner,
+} from '../infrastructure/scenario-launch/scenario-runners.js';
+import type { ScenarioLauncherSettings } from '../config/runtime-config.js';
 import { PerformanceMetrics } from '../modules/telemetry/application/performance-metrics.js';
 import { performanceRoutes } from '../modules/telemetry/presentation/performance.routes.js';
 import type { IdGenerator } from '../platform/ids/id-generator.js';
@@ -27,7 +36,7 @@ export interface CoreHttpComposition {
 export interface CoreHttpInputs {
   readonly config: Pick<
     CoreRuntimeConfig,
-    'corsAllowedOrigins' | 'rapidDrainPolicy' | 'designatedBillingPayeeIds' | 'demoTimeCompression' | 'pubsubPush' | 'vertex'
+    'corsAllowedOrigins' | 'rapidDrainPolicy' | 'designatedBillingPayeeIds' | 'demoTimeCompression' | 'pubsubPush' | 'vertex' | 'scenarioLauncher'
   >;
   readonly persistence: SentinelPersistence;
   readonly clock: Clock;
@@ -35,6 +44,14 @@ export interface CoreHttpInputs {
   readonly logger: Logger;
   /** Tests only: a scripted model in place of Vertex AI. */
   readonly modelGateway?: ModelGateway;
+  /** Tests only: a scripted launcher in place of the configured one. */
+  readonly scenarioRunner?: ScenarioRunner;
+}
+
+function scenarioRunnerFor(settings: ScenarioLauncherSettings, clock: Clock): ScenarioRunner {
+  if (settings.mode === 'local-process') return new LocalProcessScenarioRunner(settings, clock);
+  if (settings.mode === 'cloud-run-job') return new CloudRunJobScenarioRunner(settings, clock);
+  return new DisabledScenarioRunner();
 }
 
 function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticator {
@@ -44,7 +61,7 @@ function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticat
 }
 
 /** The whole HTTP surface for a given persistence: used by main.ts with Atlas and by tests with in-memory adapters. */
-export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway }: CoreHttpInputs): CoreHttpComposition {
+export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway, scenarioRunner }: CoreHttpInputs): CoreHttpComposition {
   const audit = new AuditTrail(persistence.auditLog, clock, ids);
   const tenantAccess = new TenantAccessService(persistence.accounts, audit);
   const performanceMetrics = new PerformanceMetrics(clock);
@@ -71,7 +88,13 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
     ...(modelGateway ? { modelGateway } : {}),
   });
   const app = createApp({
-    routes: [...controlPath.routes, ...intelligencePath.routes, auditEventRoutes(audit), performanceRoutes(performanceMetrics)],
+    routes: [
+      ...controlPath.routes,
+      ...intelligencePath.routes,
+      auditEventRoutes(audit),
+      performanceRoutes(performanceMetrics),
+      scenarioRunRoutes(new ScenarioLaunchService(persistence.scenarioRuns, scenarioRunner ?? scenarioRunnerFor(config.scenarioLauncher, clock), audit, clock)),
+    ],
     corsAllowedOrigins: config.corsAllowedOrigins,
     logger,
     performanceMetrics,

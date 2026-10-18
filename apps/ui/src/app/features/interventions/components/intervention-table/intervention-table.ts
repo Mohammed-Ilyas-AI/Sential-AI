@@ -57,7 +57,7 @@ interface Column {
                   <span class="mono sub">{{ row.transactionId }}</span>
                 </span>
               </td>
-              <td><span class="pill" [attr.data-kind]="row.kind">{{ row.kind === 'CASCADE' ? 'CASCADE' : 'HOLD' }}</span></td>
+              <td><span class="pill" [attr.data-kind]="row.kind">{{ row.kind === 'CASCADE' ? 'CASCADE' : row.kind === 'KILL_SWITCH' ? 'KILL SWITCH' : 'HOLD' }}</span></td>
               <td class="reason wide-only">{{ row.reasonCodes.join(', ') || '—' }}</td>
               <td class="numeric mono">{{ row.decided ? (row.decided.amount | minorUnitsCurrency) : '—' }}</td>
               <td class="numeric">

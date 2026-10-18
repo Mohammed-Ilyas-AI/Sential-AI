@@ -32,8 +32,12 @@ import { AUDIT_ZONE_OFFSET, AuditLogsFacade } from '../../data-access/audit-logs
         <p class="note"><sentinel-icon name="lock" [size]="13" /> Audit records are immutable. They can be read and exported here, never edited or deleted.</p>
       </div>
       <div class="actions">
-        <button type="button" (click)="facade.openInvestigation(event)"><sentinel-icon name="investigate" [size]="16" /> Investigation</button>
-        <button type="button" (click)="facade.openTransaction(event)"><sentinel-icon name="activity" [size]="16" /> Transaction</button>
+        @if (event.accountId) {
+          <button type="button" (click)="facade.openInvestigation(event)"><sentinel-icon name="investigate" [size]="16" /> Investigation</button>
+        }
+        @if (event.transactionId) {
+          <button type="button" (click)="facade.openTransaction(event)"><sentinel-icon name="activity" [size]="16" /> Transaction</button>
+        }
         @if (event.category === 'INTERVENTION') {
           <button type="button" (click)="facade.openIntervention()"><sentinel-icon name="intervention" [size]="16" /> Interventions</button>
         }

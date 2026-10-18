@@ -4,7 +4,7 @@ import { InMemoryDecisionRepository } from './in-memory-decision.repository.js';
 import { InMemoryEvidenceSource, InMemoryExplanationCache } from './in-memory-evidence.source.js';
 import { InMemoryGraphStore } from './in-memory-graph.store.js';
 import { InMemoryInterventionRepository } from './in-memory-intervention.repository.js';
-import { InMemoryAccountControlRepository, InMemoryAuditLog } from './in-memory-operations.stores.js';
+import { InMemoryAccountControlRepository, InMemoryAuditLog, InMemoryScenarioRunRepository } from './in-memory-operations.stores.js';
 import { InMemoryCaseReportRepository, InMemoryCaseRepository, InMemoryCaseSummaryArchive } from './in-memory-case.stores.js';
 import { InMemoryAlertRepository, InMemoryAssessmentRepository, InMemorySecurityEventLog } from './in-memory-simple-stores.js';
 import { InMemoryTransactionStore } from './in-memory-transaction-store.js';
@@ -40,6 +40,7 @@ export function createInMemoryPersistence(): InMemoryPersistence {
     entityLinks: graph,
     accountControls: new InMemoryAccountControlRepository(),
     auditLog: new InMemoryAuditLog(),
+    scenarioRuns: new InMemoryScenarioRunRepository(),
     reports: new InMemoryCaseReportRepository(),
     summaries: new InMemoryCaseSummaryArchive(),
     graph,

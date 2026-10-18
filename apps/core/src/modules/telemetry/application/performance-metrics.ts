@@ -1,4 +1,4 @@
-import type { PerformanceSnapshot } from '@sentinel/domain';
+import { LATENCY_BUDGETS_MS, type PerformanceSnapshot } from '@sentinel/domain';
 import type { Clock } from '../../../platform/time/clock.js';
 
 const WINDOW_MS = 5 * 60_000;
@@ -12,6 +12,15 @@ interface Sample {
   readonly durationMs: number;
   readonly failed: boolean;
 }
+
+/**
+ * T§10 budgets for the paths this instance can time. The decision API is the server half of "Pub/Sub publish to
+ * decision"; the graph budget is for a cached two-hop query, and these graph reads are not cached.
+ */
+const BUDGETS: Partial<Record<MeasuredPath, { readonly target: number; readonly ceiling: number }>> = {
+  decisionApi: LATENCY_BUDGETS_MS.pubSubPublishToDecision,
+  graphQuery: LATENCY_BUDGETS_MS.graphTwoHopCachedQuery,
+};
 
 const quantile = (ordered: readonly number[], fraction: number): number | null =>
   ordered.length === 0 ? null : ordered[Math.max(0, Math.ceil(ordered.length * fraction) - 1)] ?? null;
@@ -59,6 +68,7 @@ export class PerformanceMetrics {
           requests: records.length,
           failures: records.filter((sample) => sample.failed).length,
           requestsPerSecond: windowSeconds > 0 ? records.length / windowSeconds : 0,
+          ...(BUDGETS[path] ? { budget: { targetMs: BUDGETS[path].target, ceilingMs: BUDGETS[path].ceiling } } : {}),
         };
       }),
     };

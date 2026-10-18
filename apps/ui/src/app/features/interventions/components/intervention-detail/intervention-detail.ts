@@ -4,8 +4,9 @@ import { InstitutionLabelPipe } from '../../../../shared/pipes/institution-label
 import { MinorUnitsCurrencyPipe } from '../../../../shared/pipes/minor-units-currency/minor-units-currency-pipe';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { InterventionsFacade, type InterventionAction, type InterventionRow } from '../../data-access/interventions-facade';
+import { AccountControls } from '../account-controls/account-controls';
 
-type Tab = 'overview' | 'transaction' | 'audit';
+type Tab = 'overview' | 'transaction' | 'audit' | 'controls';
 
 const ACTIONS: readonly { readonly action: InterventionAction; readonly label: string; readonly confirm: string }[] = [
   { action: 'customer-verified-release', label: 'Release · customer verified', confirm: 'Record that the customer verified with the bank and release' },
@@ -20,7 +21,7 @@ const ACTIONS: readonly { readonly action: InterventionAction; readonly label: s
  */
 @Component({
   selector: 'sentinel-intervention-detail',
-  imports: [DatePipe, DecimalPipe, Icon, InstitutionLabelPipe, MinorUnitsCurrencyPipe],
+  imports: [DatePipe, DecimalPipe, Icon, InstitutionLabelPipe, MinorUnitsCurrencyPipe, AccountControls],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (facade.selected(); as item) {
@@ -37,6 +38,7 @@ const ACTIONS: readonly { readonly action: InterventionAction; readonly label: s
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'overview'" (click)="tab.set('overview')">Overview</button>
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'transaction'" (click)="tab.set('transaction')">Transaction</button>
         <button type="button" role="tab" [attr.aria-selected]="tab() === 'audit'" (click)="tab.set('audit')">Audit trail ({{ item.history.length }})</button>
+        <button type="button" role="tab" [attr.aria-selected]="tab() === 'controls'" (click)="tab.set('controls')" title="Kill switch and customer contact for this account">Controls</button>
       </nav>
       <div class="body sentinel-scroll">
         @switch (tab()) {
@@ -44,7 +46,7 @@ const ACTIONS: readonly { readonly action: InterventionAction; readonly label: s
             <div class="split">
               <dl>
                 <div><dt>Latest record</dt><dd class="mono">{{ item.id.slice(0, 13) }}…</dd></div>
-                <div><dt>Type</dt><dd>{{ item.kind === 'CASCADE' ? 'Hold cascade' : 'Threshold hold' }}</dd></div>
+                <div><dt>Type</dt><dd>{{ item.kind === 'CASCADE' ? 'Hold cascade' : item.kind === 'KILL_SWITCH' ? 'Kill switch hold (no auto-release)' : 'Threshold hold' }}</dd></div>
                 <div><dt>Current state</dt><dd [attr.data-state]="item.state">{{ item.state }}</dd></div>
                 <div><dt>Policy decision</dt><dd [attr.data-decision]="item.decided?.decision">{{ item.decided?.decision ?? 'Not on the live tape' }}</dd></div>
                 <div><dt>Last action by</dt><dd>{{ actorLabel(item) }}</dd></div>
@@ -104,6 +106,9 @@ const ACTIONS: readonly { readonly action: InterventionAction; readonly label: s
             } @else {
               <p class="empty">This transfer is no longer on the live tape; its intervention records remain in the audit trail.</p>
             }
+          }
+          @case ('controls') {
+            <sentinel-account-controls [accountId]="item.accountId" [reference]="item.reference" [transactionId]="item.transactionId" />
           }
           @case ('audit') {
             <ol class="audit">

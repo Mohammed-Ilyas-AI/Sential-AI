@@ -6,6 +6,7 @@ import type { SentinelPersistence } from '../../../src/composition/mongo-persist
 import type { PubSubPushVerification } from '../../../src/config/runtime-config.js';
 import { createLogger } from '../../../src/infrastructure/telemetry/logger.js';
 import type { ModelGateway } from '../../../src/modules/intelligence/application/ports/model-gateway.port.js';
+import type { ScenarioRunner } from '../../../src/modules/scenarios/application/ports/scenario-runner.port.js';
 import type { IdGenerator } from '../../../src/platform/ids/id-generator.js';
 import { TestClock } from './test-clock.js';
 
@@ -30,6 +31,7 @@ export async function startCoreHarness(
     readonly pubsubPush?: PubSubPushVerification;
     readonly designatedBillingPayeeIds?: ReadonlySet<string>;
     readonly modelGateway?: ModelGateway;
+    readonly scenarioRunner?: ScenarioRunner;
   } = {},
 ): Promise<CoreHarness> {
   const clock = new TestClock(options.clockStart ?? '2026-09-24T11:30:00.000Z');
@@ -41,12 +43,14 @@ export async function startCoreHarness(
       demoTimeCompression: false,
       pubsubPush: options.pubsubPush ?? { mode: 'disabled-for-local-development' },
       vertex: { projectId: '', location: 'asia-southeast1' },
+      scenarioLauncher: { mode: 'disabled' },
     },
     persistence,
     clock,
     ids: sequentialIds(),
     logger: createLogger('silent'),
     ...(options.modelGateway ? { modelGateway: options.modelGateway } : {}),
+    ...(options.scenarioRunner ? { scenarioRunner: options.scenarioRunner } : {}),
   });
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));

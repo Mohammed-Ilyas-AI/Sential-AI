@@ -2,7 +2,7 @@
   <div>
     <p class="eyebrow">System</p>
     <h1>Audit logs</h1>
-    <p class="lede">Every policy decision, intervention transition and alert recorded in this session. Read-only and immutable.</p>
+    <p class="lede">Policy decisions, intervention transitions and alerts from this session, plus the analyst and system actions sentinel-core recorded. Read-only and immutable.</p>
   </div>
   <button type="button" class="export" [disabled]="!facade.filtered().length" (click)="exportCsv()">
     <sentinel-icon name="arrowDownRight" [size]="16" /> Export logs ({{ facade.filtered().length }})
@@ -32,6 +32,7 @@
         <option value="DECISION">Decisions</option>
         <option value="INTERVENTION">Interventions</option>
         <option value="ALERT">Alerts</option>
+        <option value="ACTION">Recorded actions</option>
       </select>
       <select aria-label="Actor" [value]="facade.filters().actor" (change)="filter('actor', $event)">
         <option value="ALL">All actors</option>
@@ -51,6 +52,10 @@
         <option value="Policy gate">Policy gate</option>
         <option value="Interventions">Interventions</option>
         <option value="Alerts & cases">Alerts &amp; cases</option>
+        <option value="Cases & reports">Cases &amp; reports</option>
+        <option value="Account controls">Account controls</option>
+        <option value="Access">Access</option>
+        <option value="Demo scenarios">Demo scenarios</option>
       </select>
       <button type="button" class="ghost" (click)="facade.resetFilters()">Reset</button>
       <div class="zone" role="group" aria-label="Displayed time zone">
@@ -98,7 +103,7 @@
     <footer class="pager">
       <span>
         @if (facade.filtered().length) {
-          {{ facade.currentPage() * pageSize + 1 }}–{{ facade.currentPage() * pageSize + facade.visible().length }} of {{ facade.filtered().length }} events · times in {{ facade.zone() === 'UTC' ? 'UTC' : 'SGT (UTC+8)' }}
+          {{ facade.currentPage() * pageSize + 1 }}–{{ facade.currentPage() * pageSize + facade.visible().length }} of {{ facade.filtered().length }} events · times in {{ facade.zone() === 'UTC' ? 'UTC' : 'SGT (UTC+8)' }}{{ facade.recordedStatus() === 'UNAVAILABLE' ? ' · recorded actions unavailable (sentinel-core did not answer)' : '' }}
         } @else {
           0 events
         }

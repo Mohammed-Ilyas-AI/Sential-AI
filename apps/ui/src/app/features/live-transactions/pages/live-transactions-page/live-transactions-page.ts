@@ -42,7 +42,7 @@ export class LiveTransactionsPage {
   private dismissed = false;
   /** Deep links from the Control Tower globe: ?txn= opens that transaction, ?bank= narrows the table to a bank. */
   private readonly query = toSignal(inject(ActivatedRoute).queryParamMap);
-  protected readonly presetQuery = computed(() => this.query()?.get('bank') ?? '');
+  protected readonly presetQuery = computed(() => this.query()?.get('q') ?? this.query()?.get('bank') ?? '');
 
   /** The selected transaction while it is still on the tape (at most 200 rows are held). */
   protected readonly selectedRow = computed(() => {

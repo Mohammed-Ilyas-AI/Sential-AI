@@ -1,0 +1,121 @@
+@if (facade.selected(); as item) {
+  <header class="head">
+    <div>
+      <p class="eyebrow">{{ item.institutionId | institutionLabel }} · case {{ item.id }}</p>
+      <h2>{{ item.accountReference ?? item.accountId }} · {{ item.status.replace('_', ' ') }}</h2>
+      <p class="meta">
+        Score {{ item.evidence.assessment.score }} ({{ item.evidence.assessment.band }}) · drain {{ item.evidence.drain.drainPct.toFixed(1) }}% ·
+        evidence compiled {{ item.evidenceCompiledAt | date: 'd MMM y, HH:mm' : 'UTC' }} UTC
+      </p>
+    </div>
+    <div class="head-actions">
+      <button type="button" class="ghost" aria-label="Escalate case" [disabled]="item.status !== 'OPEN' || facade.busy() !== null" (click)="facade.escalate()"
+        [title]="item.status === 'OPEN' ? 'Record that this case is escalated' : 'Only an open case can be escalated'">
+        <sentinel-icon name="arrowUpRight" [size]="14" /> {{ facade.busy() === 'ESCALATE' ? 'Escalating…' : 'Escalate' }}
+      </button>
+    </div>
+  </header>
+
+  @if (facade.actionError(); as error) {
+    <p class="banner error" role="alert">{{ error }}</p>
+  }
+  @if (facade.notice(); as notice) {
+    <p class="banner" role="status">{{ notice }}</p>
+  }
+
+  <div class="body sentinel-scroll">
+    @switch (facade.reportStatus()) {
+      @case ('LOADING') {
+        <p class="empty">Loading the report…</p>
+      }
+      @case ('ERROR') {
+        <p class="empty">The report could not be loaded.</p>
+      }
+      @case ('NONE') {
+        <div class="empty-state">
+          <sentinel-icon name="audit" [size]="28" />
+          <p>No report yet. It is generated from this case's persisted evidence, intervention log and recorded contacts; no model is called.</p>
+          <button type="button" class="primary" [disabled]="facade.busy() !== null" (click)="facade.generateReport()">
+            {{ facade.busy() === 'GENERATE' ? 'Generating…' : 'Generate case report' }}
+          </button>
+        </div>
+      }
+      @case ('READY') {
+        @if (facade.latest(); as version) {
+          <div class="version-bar">
+            <span class="badge" [attr.data-status]="version.status">
+              Version {{ version.version }} · {{ version.status === 'SIGNED_OFF' ? 'signed off' : 'draft' }}
+            </span>
+            <span class="meta">
+              @if (version.signedOffAt) {
+                Signed {{ version.signedOffAt | date: 'd MMM y, HH:mm' : 'UTC' }} UTC by {{ version.signedOffBy }}
+              } @else {
+                Revision {{ version.revision }} · saved {{ version.updatedAt | date: 'd MMM, HH:mm:ss' : 'UTC' }} UTC by {{ version.updatedBy }}
+              }
+            </span>
+            <span class="meta">
+              AI summary: {{ version.aiSummary.status === 'INCLUDED' ? 'included as advisory' : 'none generated; facts only' }}
+            </span>
+            @if ((facade.report()?.versions?.length ?? 0) > 1) {
+              <span class="meta">History: {{ facade.report()?.versions?.length }} versions</span>
+            }
+          </div>
+
+          @for (section of version.sections; track section.id) {
+            <section class="section">
+              <h3>{{ section.title }} @if (section.edited) {<small>edited</small>}</h3>
+              @if (isDraft()) {
+                <textarea [attr.aria-label]="section.title" [rows]="rows(section)" [value]="bodyOf(section)" (input)="onInput(section, $event)"></textarea>
+              } @else {
+                <pre>{{ section.body }}</pre>
+              }
+              @if (section.sources.length) {
+                <details>
+                  <summary>{{ section.sources.length }} source fields</summary>
+                  <ul>
+                    @for (source of section.sources; track $index) {
+                      <li><code>{{ source.field }}</code> {{ source.value }}</li>
+                    }
+                  </ul>
+                </details>
+              }
+            </section>
+          }
+        }
+      }
+    }
+  </div>
+
+  @if (facade.latest(); as version) {
+    <footer class="actions">
+      @if (confirmingSignOff()) {
+        <p class="confirm">Sign off version {{ version.version }} as the recording analyst? A signed version can never change; later edits start a new version.</p>
+        <button type="button" class="ghost" (click)="confirmingSignOff.set(false)">Cancel</button>
+        <button type="button" class="primary" [disabled]="facade.busy() !== null" (click)="confirmSignOff()">Confirm sign-off</button>
+      } @else {
+        @if (version.status === 'DRAFT') {
+          <button type="button" class="ghost" [disabled]="!facade.dirty() || facade.busy() !== null" (click)="facade.discardEdits()">Discard changes</button>
+          <button type="button" class="ghost" [disabled]="!facade.dirty() || facade.busy() !== null" (click)="facade.saveDraft()">
+            {{ facade.busy() === 'SAVE' ? 'Saving…' : 'Save draft' }}
+          </button>
+          <button type="button" class="primary" aria-label="Sign off" [disabled]="facade.dirty() || facade.busy() !== null" (click)="requestSignOff()"
+            [title]="facade.dirty() ? 'Save your changes before signing off' : 'Sign off this version'">
+            <sentinel-icon name="check" [size]="14" /> Sign off
+          </button>
+        } @else {
+          <button type="button" class="ghost" [disabled]="facade.busy() !== null" (click)="facade.startRevision()">
+            {{ facade.busy() === 'REVISE' ? 'Starting…' : 'Start revision' }}
+          </button>
+        }
+        <button type="button" class="ghost" [disabled]="facade.busy() !== null" (click)="facade.exportPdf()">
+          <sentinel-icon name="arrowDownRight" [size]="14" /> {{ facade.busy() === 'EXPORT' ? 'Exporting…' : 'Export PDF' }}
+        </button>
+      }
+    </footer>
+  }
+} @else {
+  <div class="empty-state">
+    <sentinel-icon name="investigate" [size]="28" />
+    <p>Select a case, or open one from an alert.</p>
+  </div>
+}

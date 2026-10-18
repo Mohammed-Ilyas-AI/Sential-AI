@@ -22,6 +22,17 @@ export type PubSubPushVerification =
   | { readonly mode: 'google-oidc'; readonly audience: string; readonly serviceAccountEmail: string }
   | { readonly mode: 'disabled-for-local-development' };
 
+/**
+ * How the in-app launcher starts DEMO_TAKEOVER_01. Disabled unless configured: the browser never holds a job name,
+ * project or credential; sentinel-core starts the run with its own identity.
+ */
+export type ScenarioLauncherSettings =
+  | { readonly mode: 'disabled' }
+  /** Local development only: runs the simulator workspace as a child process of sentinel-core. */
+  | { readonly mode: 'local-process'; readonly workdir: string; readonly coreBaseUrl: string }
+  /** Executes the existing Cloud Run Job with run-scoped overrides; needs run.jobs.runWithOverrides on that job. */
+  | { readonly mode: 'cloud-run-job'; readonly projectId: string; readonly region: string; readonly job: string };
+
 export interface CoreRuntimeConfig {
   readonly port: number;
   readonly logLevel: string;
@@ -34,4 +45,5 @@ export interface CoreRuntimeConfig {
   readonly pubsubPush: PubSubPushVerification;
   /** Demo only: the 24h hold reads as 24s and the UI labels it "demo time x3600". */
   readonly demoTimeCompression: boolean;
+  readonly scenarioLauncher: ScenarioLauncherSettings;
 }

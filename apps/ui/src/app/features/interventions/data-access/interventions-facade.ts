@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import type { Decision, Intervention, InterventionActor, InterventionState, MinorUnits, RiskBand } from '@sentinel/domain';
+import { INTERVENTION_REASON, type Decision, type Intervention, type InterventionActor, type InterventionState, type MinorUnits, type RiskBand } from '@sentinel/domain';
 import type { Observable } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
@@ -13,7 +13,7 @@ import { sessionFeature } from '../../../state/session/session.feature';
 import { transactionsFeature } from '../../../state/transactions/transactions.feature';
 
 /** How the hold began: the transfer breached the drain threshold itself, or the account was already held. */
-export type InterventionKind = 'THRESHOLD' | 'CASCADE';
+export type InterventionKind = 'THRESHOLD' | 'CASCADE' | 'KILL_SWITCH';
 
 /** The exceptions sentinel-core accepts around a policy hold. There is deliberately no analyst release. */
 export type InterventionAction = 'customer-verified-release' | 'customer-cancellation' | 'fraud-confirmation';
@@ -99,7 +99,7 @@ export class InterventionsFacade {
         {
           transactionId,
           id: latest.id,
-          kind: first.cascadeOfTransactionId ? 'CASCADE' : 'THRESHOLD',
+          kind: first.reasonCodes.includes(INTERVENTION_REASON.killSwitch) ? 'KILL_SWITCH' : first.cascadeOfTransactionId ? 'CASCADE' : 'THRESHOLD',
           accountId: latest.accountId,
           reference: row?.accountReference ?? latest.accountId,
           state: latest.state,

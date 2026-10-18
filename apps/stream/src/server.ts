@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
+import { TENANT_LENS_QUERY_PARAMETER, parseTenantLens, type TenantLens } from '@sentinel/domain';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { parseClientMessage } from './client-messages/client-message-handler.js';
-import type { ConnectionRegistry } from './connections/client-connection.js';
+import type { ClientConnection, ConnectionRegistry } from './connections/client-connection.js';
+import { AccountInstitutionDirectory, TenantLensConnection } from './connections/tenant-lens-connection.js';
 import { WebSocketClientConnection } from './connections/websocket-client-connection.js';
 import { sweepLiveness, trackLiveness, type HeartbeatPolicy } from './heartbeat/heartbeat-policy.js';
 import { heartbeatMessage, snapshotMessage } from './messages/stream-message.normalizer.js';
@@ -26,6 +28,7 @@ export function createStreamServer(dependencies: StreamServerDependencies): Serv
   const { registry, snapshots, cursors, allowedOrigins, heartbeat, logger } = dependencies;
   const allowed = new Set(allowedOrigins);
   const sockets = new WebSocketServer({ noServer: true });
+  const directory = new AccountInstitutionDirectory();
 
   const server = createServer((request, response) => {
     if (request.url === '/healthz') {
@@ -36,15 +39,17 @@ export function createStreamServer(dependencies: StreamServerDependencies): Serv
   });
 
   server.on('upgrade', (request, socket, head) => {
-    if (request.url !== STREAM_PATH || !allowed.has(request.headers.origin ?? '')) {
+    const url = new URL(request.url ?? '/', 'http://stream.local');
+    const lens = parseTenantLens(url.searchParams.get(TENANT_LENS_QUERY_PARAMETER) ?? undefined);
+    if (url.pathname !== STREAM_PATH || !allowed.has(request.headers.origin ?? '') || lens === 'INVALID') {
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
       return;
     }
-    sockets.handleUpgrade(request, socket, head, (webSocket) => sockets.emit('connection', webSocket));
+    sockets.handleUpgrade(request, socket, head, (webSocket) => sockets.emit('connection', webSocket, lens));
   });
 
-  const sendSnapshot = async (connection: WebSocketClientConnection): Promise<void> => {
+  const sendSnapshot = async (connection: ClientConnection): Promise<void> => {
     try {
       connection.send(snapshotMessage(await snapshots.currentSnapshot(), cursors.current(), new Date().toISOString()));
     } catch (error) {
@@ -52,8 +57,10 @@ export function createStreamServer(dependencies: StreamServerDependencies): Serv
     }
   };
 
-  sockets.on('connection', (webSocket: WebSocket) => {
-    const connection = new WebSocketClientConnection(randomUUID(), webSocket);
+  sockets.on('connection', (webSocket: WebSocket, lens: TenantLens) => {
+    const socketConnection = new WebSocketClientConnection(randomUUID(), webSocket);
+    // A lensed client receives only its own institution's records (T§14); the operator view receives everything.
+    const connection: ClientConnection = lens ? new TenantLensConnection(socketConnection, lens, directory) : socketConnection;
     trackLiveness(webSocket);
     registry.add(connection);
     webSocket.on('message', (data) => {

@@ -112,6 +112,7 @@
       <p class="state" role="status">{{ facade.cases().length === 0 ? 'No open cases. The graph appears when an alert is raised.' : 'Choose a case to see its network.' }}</p>
     }
   }
+  <sentinel-trace-funds-control />
   <sentinel-graph-canvas
     [scene]="facade.scene()"
     [selection]="facade.selection()"

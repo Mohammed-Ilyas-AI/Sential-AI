@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { AuditEvent as RecordedAction } from '@sentinel/domain';
+import { NEVER, of, throwError } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { provideTestStore } from '../../../../testing/provide-test-store';
 import { demoAlert, demoFinalDecision, demoHold, demoThirdDecision } from '../../../../testing/ui-fixtures';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
@@ -10,8 +13,12 @@ import { TransactionsActions } from '../../../state/transactions/transactions.ac
 import { AuditLogsFacade } from './audit-logs-facade';
 
 describe('AuditLogsFacade', () => {
+  const get = vi.fn();
+
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideTestStore(), provideRouter([]), AuditLogsFacade] });
+    get.mockReset();
+    get.mockReturnValue(NEVER);
+    TestBed.configureTestingModule({ providers: [provideTestStore(), provideRouter([]), { provide: CoreApiClient, useValue: { get } }, AuditLogsFacade] });
     const store = TestBed.inject(Store);
     store.dispatch(TransactionsActions.snapshotLoaded({ decisions: [demoThirdDecision(), demoFinalDecision()], cursor: 'cursor-1' }));
     store.dispatch(InterventionsActions.snapshotLoaded({ interventions: [demoHold()] }));
@@ -59,5 +66,30 @@ describe('AuditLogsFacade', () => {
     const lines = facade.exportCsv().split('\r\n');
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain(`"${demoHold().actedAt}"`);
+  });
+
+  it('adds the actions sentinel-core recorded, as stored, and says when they are unavailable', () => {
+    const recorded: RecordedAction = {
+      id: 'evt-1',
+      category: 'KILL_SWITCH',
+      action: 'KILL_SWITCH_ACTIVATED',
+      outcome: 'SUCCEEDED',
+      actor: 'ANALYST',
+      actorIdentity: 'analyst.tan',
+      occurredAt: '2026-09-24T12:00:00.000Z',
+      traceId: 'trace-1',
+      subject: { institutionId: 'BANK_A', accountId: demoHold().accountId },
+    };
+    get.mockReturnValue(of({ events: [recorded] }));
+    const facade = TestBed.inject(AuditLogsFacade);
+    TestBed.tick();
+    const action = facade.events().find((event) => event.category === 'ACTION');
+    expect(action).toMatchObject({ at: recorded.occurredAt, actor: 'analyst.tan', module: 'Account controls', result: 'SUCCEEDED', severity: 'WARNING' });
+    expect(get).toHaveBeenCalledWith('/v1/audit-events?limit=500');
+
+    get.mockReturnValue(throwError(() => new Error('down')));
+    facade.loadRecorded();
+    expect(facade.recordedStatus()).toBe('UNAVAILABLE');
+    expect(facade.events().some((event) => event.category === 'ACTION')).toBe(false);
   });
 });

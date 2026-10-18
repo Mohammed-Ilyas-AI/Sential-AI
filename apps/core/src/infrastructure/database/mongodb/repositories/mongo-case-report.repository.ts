@@ -16,7 +16,8 @@ export class MongoCaseReportRepository implements CaseReportRepository {
 
   async insertVersion(version: CaseReportVersion): Promise<void> {
     try {
-      await this.reports.insertOne({ ...version, _id: version.reportId });
+      // One document per version; the reportId is shared by every version of the same report.
+      await this.reports.insertOne({ ...version, _id: `${version.caseId}:v${version.version}` });
     } catch (error) {
       if (!isDuplicateKeyError(error)) throw error;
       throw new ApplicationError('CONFLICT', `Case ${version.caseId} report version ${version.version} already exists`);

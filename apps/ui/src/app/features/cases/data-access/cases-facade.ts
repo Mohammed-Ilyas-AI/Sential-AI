@@ -1,248 +1,265 @@
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
-import type { Alert, Case, CaseReport, CaseReportSectionId, CaseReportVersion } from '@sentinel/domain';
-import type { Observable } from 'rxjs';
+import type { Case, CaseReport, CaseReportSectionId, CaseReportVersion } from '@sentinel/domain';
+import { finalize, type Observable } from 'rxjs';
+import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
+import { TenantLensPreference } from '../../../core/tenancy/tenant-lens';
 import { alertsFeature } from '../../../state/alerts/alerts.feature';
-import { CasesApi, type CaseReportEdit } from './cases-api';
+import { sessionFeature } from '../../../state/session/session.feature';
 
-const REPORT_PLACEHOLDER = '[Analyst to complete before sign-off]';
-const REPORT_SECTIONS: readonly CaseReportSectionId[] = ['SUMMARY', 'TIMELINE', 'EVIDENCE', 'INTERVENTIONS', 'NETWORK', 'RECOMMENDATION'];
+export type LoadStatus = 'IDLE' | 'LOADING' | 'READY' | 'ERROR';
+export type ReportStatus = 'IDLE' | 'LOADING' | 'NONE' | 'READY' | 'ERROR';
+export type CaseAction = 'OPEN' | 'ESCALATE' | 'GENERATE' | 'SAVE' | 'SIGN_OFF' | 'REVISE' | 'EXPORT';
 
+interface Written<TRecord> {
+  readonly outcome: 'CREATED' | 'DUPLICATE';
+  readonly record: TRecord;
+}
+
+/** What the analyst should read when sentinel-core refuses: its own detail, or the reason it could not answer. */
+export function failureMessage(error: unknown): string {
+  if (!(error instanceof HttpErrorResponse)) return 'The request could not be completed.';
+  if (error.status === 0) return 'sentinel-core is unreachable; nothing was saved.';
+  if (error.status === 403) return 'This case belongs to another institution and is not available under the current data lens.';
+  const detail = typeof error.error === 'object' && error.error !== null && 'detail' in error.error ? String((error.error as { detail: unknown }).detail) : null;
+  if (detail) return detail;
+  if (error.status === 404) return 'Not found.';
+  return `sentinel-core refused the request (HTTP ${error.status}).`;
+}
+
+/**
+ * Cases and the one-click case report (M§5.6), route-scoped. Every change goes to sentinel-core and the page shows
+ * what the server stored: the draft as saved, the signed version as signed, the PDF as rendered.
+ */
 @Injectable()
 export class CasesFacade {
-  private readonly api = inject(CasesApi);
+  private readonly api = inject(CoreApiClient);
   private readonly store = inject(Store);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly queue = this.store.selectSignal(alertsFeature.selectQueue);
+  private readonly lens = inject(TenantLensPreference).lens;
+  private readonly analyst = this.store.selectSignal(sessionFeature.selectAnalystIdentity);
+  private readonly openAlerts = this.store.selectSignal(alertsFeature.selectQueue);
 
-  readonly openAlerts = computed<readonly Alert[]>(() => this.queue());
-  readonly cases = signal<readonly Case[]>([]);
-  readonly selectedCaseId = signal<string | null>(null);
-  readonly selectedCase = computed(() => this.cases().find((candidate) => candidate.id === this.selectedCaseId()) ?? null);
-  readonly report = signal<CaseReport | null>(null);
-  readonly analystIdentity = signal('');
-  readonly edits = signal<Readonly<Partial<Record<CaseReportSectionId, string>>>>({});
-  readonly loading = signal(true);
-  readonly busy = signal(false);
-  readonly error = signal<string | null>(null);
-  readonly notice = signal<string | null>(null);
-  readonly hasEdits = computed(() => Object.keys(this.edits()).length > 0);
-  readonly canSignOff = computed(() => {
-    const report = this.report()?.latest;
-    if (!report || report.status !== 'DRAFT' || this.hasEdits()) return false;
-    const recommendation = report.sections.find((section) => section.id === 'RECOMMENDATION');
-    return (
-      recommendation !== undefined &&
-      recommendation.body.trim() !== '' &&
-      !recommendation.body.includes(REPORT_PLACEHOLDER) &&
-      report.sections.every((section) => section.body.trim() !== '')
-    );
+  private readonly casesState = signal<{ readonly status: LoadStatus; readonly cases: readonly Case[]; readonly error: string | null }>({
+    status: 'IDLE',
+    cases: [],
+    error: null,
+  });
+  readonly cases = computed(() => this.casesState().cases);
+  readonly listStatus = computed(() => this.casesState().status);
+  readonly listError = computed(() => this.casesState().error);
+
+  readonly selectedId = signal<string | null>(null);
+  readonly selected = computed(() => this.cases().find((candidate) => candidate.id === this.selectedId()) ?? null);
+
+  /** Open alerts with no case yet: the "Investigate alert" entry point. */
+  readonly openable = computed(() => {
+    const opened = new Set(this.cases().flatMap((candidate) => candidate.alertIds));
+    return this.openAlerts().filter((alert) => !opened.has(alert.id));
   });
 
+  private readonly reportState = signal<{ readonly status: ReportStatus; readonly report: CaseReport | null }>({ status: 'IDLE', report: null });
+  readonly report = computed(() => this.reportState().report);
+  readonly reportStatus = computed(() => this.reportState().status);
+  readonly latest = computed<CaseReportVersion | null>(() => this.report()?.latest ?? null);
+
+  /** Unsaved text per section of the current draft. */
+  readonly edits = signal<Partial<Record<CaseReportSectionId, string>>>({});
+  readonly dirty = computed(() => {
+    const latest = this.latest();
+    const edits = this.edits();
+    return !!latest && latest.sections.some((section) => edits[section.id] !== undefined && edits[section.id] !== section.body);
+  });
+
+  readonly busy = signal<CaseAction | null>(null);
+  readonly actionError = signal<string | null>(null);
+  readonly notice = signal<string | null>(null);
+
   constructor() {
-    this.load();
+    const requested = inject(ActivatedRoute).snapshot.queryParamMap.get('case');
+    if (requested) this.selectedId.set(requested);
+    // The data lens changes what the server may return: reload everything when it changes.
+    effect(() => {
+      void this.lens();
+      untracked(() => this.refresh());
+    });
+    effect(() => {
+      const id = this.selectedId();
+      untracked(() => this.loadReport(id));
+    });
   }
 
-  load(): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.api
-      .list()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (cases) => {
-          this.cases.set(cases);
-          this.loading.set(false);
-          if (!this.selectedCaseId() && cases[0]) this.select(cases[0].id);
-        },
-        error: (error: unknown) => {
-          this.loading.set(false);
-          this.error.set(this.errorMessage(error));
-        },
-      });
+  refresh(): void {
+    this.casesState.update((state) => ({ ...state, status: 'LOADING', error: null }));
+    this.api.get<{ cases: readonly Case[] }>('/v1/cases?limit=100').subscribe({
+      next: ({ cases }) => {
+        this.casesState.set({ status: 'READY', cases, error: null });
+        if (!this.selectedId() || !cases.some((candidate) => candidate.id === this.selectedId())) this.selectedId.set(cases[0]?.id ?? null);
+      },
+      error: (error: unknown) => this.casesState.set({ status: 'ERROR', cases: [], error: failureMessage(error) }),
+    });
   }
 
   select(caseId: string): void {
-    this.selectedCaseId.set(caseId);
-    this.report.set(null);
-    this.edits.set({});
-    this.error.set(null);
-    this.api
-      .get(caseId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (investigationCase) => {
-          this.cases.update((records) => records.map((candidate) => (candidate.id === caseId ? investigationCase : candidate)));
-          this.api
-            .report(caseId)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-              next: (report) => this.report.set(report),
-              error: (error: unknown) => {
-                if (error instanceof HttpErrorResponse && error.status === 404) return;
-                this.error.set(this.errorMessage(error));
-              },
-            });
-        },
-        error: (error: unknown) => this.error.set(this.errorMessage(error)),
-      });
+    if (this.selectedId() !== caseId) this.selectedId.set(caseId);
   }
 
-  openFromAlert(alertId: string): void {
-    const identity = this.requireIdentity();
-    if (!identity) return;
-    this.perform(
-      this.api.open(alertId, identity),
-      (written) => {
-        this.notice.set(written.outcome === 'DUPLICATE' ? 'This alert already has a case.' : 'Case opened from the recorded alert.');
-        this.replaceCase(written.record);
-        this.selectedCaseId.set(written.record.id);
-        this.select(written.record.id);
-        this.load();
-      },
-    );
+  openCase(alertId: string): void {
+    this.run('OPEN', this.api.post<Written<Case>>('/v1/cases', { alertId, analystIdentity: this.analyst() }), (written) => {
+      this.casesState.update((state) => ({ ...state, cases: [written.record, ...state.cases.filter((candidate) => candidate.id !== written.record.id)] }));
+      this.selectedId.set(written.record.id);
+      this.notice.set(written.outcome === 'CREATED' ? 'Case opened from the alert with its evidence bundle.' : 'This alert already had a case; it is now selected.');
+    });
   }
 
   escalate(): void {
-    const investigationCase = this.selectedCase();
-    const identity = this.requireIdentity();
-    if (!investigationCase || !identity) return;
-    this.perform(this.api.escalate(investigationCase.id, identity), (updated) => {
-      this.replaceCase(updated);
+    const selected = this.selected();
+    if (!selected) return;
+    this.run('ESCALATE', this.api.post<Case>(`/v1/cases/${selected.id}/escalate`, { analystIdentity: this.analyst() }), (updated) => {
+      this.casesState.update((state) => ({ ...state, cases: state.cases.map((candidate) => (candidate.id === updated.id ? updated : candidate)) }));
       this.notice.set('Case escalated.');
     });
   }
 
   generateReport(): void {
-    const investigationCase = this.selectedCase();
-    const identity = this.requireIdentity();
-    if (!investigationCase || !identity) return;
-    this.perform(this.api.generateReport(investigationCase.id, identity), (written) => {
-      this.report.set(written.record);
-      this.edits.set({});
-      this.notice.set(written.outcome === 'DUPLICATE' ? 'The existing report draft was loaded.' : 'Evidence-backed report draft generated.');
+    const selected = this.selected();
+    if (!selected) return;
+    this.run('GENERATE', this.api.post<Written<CaseReport>>(`/v1/cases/${selected.id}/report`, { analystIdentity: this.analyst() }), (written) => {
+      this.setReport(written.record);
+      this.notice.set(written.outcome === 'CREATED' ? 'Draft generated from the recorded evidence.' : 'A report already existed; showing it.');
     });
   }
 
-  editSection(id: CaseReportSectionId, body: string): void {
-    const section = this.report()?.latest.sections.find((candidate) => candidate.id === id);
-    if (!section || body.length > 8_000) return;
-    this.edits.update((current) => ({ ...current, [id]: body }));
+  edit(section: CaseReportSectionId, body: string): void {
+    this.edits.update((edits) => ({ ...edits, [section]: body }));
+  }
+
+  discardEdits(): void {
+    this.edits.set({});
   }
 
   saveDraft(): void {
-    const report = this.report()?.latest;
-    const investigationCase = this.selectedCase();
-    const identity = this.requireIdentity();
-    if (!report || report.status !== 'DRAFT' || !investigationCase || !identity) return;
-    const edits: CaseReportEdit[] = REPORT_SECTIONS.flatMap((id) => {
-      const body = this.edits()[id];
-      return body === undefined ? [] : [{ id, body }];
-    });
-    if (edits.length === 0) {
-      this.notice.set('There are no unsaved edits.');
-      return;
-    }
-    this.perform(this.api.editReport(investigationCase.id, report.version, identity, report.revision, edits), (updated) => {
-      this.updateLatest(updated);
-      this.edits.set({});
-      this.notice.set('Draft changes saved.');
-    });
+    const selected = this.selected();
+    const latest = this.latest();
+    if (!selected || !latest || latest.status !== 'DRAFT') return;
+    const edits = this.changedSections(latest);
+    if (edits.length === 0) return;
+    this.run(
+      'SAVE',
+      this.api.patch<CaseReportVersion>(`/v1/cases/${selected.id}/report/${latest.version}`, { analystIdentity: this.analyst(), expectedRevision: latest.revision, edits }),
+      (saved) => {
+        this.replaceLatest(saved);
+        this.edits.set({});
+        this.notice.set(`Draft saved (revision ${saved.revision}).`);
+      },
+    );
   }
 
   signOff(): void {
-    const report = this.report()?.latest;
-    const investigationCase = this.selectedCase();
-    const identity = this.requireIdentity();
-    if (!report || !investigationCase || !identity || !this.canSignOff()) return;
-    this.perform(this.api.signOff(investigationCase.id, report.version, identity, report.revision), (signed) => {
-      this.updateLatest(signed);
-      this.notice.set(`Version ${signed.version} signed off by ${signed.signedOffBy}.`);
-    });
+    const selected = this.selected();
+    const latest = this.latest();
+    if (!selected || !latest || latest.status !== 'DRAFT' || this.dirty()) return;
+    this.run(
+      'SIGN_OFF',
+      this.api.post<CaseReportVersion>(`/v1/cases/${selected.id}/report/${latest.version}/sign-off`, { analystIdentity: this.analyst(), expectedRevision: latest.revision }),
+      (signed) => {
+        this.replaceLatest(signed);
+        this.notice.set(`Version ${signed.version} signed off by ${signed.signedOffBy ?? ''}. It can no longer change.`);
+      },
+    );
   }
 
   startRevision(): void {
-    const report = this.report()?.latest;
-    const investigationCase = this.selectedCase();
-    const identity = this.requireIdentity();
-    if (!report || report.status !== 'SIGNED_OFF' || !investigationCase || !identity) return;
-    this.perform(this.api.startRevision(investigationCase.id, report.version, identity), (draft) => {
-      this.updateLatest(draft);
-      this.edits.set({});
-      this.notice.set(`Draft version ${draft.version} started.`);
-    });
+    const selected = this.selected();
+    const latest = this.latest();
+    if (!selected || !latest || latest.status !== 'SIGNED_OFF') return;
+    this.run(
+      'REVISE',
+      this.api.post<CaseReportVersion>(`/v1/cases/${selected.id}/report/revision`, { analystIdentity: this.analyst(), fromVersion: latest.version }),
+      () => {
+        this.loadReport(selected.id);
+        this.notice.set(`Version ${latest.version + 1} started as a draft; version ${latest.version} stays signed.`);
+      },
+    );
   }
 
-  exportReport(): void {
-    const report = this.report()?.latest;
-    const investigationCase = this.selectedCase();
-    if (!report || !investigationCase) return;
-    this.perform(this.api.exportReport(investigationCase.id, report.version), (blob) => {
+  exportPdf(): void {
+    const selected = this.selected();
+    const latest = this.latest();
+    if (!selected || !latest) return;
+    this.run('EXPORT', this.api.getBlob(`/v1/cases/${selected.id}/report/${latest.version}/export`), (blob) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `case-report-v${report.version}.txt`;
+      link.download = `case-${selected.id}-report-v${latest.version}${latest.status === 'DRAFT' ? '-draft' : ''}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
-      this.notice.set('Saved report exported.');
     });
   }
 
-  reportBody(sectionId: CaseReportSectionId, original: string): string {
-    return this.edits()[sectionId] ?? original;
+  private changedSections(latest: CaseReportVersion): { id: CaseReportSectionId; body: string }[] {
+    const edits = this.edits();
+    return latest.sections.flatMap((section) => {
+      const body = edits[section.id];
+      return body !== undefined && body !== section.body ? [{ id: section.id, body }] : [];
+    });
   }
 
-  private requireIdentity(): string | null {
-    const identity = this.analystIdentity().trim();
-    if (!identity) {
-      this.error.set('Enter your analyst identity before performing this action.');
-      return null;
+  private loadReport(caseId: string | null): void {
+    this.edits.set({});
+    this.actionError.set(null);
+    if (!caseId) {
+      this.reportState.set({ status: 'IDLE', report: null });
+      return;
     }
-    this.error.set(null);
-    return identity;
-  }
-
-  private perform<T>(request: Observable<T>, success: (value: T) => void): void {
-    this.busy.set(true);
-    this.error.set(null);
-    this.notice.set(null);
-    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (value) => {
-        this.busy.set(false);
-        success(value);
-      },
+    this.reportState.set({ status: 'LOADING', report: null });
+    this.api.get<CaseReport>(`/v1/cases/${caseId}/report`).subscribe({
+      next: (report) => this.reportState.set({ status: 'READY', report }),
       error: (error: unknown) => {
-        this.busy.set(false);
-        this.error.set(this.errorMessage(error));
+        if (error instanceof HttpErrorResponse && error.status === 404) this.reportState.set({ status: 'NONE', report: null });
+        else {
+          this.reportState.set({ status: 'ERROR', report: null });
+          this.actionError.set(failureMessage(error));
+        }
       },
     });
   }
 
-  private replaceCase(updated: Case): void {
-    this.cases.update((records) => records.map((candidate) => (candidate.id === updated.id ? updated : candidate)));
+  private setReport(report: CaseReport): void {
+    this.reportState.set({ status: 'READY', report });
+    this.edits.set({});
   }
 
-  private updateLatest(latest: CaseReportVersion): void {
-    this.report.update((current) => {
-      if (!current) return current;
-      const versions = current.versions.filter((version) => version.version !== latest.version);
-      return {
-        caseId: current.caseId,
-        latest,
-        versions: [...versions, latest].sort((left, right) => left.version - right.version),
-      };
+  private replaceLatest(version: CaseReportVersion): void {
+    const report = this.report();
+    if (!report) return;
+    this.setReport({
+      ...report,
+      latest: version,
+      versions: report.versions.map((summary) =>
+        summary.version === version.version
+          ? {
+              version: version.version,
+              status: version.status,
+              updatedAt: version.updatedAt,
+              updatedBy: version.updatedBy,
+              ...(version.signedOffAt ? { signedOffAt: version.signedOffAt } : {}),
+              ...(version.signedOffBy ? { signedOffBy: version.signedOffBy } : {}),
+            }
+          : summary,
+      ),
     });
   }
 
-  private errorMessage(error: unknown): string {
-    if (error instanceof HttpErrorResponse) {
-      if (error.status === 403) return 'Access denied for the active institution lens.';
-      if (error.status === 404) return 'The requested case or report no longer exists.';
-      if (error.status === 409) return 'The record changed or its current state does not allow this action. Reload and try again.';
-      if (error.status === 0) return 'The case service is unreachable. Try again when the connection is restored.';
-    }
-    return 'The case request failed. No success was recorded; retry after checking the current case state.';
+  private run<T>(action: CaseAction, request: Observable<T>, onSuccess: (result: T) => void): void {
+    if (this.busy()) return;
+    this.busy.set(action);
+    this.actionError.set(null);
+    this.notice.set(null);
+    request.pipe(finalize(() => this.busy.set(null))).subscribe({
+      next: onSuccess,
+      error: (error: unknown) => this.actionError.set(failureMessage(error)),
+    });
   }
 }

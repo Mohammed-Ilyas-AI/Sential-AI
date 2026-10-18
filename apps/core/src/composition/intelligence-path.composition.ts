@@ -6,7 +6,7 @@ import { CaseService } from '../modules/cases/application/case.service.js';
 import type { CaseReports, ManageCase } from '../modules/cases/application/manage-case.use-case.js';
 import type { CaseRepository } from '../modules/cases/application/ports/case-repository.port.js';
 import type { CaseReportRepository } from '../modules/cases/application/ports/case-report-repository.port.js';
-import { TextReportDocumentRenderer } from '../modules/cases/infrastructure/text-report-document.renderer.js';
+import { PdfReportRenderer } from '../infrastructure/documents/pdf-report.renderer.js';
 import type { ExploreNetwork } from '../modules/graph/application/explore-network.use-case.js';
 import { GraphService } from '../modules/graph/application/graph.service.js';
 import type { GraphRepository } from '../modules/graph/application/ports/graph-repository.port.js';
@@ -91,7 +91,7 @@ export function composeIntelligencePath({ persistence, vertex, ids, clock, logge
     interventions: persistence.interventions,
     accountControls: persistence.accountControls,
     summaries: persistence.summaries,
-    renderer: new TextReportDocumentRenderer(),
+    renderer: new PdfReportRenderer(),
     access,
     audit,
     clock,

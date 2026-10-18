@@ -19,11 +19,14 @@ import { MongoTransactionEventLog } from '../infrastructure/database/mongodb/rep
 import { MongoTransactionProjectionRepository } from '../infrastructure/database/mongodb/repositories/mongo-transaction-projection.repository.js';
 import type { ControlPathPersistence } from './control-path.composition.js';
 import type { AuditLog } from '../modules/audit/application/ports/audit-log.port.js';
+import type { ScenarioRunRepository } from '../modules/scenarios/application/ports/scenario-run-repository.port.js';
+import { MongoScenarioRunRepository } from '../infrastructure/database/mongodb/repositories/mongo-scenario-run.repository.js';
 import type { IntelligencePathPersistence } from './intelligence-path.composition.js';
 
 /** Shared by both paths: the append-only audit events. */
 export interface OperationsPersistence {
   readonly auditLog: AuditLog;
+  readonly scenarioRuns: ScenarioRunRepository;
 }
 
 export type SentinelPersistence = ControlPathPersistence & IntelligencePathPersistence & OperationsPersistence;
@@ -45,6 +48,7 @@ export function composeMongoPersistence(database: MongoDatabase): SentinelPersis
     entityLinks: new MongoEntityLinkSource(database),
     accountControls: new MongoAccountControlRepository(database),
     auditLog: new MongoAuditLog(database),
+    scenarioRuns: new MongoScenarioRunRepository(database),
     evidence: new MongoEvidenceSource(database),
     cases: new MongoCaseRepository(database),
     reports: new MongoCaseReportRepository(database),

@@ -1,17 +1,20 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
+import type { AuditEvent as RecordedAction } from '@sentinel/domain';
 import { interval, map } from 'rxjs';
+import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
+import { TenantLensPreference } from '../../../core/tenancy/tenant-lens';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
 import { alertsFeature } from '../../../state/alerts/alerts.feature';
 import { interventionsFeature } from '../../../state/interventions/interventions.feature';
 import { transactionsFeature } from '../../../state/transactions/transactions.feature';
 
-export type AuditCategory = 'DECISION' | 'INTERVENTION' | 'ALERT';
+export type AuditCategory = 'DECISION' | 'INTERVENTION' | 'ALERT' | 'ACTION';
 export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 export type AuditActorKind = 'POLICY_ENGINE' | 'SYSTEM' | 'CUSTOMER' | 'ANALYST';
-export type AuditModule = 'Policy gate' | 'Interventions' | 'Alerts & cases';
+export type AuditModule = 'Policy gate' | 'Interventions' | 'Alerts & cases' | 'Cases & reports' | 'Account controls' | 'Access' | 'Demo scenarios';
 
 export interface AuditFact {
   readonly label: string;
@@ -53,13 +56,22 @@ const DEFAULT_FILTERS: AuditFilters = { query: '', category: 'ALL', actor: 'ALL'
 const RANGE_MS = { '1H': 3_600_000, '24H': 86_400_000, '7D': 7 * 86_400_000 } as const;
 const SEVERITY_RANK: Readonly<Record<AuditSeverity, number>> = { CRITICAL: 2, WARNING: 1, INFO: 0 };
 export const AUDIT_PAGE_SIZE = 25;
+const ACTION_MODULE: Readonly<Record<RecordedAction['category'], AuditModule>> = {
+  CASE: 'Cases & reports',
+  CASE_REPORT: 'Cases & reports',
+  KILL_SWITCH: 'Account controls',
+  CUSTOMER_CONTACT: 'Account controls',
+  ACCESS: 'Access',
+  SCENARIO: 'Demo scenarios',
+};
 const ACTOR_LABEL: Readonly<Record<'SYSTEM' | 'CUSTOMER' | 'ANALYST', string>> = { SYSTEM: 'System', CUSTOMER: 'Customer', ANALYST: 'Analyst' };
 
 /**
  * Audit Logs (route-scoped): the decision, intervention and alert records this browser session holds, merged
  * into one read-only trail. Records are never edited here; the page only filters, sorts and exports what is
  * already recorded. Decisions come from the live tape (its last 200), interventions from their append-only
- * history, alerts from the open queue.
+ * history, alerts from the open queue, and analyst and system actions from sentinel-core's append-only audit
+ * events (case and report lifecycle, kill switch, customer contact, access refusals, scenario runs).
  */
 @Injectable()
 export class AuditLogsFacade {
@@ -68,6 +80,10 @@ export class AuditLogsFacade {
   private readonly tape = this.store.selectSignal(transactionsFeature.selectTape);
   private readonly interventions = this.store.selectSignal(interventionsFeature.selectAllInterventions);
   private readonly alerts = this.store.selectSignal(alertsFeature.selectOpenAlerts);
+  private readonly api = inject(CoreApiClient);
+  private readonly lens = inject(TenantLensPreference).lens;
+  private readonly recorded = signal<readonly RecordedAction[]>([]);
+  readonly recordedStatus = signal<'LOADING' | 'READY' | 'UNAVAILABLE'>('LOADING');
 
   readonly filters = signal<AuditFilters>({
     ...DEFAULT_FILTERS,
@@ -157,7 +173,30 @@ export class AuditLogsFacade {
         { label: 'Last updated', value: alert.updatedAt },
       ],
     }));
-    return [...decisions, ...interventions, ...alerts];
+    const actions = this.recorded().map<AuditEvent>((event) => ({
+      id: `action:${event.id}`,
+      at: event.occurredAt,
+      category: 'ACTION',
+      action: event.action.replaceAll('_', ' ').toLowerCase().replace(/^./, (first) => first.toUpperCase()),
+      actorKind: event.actor,
+      actor: event.actorIdentity ?? ACTOR_LABEL[event.actor],
+      module: ACTION_MODULE[event.category],
+      resource: event.subject.caseId ? `case ${event.subject.caseId}` : event.subject.runId ? `run ${event.subject.runId}` : (references.get(event.subject.accountId ?? '') ?? event.subject.accountId ?? '—'),
+      details: event.detail ?? event.category.replaceAll('_', ' ').toLowerCase(),
+      result: event.outcome,
+      severity: event.outcome === 'DENIED' || event.action === 'KILL_SWITCH_ACTIVATED' ? 'WARNING' : 'INFO',
+      accountId: event.subject.accountId ?? '',
+      transactionId: event.subject.transactionId ?? '',
+      institutionId: event.subject.institutionId ?? null,
+      facts: [
+        { label: 'Event', value: event.id },
+        { label: 'Trace', value: event.traceId },
+        ...(event.lens ? [{ label: 'Data lens', value: event.lens }] : []),
+        ...(event.subject.reportVersion !== undefined ? [{ label: 'Report version', value: String(event.subject.reportVersion) }] : []),
+        ...(event.subject.institutionId ? [{ label: 'Institution', value: event.subject.institutionId }] : []),
+      ],
+    }));
+    return [...decisions, ...interventions, ...alerts, ...actions];
   });
 
   readonly filtered = computed(() => {
@@ -210,6 +249,28 @@ export class AuditLogsFacade {
   });
 
   readonly selected = computed(() => this.events().find((event) => event.id === this.selectedId()) ?? null);
+
+  constructor() {
+    // The lens decides which recorded actions sentinel-core returns: reload them whenever it changes.
+    effect(() => {
+      void this.lens();
+      untracked(() => this.loadRecorded());
+    });
+  }
+
+  loadRecorded(): void {
+    this.recordedStatus.set('LOADING');
+    this.api.get<{ events: readonly RecordedAction[] }>('/v1/audit-events?limit=500').subscribe({
+      next: ({ events }) => {
+        this.recorded.set(events);
+        this.recordedStatus.set('READY');
+      },
+      error: () => {
+        this.recorded.set([]);
+        this.recordedStatus.set('UNAVAILABLE');
+      },
+    });
+  }
 
   setFilter<K extends keyof AuditFilters>(key: K, value: AuditFilters[K]): void {
     this.filters.update((filters) => ({ ...filters, [key]: value }));

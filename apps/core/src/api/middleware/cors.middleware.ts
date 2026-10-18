@@ -8,7 +8,7 @@ export function corsForOrigins(allowedOrigins: readonly string[]): RequestHandle
     if (origin !== undefined && allowed.has(origin)) {
       response.setHeader('Access-Control-Allow-Origin', origin);
       response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Trace-Id, X-Sentinel-Lens');
-      response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT');
+      response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH');
       response.setHeader('Vary', 'Origin');
     }
     if (request.method === 'OPTIONS') {

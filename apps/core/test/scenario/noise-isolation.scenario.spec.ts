@@ -1,4 +1,4 @@
-import { DEMO_TAKEOVER_01 } from '@sentinel/domain';
+import { DEMO_TAKEOVER_01, SCENARIO_NOISE_MAX_RATE_PER_MINUTE } from '@sentinel/domain';
 import { INSTANT_TIMELINE, buildDemoTakeover01, buildSeededNoiseScenario, newScenarioRunId, playScenario } from '@sentinel/scenarios';
 import { describe, expect, it } from 'vitest';
 import { startCoreHarness } from '../support/harness/core-test-harness.js';
@@ -33,6 +33,21 @@ describe('seeded noise is isolated from the canonical takeover', () => {
         canonical.transfers.map((item) => [item.response.riskScore, item.response.decision]),
       );
       expect(canonical.transfers.find((item) => item.response.decision === 'HOLD')?.response.riskScore).toBe(DEMO_TAKEOVER_01.finalScore);
+    } finally {
+      await harness.close();
+    }
+  });
+
+  it('stays ELEVATED and below the gate at the maximum rate, with no alert above ELEVATED', async () => {
+    const persistence = createInMemoryPersistence();
+    const harness = await startCoreHarness(persistence, { clockStart: '2026-09-24T11:30:00.000Z' });
+    try {
+      const noise = buildSeededNoiseScenario('2026-09-24T11:30:00.000Z', 7, 'NOISEMAX', SCENARIO_NOISE_MAX_RATE_PER_MINUTE);
+      const report = await playScenario(noise, new HttpBankConnector(harness.baseUrl, harness.clock), INSTANT_TIMELINE);
+      expect(report.transfers).toHaveLength(SCENARIO_NOISE_MAX_RATE_PER_MINUTE);
+      expect(report.transfers.every((item) => item.response.decision === 'ALLOW')).toBe(true);
+      expect(report.transfers.every((item) => item.response.riskScore >= 40 && item.response.riskScore < 65)).toBe(true);
+      expect(persistence.alertStore.all().every((alert) => alert.band === 'ELEVATED' || alert.band === 'LOW')).toBe(true);
     } finally {
       await harness.close();
     }

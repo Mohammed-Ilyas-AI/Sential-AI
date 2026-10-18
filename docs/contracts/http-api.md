@@ -72,7 +72,7 @@ synthetic demonstration lens, not authentication or production tenant isolation.
 | `PATCH` | `/v1/cases/:caseId/report/:version` | `{ analystIdentity, expectedRevision, edits[] }` → updated draft | 200; 409 revision conflict; 422 invalid section |
 | `POST` | `/v1/cases/:caseId/report/:version/sign-off` | `{ analystIdentity, expectedRevision }` → immutable signed version | 200; 409; 422 incomplete draft |
 | `POST` | `/v1/cases/:caseId/report/revision` | `{ analystIdentity, fromVersion }` → new draft version | 201; 409 |
-| `GET` | `/v1/cases/:caseId/report/:version/export` | — → saved report as downloadable UTF-8 text | 200; 404 |
+| `GET` | `/v1/cases/:caseId/report/:version/export` | — → the saved version as `application/pdf` (drafts marked "not signed off") | 200; 403; 404 |
 
 All report writes and exports are audited. Draft edits use optimistic revision checks; signed-off versions cannot
 be modified. A grounded summary is included only when a validated result was already archived; report generation
@@ -86,14 +86,24 @@ itself makes no model call.
 | `GET` | `/v1/metrics/performance` | — → five-minute, process-local request counts, failures and latency distributions | 200 |
 
 Performance labels are fixed route names and contain no account or transaction identifiers. Percentiles are `null`
-when a measured path has no samples. Stream delivery, WebSocket-to-render, worker-batch and browser-render latency
-are not measured by this endpoint and must not be inferred from its request timings.
+when a measured path has no samples; `budget` carries the T§10 target where one is defined. Stream delivery,
+worker-batch, message-to-row and render passes are measured in the browser by the performance panel (Ctrl Shift P),
+not by this endpoint.
 
-## Scenario launch status
+## Scenario launch
 
-The simulator supports an optional seeded-noise mode, disabled by default and bounded to 1–60 events per minute.
-There is no `/v1/scenario-runs` launch API: the core has no authenticated operator principal or configured,
-server-side Cloud Run Job invoker, so a browser-triggered job launch remains deliberately unavailable.
+| Method | Path | Body → Response | Status |
+|---|---|---|---|
+| `GET` | `/v1/demo/scenario-runs/capability` | — → `{ available, launcher, reason? }` | 200 |
+| `GET` | `/v1/demo/scenario-runs` · `/v1/demo/scenario-runs/:runId` | — → `{ runs }` · `ScenarioRun` (refreshed from the launcher while running) | 200; 404 |
+| `POST` | `/v1/demo/scenario-runs` | `{ analystIdentity, idempotencyKey, noise: { seed, ratePerMinute } \| null }` → `{ outcome, record }` | 202; 200 retry; 409 run active or launcher disabled; 422 |
+
+`SCENARIO_LAUNCHER` chooses the launcher: `disabled` (default; the UI shows why), `local-process` (local development:
+starts the simulator workspace with `SIMULATOR_RUN_ID` and the noise settings) or `cloud-run-job` (executes the existing
+`sentinel-simulator` job through the Cloud Run Admin API with sentinel-core's own identity; needs
+`run.jobs.runWithOverrides` on that job, and is not exercised by this repository's tests). One run at a time; the
+browser never holds a job name, command or credential. Seeded noise is off by default, bounded to 1–60 events per
+minute, uses its own run-scoped synthetic accounts and never changes DEMO_TAKEOVER_01.
 
 ## Idempotency
 
