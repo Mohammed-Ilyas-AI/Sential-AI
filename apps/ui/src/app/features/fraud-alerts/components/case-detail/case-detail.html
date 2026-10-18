@@ -1,0 +1,105 @@
+@if (facade.focusedDecision(); as decision) {
+  @let account = facade.selectedAccount();
+  <section class="card" aria-labelledby="case-title">
+    <header>
+      <span class="identity">
+        <h2 id="case-title" class="sentinel-mono">{{ decision.accountReference ?? decision.accountId }}</h2>
+        <span class="sub">
+          <sentinel-icon name="bank" [size]="14" /> {{ decision.institutionId | institutionLabel }}
+          <span class="sep">|</span> <span class="sentinel-mono">{{ decision.accountId }}</span>
+          <span class="sep">|</span> Protected balance: {{ account?.protectedAccount ? 'Yes' : 'No' }}
+        </span>
+      </span>
+      <span class="band" [attr.data-band]="decision.band">{{ decision.band }} · {{ decision.riskScore }}</span>
+    </header>
+
+    <div class="body sentinel-scroll">
+      <div class="facts">
+        <div class="box policy" [attr.data-decision]="decision.decision">
+          <span class="tile"><sentinel-icon [name]="decision.decision === 'ALLOW' ? 'shieldCheck' : 'lock'" [size]="20" /></span>
+          <span class="text">
+            <span class="label">Policy decision</span>
+            <b class="value">{{ decision.decision }}</b>
+            <span class="detail sentinel-mono">{{ ruleLabel() }}</span>
+          </span>
+        </div>
+        <div class="box status" [attr.data-state]="facade.focusedIntervention()?.state ?? 'NONE'">
+          <span class="tile"><sentinel-icon [name]="facade.focusedIntervention()?.state === 'HELD' ? 'clock' : 'check'" [size]="20" /></span>
+          <span class="text">
+            <span class="label">Intervention status</span>
+            @if (facade.focusedIntervention(); as intervention) {
+              <b class="value">{{ intervention.state }}</b>
+              <span class="detail">
+                {{ intervention.state === 'HELD' ? 'Held' : intervention.state === 'RELEASED' ? 'Released' : 'Recorded' }} by
+                {{ intervention.actor }} at {{ intervention.actedAt | date: 'HH:mm:ss' : 'UTC' }} UTC
+                @if (intervention.state === 'HELD' && intervention.holdUntil) {
+                  · auto-release {{ intervention.holdUntil | date: 'HH:mm:ss' : 'UTC' }} UTC
+                }
+              </span>
+            } @else {
+              <b class="value">None</b>
+              <span class="detail">No intervention recorded for this transfer</span>
+            }
+          </span>
+        </div>
+      </div>
+
+      <dl class="figures">
+        <div><dt>Transfer amount</dt><dd>{{ decision.amount | minorUnitsCurrency }}</dd></div>
+        <div><dt>Opening balance</dt><dd>{{ decision.assessment.drain.balanceAtWindowStart | minorUnitsCurrency }}</dd></div>
+        <div><dt>Transferred (24h)</dt><dd>{{ decision.assessment.drain.outflow24h | minorUnitsCurrency }}</dd></div>
+      </dl>
+
+      @if (account) {
+        <div class="drain">
+          <div class="meter-block">
+            <span class="drain-title">Rapid-drain state (24h) <span class="state" [attr.data-state]="drainState()">{{ drainLabel() }}</span></span>
+            <div class="track" role="meter" aria-label="Drain against the policy threshold" [attr.aria-valuenow]="account.drainPct" aria-valuemin="0" aria-valuemax="100">
+              <span class="fill" [attr.data-state]="drainState()" [style.width.%]="meterWidth()"></span>
+              <span class="threshold" [style.left.%]="gatePercent"></span>
+            </div>
+            <div class="scale sentinel-figures"><span>0%</span><span>{{ gatePercent }}% threshold</span><span>100%</span></div>
+          </div>
+          <span class="pct">
+            <b class="sentinel-figures" [attr.data-state]="drainState()">{{ account.drainPct | number: '1.1-1' }}%</b>
+            <span>of opening balance</span>
+          </span>
+        </div>
+      }
+
+      @if (facade.focusedHolds().length > 0) {
+        <sentinel-hold-actions />
+      }
+
+      <div class="split">
+        <section class="panel" aria-labelledby="contributions-title">
+          <header class="panel-head">
+            <h3 id="contributions-title">Risk contributions</h3>
+            <span class="tag">Rules engine · {{ decision.riskScore }} / 100</span>
+          </header>
+          <sentinel-risk-attribution layout="compact" [contributions]="decision.assessment.contributions" [score]="decision.riskScore" />
+        </section>
+        <section class="panel" aria-labelledby="timeline-heading">
+          <header class="panel-head"><h3 id="timeline-heading">Decision timeline</h3></header>
+          <sentinel-account-timeline [events]="facade.timeline()" />
+          @if (facade.latestHoldNotice(); as notice) {
+            <sentinel-customer-notification [notice]="notice" />
+          }
+        </section>
+      </div>
+    </div>
+
+    <footer>
+      <a class="primary" routerLink="/investigations">
+        <sentinel-icon name="investigate" [size]="18" /> Open investigation <sentinel-icon name="arrowRight" [size]="18" />
+      </a>
+      <button type="button" class="secondary" (click)="trace.emit()">
+        <sentinel-icon name="audit" [size]="18" /> View decision trace
+      </button>
+    </footer>
+  </section>
+} @else {
+  <section class="card empty-card">
+    <p class="empty">Select an alert to see its case.</p>
+  </section>
+}

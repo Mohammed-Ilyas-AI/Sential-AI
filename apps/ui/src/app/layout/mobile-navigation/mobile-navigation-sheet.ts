@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Icon } from '../../shared/ui/icon/icon';
+import { SkylineArtwork } from '../brand/skyline-artwork';
 import { NAVIGATION_ITEMS, NAVIGATION_SECTIONS, type NavigationItem } from '../navigation/navigation-items';
 import { ShellState } from '../shell/shell-state';
 
 /** Every destination as a bottom sheet with large touch targets; opened by the menu button or "More". */
 @Component({
   selector: 'sentinel-mobile-navigation-sheet',
-  imports: [Icon, RouterLink, RouterLinkActive],
+  imports: [Icon, RouterLink, RouterLinkActive, SkylineArtwork],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="sheet sentinel-panel--elevated sentinel-scroll" role="dialog" aria-modal="true" aria-label="Navigation">
@@ -30,6 +31,7 @@ import { ShellState } from '../shell/shell-state';
           }
         </ul>
       }
+      <sentinel-skyline-artwork class="artwork" />
     </section>
   `,
   styles: `
@@ -95,6 +97,10 @@ import { ShellState } from '../shell/shell-state';
       color: var(--sentinel-color-text);
       border-color: color-mix(in srgb, var(--sentinel-color-accent) 45%, transparent);
       background: var(--sentinel-color-accent-soft);
+    }
+    .artwork {
+      width: min(100%, 240px);
+      margin: var(--sentinel-space-4) auto 0;
     }
     a.active sentinel-icon {
       color: var(--sentinel-color-accent);

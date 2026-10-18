@@ -25,7 +25,7 @@ describe('operations overview', () => {
     expect(kpis.map((kpi) => [kpi.label, kpi.value])).toEqual([
       ['Live Transactions', 3],
       ['High Risk Alerts', 1],
-      ['Held Transactions', 1],
+      ['Active Holds', 1],
       ['Monitored Banks', 3],
     ]);
     expect(kpis.every((kpi) => kpi.series.length === 24)).toBe(true);
@@ -52,7 +52,7 @@ describe('operations overview', () => {
 
   it('pins one callout per institution, the hold taking precedence', () => {
     expect(buildGlobeCallouts(rows)).toEqual([
-      { id: 'BANK_C', institution: 'Bank C', amount: 1_150_000, label: 'HOLD', detail: 'Rapid-drain pattern', tone: 'held' },
+      { id: 'BANK_C', institution: 'Bank C', amount: 1_150_000, label: 'HOLD', detail: 'Rapid-drain pattern', tone: 'held', transactionId: expect.any(String), accountId: expect.any(String) },
       { id: 'BANK_B', institution: 'Bank B', amount: 720_000, label: 'Under review', tone: 'high' },
       { id: 'BANK_A', institution: 'Bank A', amount: 12_000, label: 'Legitimate', tone: 'normal' },
     ]);

@@ -22,15 +22,24 @@ describe('ThemePreferences', () => {
     root().removeAttribute('data-appearance');
   });
 
-  it('defaults to the SENTINEL AI dark baseline: no theme attributes at all', () => {
+  it('opens a first visit in the SENTINEL AI light theme', () => {
     const theme = TestBed.inject(ThemePreferences);
-    expect([theme.brand(), theme.appearance()]).toEqual(['sentinel', 'dark']);
+    expect([theme.brand(), theme.appearance()]).toEqual(['sentinel', 'light']);
     expect(root().hasAttribute('data-tenant-theme')).toBe(false);
+    expect(root().getAttribute('data-appearance')).toBe('light');
+    expect(localStorage.getItem(APPEARANCE_PREFERENCE_KEY)).toBeNull();
+  });
+
+  it('keeps a returning visitor in the dark theme they chose', () => {
+    localStorage.setItem(APPEARANCE_PREFERENCE_KEY, 'dark');
+    const theme = TestBed.inject(ThemePreferences);
+    expect(theme.appearance()).toBe('dark');
     expect(root().hasAttribute('data-appearance')).toBe(false);
   });
 
   it('keeps the two controls independent', () => {
     const theme = TestBed.inject(ThemePreferences);
+    theme.selectAppearance('dark');
     theme.selectBrand('bank-a');
     expect(root().getAttribute('data-tenant-theme')).toBe('bank-a');
     expect(root().hasAttribute('data-appearance')).toBe(false);
@@ -62,7 +71,14 @@ describe('ThemePreferences', () => {
     localStorage.setItem(BRAND_PREFERENCE_KEY, 'real-bank');
     localStorage.setItem(APPEARANCE_PREFERENCE_KEY, 'neon');
     const theme = TestBed.inject(ThemePreferences);
-    expect([theme.brand(), theme.appearance()]).toEqual(['sentinel', 'dark']);
+    expect([theme.brand(), theme.appearance()]).toEqual(['sentinel', 'light']);
+  });
+
+  it('remembers a switch to dark across a reload', () => {
+    TestBed.inject(ThemePreferences).selectAppearance('dark');
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [provideTestStore()] });
+    expect(TestBed.inject(ThemePreferences).appearance()).toBe('dark');
   });
 
   it('changes presentation only: the decisions, scores, alerts and holds in the store are untouched', () => {

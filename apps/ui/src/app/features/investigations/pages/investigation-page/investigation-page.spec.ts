@@ -90,12 +90,19 @@ describe('InvestigationPage', () => {
 
   it('opens the bundle for the focused assessment with the deterministic attribution first', async () => {
     focusDemoAccount();
-    const { host } = await render();
+    const { host, settle } = await render();
     expect(api.evidence).toHaveBeenCalledWith(decision.assessmentId);
     expect(text(host.querySelector('sentinel-account-summary'))).toContain('HOLD');
     expect(host.querySelectorAll('sentinel-risk-attribution li')).toHaveLength(decision.assessment.contributions.length);
     expect(text(host.querySelector('sentinel-evidence-panel'))).toContain('Recent transactions (cap 50)');
     expect(host.querySelectorAll('sentinel-timeline li')).toHaveLength(4);
+    // The transfer still on the live tape carries the gate's own score and decision; nothing else is inferred.
+    expect([...host.querySelectorAll('sentinel-timeline .verdict')].map((verdict) => text(verdict))).toEqual(['95 HOLD']);
+    expect(text(host.querySelector('sentinel-gemini-advisory'))).toContain('AI-generated · advisory only');
+    expect(host.querySelector('sentinel-evidence-panel pre')).toBeNull();
+    (host.querySelector('sentinel-evidence-panel button.view') as HTMLButtonElement).click();
+    await settle();
+    expect(text(host.querySelector('sentinel-evidence-panel pre'))).toContain(decision.transactionId);
     expect(api.summarise).not.toHaveBeenCalled();
   });
 
@@ -153,6 +160,49 @@ describe('InvestigationPage', () => {
     (host.querySelector('sentinel-gemini-advisory button') as HTMLButtonElement).click();
     await settle();
     expect(text(host.querySelector('sentinel-gemini-advisory [role="status"]'))).toContain('gcloud auth application-default login');
+  });
+
+  it('opens the advisory in a dialog with a loader, then the real answer, and Escape closes it', async () => {
+    focusDemoAccount();
+    const pending = new Subject<AdvisoryOutcome<CaseSummary>>();
+    api.summarise.mockReturnValue(pending);
+    const { host, settle } = await render();
+    const summarise = [...host.querySelectorAll('sentinel-gemini-advisory button')].find((button) => text(button) === 'Summarise case') as HTMLButtonElement;
+    summarise.click();
+    await settle();
+    const dialog = () => host.querySelector('sentinel-advisory-dialog');
+    expect(dialog()?.querySelector('[role="dialog"]')?.getAttribute('aria-modal')).toBe('true');
+    expect(dialog()?.querySelector('sentinel-advisory-loader')).not.toBeNull();
+    expect(text(dialog())).toContain('Gemini is correlating the evidence');
+    // The deterministic decision stays in view as its own fact.
+    expect(text(dialog()?.querySelector('footer') ?? null)).toContain('HOLD');
+
+    pending.next(summary);
+    await settle();
+    expect(dialog()?.querySelector('sentinel-advisory-loader')).toBeNull();
+    expect(text(dialog())).toContain('Probable account takeover');
+    expect(text(dialog())).toContain('drain.thresholdMet = true');
+    expect(text(dialog())).toContain('1 ungrounded claim removed');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle();
+    expect(dialog()).toBeNull();
+    // Closing never loses the answer: the inline card keeps it.
+    expect(text(host.querySelector('sentinel-gemini-advisory'))).toContain('Probable account takeover');
+  });
+
+  it('shows a fallback in the dialog without inventing an answer, and offers to try again', async () => {
+    focusDemoAccount();
+    api.explain.mockReturnValue(of({ status: 'FALLBACK' as const, advisory: null, reason: 'MODEL_TIMED_OUT' as const, attempts: 1 }));
+    const { host, settle } = await render();
+    (host.querySelector('sentinel-gemini-advisory button') as HTMLButtonElement).click();
+    await settle();
+    const dialog = host.querySelector('sentinel-advisory-dialog');
+    expect(text(dialog)).toContain('did not finish within the server’s request limit');
+    expect(text(dialog)).not.toContain('Generated, schema-validated');
+    (dialog?.querySelector('button.retry') as HTMLButtonElement).click();
+    await settle();
+    expect(api.explain).toHaveBeenCalledTimes(2);
   });
 
   it('says plainly when Gemini is unavailable and keeps the attribution on screen', async () => {

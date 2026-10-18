@@ -1,46 +1,27 @@
-<div class="main">
-  <header class="hero">
-    <p class="eyebrow">Operations Control Tower</p>
-    <h1>Global <span class="emphasis">Financial Defence</span> in Real Time</h1>
-    <p class="lede">Detect. Explain. Intervene. <span class="prevent">Prevent.</span></p>
-  </header>
+<h1 class="sentinel-visually-hidden">Control Tower</h1>
 
-  <section class="kpis" aria-label="Headline figures">
-    @for (kpi of facade.kpis(); track kpi.id) {
-      <sentinel-kpi-card [kpi]="kpi" />
-    }
-  </section>
+<section class="kpis" aria-label="Headline figures">
+  @for (kpi of facade.kpis(); track kpi.id) {
+    <sentinel-kpi-card [kpi]="kpi" />
+  }
+</section>
 
-  <sentinel-live-global-network
-    class="network"
-    aria-labelledby="network-title"
-    [scene]="facade.globeScene()"
-    [callouts]="facade.globeCallouts()"
-    [stats]="facade.networkStats()"
-    [description]="globeDescription()"
-  />
+<sentinel-live-global-network
+  class="network"
+  aria-labelledby="network-title"
+  [scene]="facade.globeScene()"
+  [callouts]="facade.globeCallouts()"
+  [stats]="facade.networkStats()"
+  [description]="globeDescription()"
+  [selection]="facade.globeSelection()"
+  [detail]="facade.globeDetail()"
+  [bankFocus]="facade.bankFocusLabel()"
+  (selectTarget)="facade.select($event)"
+  (action)="facade.act($event)"
+/>
 
-  <div class="lower">
-    <sentinel-transaction-stream class="surface" [rows]="facade.streamRows()" />
-    <sentinel-risk-analysis class="surface" [view]="facade.riskAnalysis()" />
-  </div>
-</div>
-
-<aside class="context" aria-label="Operational context">
+<div class="lower">
+  <sentinel-needs-attention class="surface" [items]="facade.needsAttention()" (open)="facade.act({ type: 'open-alert', accountId: $event })" />
+  <sentinel-transaction-stream class="surface" [rows]="facade.streamRows()" />
   <sentinel-system-status class="surface" [rows]="facade.systemStatus()" />
-
-  <section class="surface alerts" aria-labelledby="recent-alerts-title">
-    <header>
-      <h2 id="recent-alerts-title">Recent Alerts</h2>
-      <button type="button" class="sentinel-link-button" (click)="shell.open('notifications')">
-        View All <sentinel-icon name="arrowRight" [size]="14" />
-      </button>
-    </header>
-    <div class="alerts-list">
-      <sentinel-notification-list [limit]="4" />
-    </div>
-  </section>
-
-  <sentinel-threat-landscape class="surface threat" [view]="facade.threatLandscape()" />
-  <sentinel-policy-gate class="surface gate" [view]="facade.policyGate()" />
-</aside>
+</div>

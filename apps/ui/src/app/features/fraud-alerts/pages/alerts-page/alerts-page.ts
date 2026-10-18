@@ -1,66 +1,85 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { RAPID_DRAIN_GATE_PERCENT } from '@sentinel/domain';
+import { DecisionTrace } from '../../../../shared/ui/decision-trace/decision-trace';
+import { Icon } from '../../../../shared/ui/icon/icon';
 import { PageHeader } from '../../../../shared/ui/page-header/page-header';
-import { AccountRiskPanel } from '../../components/account-risk-panel/account-risk-panel';
-import { AccountTimeline } from '../../components/account-timeline/account-timeline';
+import { RiskBandBadge } from '../../../../shared/ui/risk-band-badge/risk-band-badge';
 import { AlertQueue } from '../../components/alert-queue/alert-queue';
-import { CustomerNotification } from '../../components/customer-notification/customer-notification';
-import { HoldActions } from '../../components/hold-actions/hold-actions';
-import { PolicyHold } from '../../components/policy-hold/policy-hold';
+import { CaseDetail } from '../../components/case-detail/case-detail';
 import { FraudAlertsFacade } from '../../data-access/fraud-alerts-facade';
 
-/** The analyst's working view of one account: queue, rapid-drain state, the gate's decision trace, timeline. */
+/**
+ * The analyst's working view: four headline figures, the alert queue and the selected alert as a case, with
+ * the gate's recorded decision kept apart from what the intervention record says now.
+ */
 @Component({
   selector: 'sentinel-alerts-page',
-  imports: [RouterLink, PageHeader, AlertQueue, AccountRiskPanel, PolicyHold, HoldActions, AccountTimeline, CustomerNotification],
+  imports: [DecimalPipe, PageHeader, AlertQueue, CaseDetail, DecisionTrace, Icon, RiskBandBadge],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'traceOpen.set(false)' },
   template: `
-    <sentinel-page-header
-      heading="Alerts & Cases"
-      summary="Open alerts ranked by advisory score, and the account in focus exactly as the policy gate decided it."
-    />
+    <sentinel-page-header heading="Alerts & Cases" summary="Prioritise alerts, inspect policy decisions and track intervention status." />
+
+    <section class="metrics" aria-label="Alert figures">
+      <div class="metric" data-tone="critical">
+        <span class="tile"><sentinel-icon name="alert" [size]="20" /></span>
+        <span class="text"><span class="label">Open alerts</span><b class="sentinel-figures">{{ facade.queue().length }}</b></span>
+      </div>
+      <div class="metric" data-tone="high">
+        <span class="tile"><sentinel-icon name="analytics" [size]="20" /></span>
+        <span class="text">
+          <span class="label">Selected risk score</span>
+          @if (facade.focusedDecision(); as decision) {
+            <span class="value"><b class="sentinel-figures">{{ decision.riskScore }}</b><sentinel-risk-band-badge [band]="decision.band" /></span>
+          } @else {
+            <b>—</b>
+          }
+        </span>
+      </div>
+      <div class="metric" data-tone="info">
+        <span class="tile"><sentinel-icon name="trendUp" [size]="20" /></span>
+        <span class="text">
+          <span class="label">24h balance drain</span>
+          @if (facade.selectedAccount(); as account) {
+            <span class="value"><b class="sentinel-figures">{{ account.drainPct | number: '1.1-1' }}%</b><span class="hint">gate &gt; {{ gatePercent }}%</span></span>
+          } @else {
+            <b>—</b>
+          }
+        </span>
+      </div>
+      <div class="metric" data-tone="success">
+        <span class="tile"><sentinel-icon name="transfer" [size]="20" /></span>
+        <span class="text">
+          <span class="label">Active held transfers</span>
+          <span class="value"><b class="sentinel-figures">{{ facade.focusedHolds().length }}</b><span class="hint">on the selected account</span></span>
+        </span>
+      </div>
+    </section>
+
     <div class="layout">
-      <div class="column">
-        <sentinel-alert-queue />
-        <sentinel-account-risk-panel />
-        <sentinel-account-timeline [events]="facade.timeline()" />
-      </div>
-      <div class="column">
-        @if (facade.latestHoldNotice(); as notice) {
-          <sentinel-customer-notification [notice]="notice" />
-        }
-        <sentinel-hold-actions />
-        @if (facade.focusedDecision()) {
-          <a class="investigate" routerLink="/investigations">Open the investigation workspace →</a>
-        }
-        <sentinel-policy-hold [decision]="facade.focusedDecision()" [intervention]="facade.focusedIntervention()" />
-      </div>
+      <sentinel-alert-queue />
+      <sentinel-case-detail (trace)="traceOpen.set(true)" />
     </div>
-  `,
-  styles: `
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-      gap: var(--sentinel-space-4);
-      align-items: start;
-    }
-    .investigate {
-      justify-self: start;
-      color: var(--sentinel-color-accent);
-      font-size: var(--sentinel-font-size-caption);
-    }
-    .column {
-      display: grid;
-      gap: var(--sentinel-space-4);
-      min-width: 0;
-    }
-    @media (max-width: 1023px) {
-      .layout {
-        grid-template-columns: minmax(0, 1fr);
+
+    @if (traceOpen()) {
+      @if (facade.focusedDecision(); as decision) {
+        <div class="scrim" (click)="traceOpen.set(false)" aria-hidden="true"></div>
+        <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="trace-title">
+          <header>
+            <h2 id="trace-title">Decision trace</h2>
+            <button type="button" class="close" (click)="traceOpen.set(false)"><sentinel-icon name="close" [size]="18" label="Close" /></button>
+          </header>
+          <p class="note">The gate's outcome as a fact: rule, reason, source and versions. Never a probability.</p>
+          <sentinel-decision-trace [decision]="decision" />
+        </section>
       }
     }
   `,
+  styleUrl: './alerts-page.css',
 })
 export class AlertsPage {
   protected readonly facade = inject(FraudAlertsFacade);
+  protected readonly gatePercent = RAPID_DRAIN_GATE_PERCENT;
+  protected readonly traceOpen = signal(false);
 }

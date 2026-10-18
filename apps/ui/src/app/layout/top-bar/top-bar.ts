@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Icon } from '../../shared/ui/icon/icon';
 import { sessionFeature } from '../../state/session/session.feature';
@@ -10,7 +11,7 @@ import { LiveClock } from './live-clock';
 /** Toggle, brand, live state, clock, notifications, settings, analyst. No search here. */
 @Component({
   selector: 'sentinel-top-bar',
-  imports: [Icon, SentinelLogo, LiveClock],
+  imports: [Icon, SentinelLogo, LiveClock, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header>
@@ -22,7 +23,7 @@ import { LiveClock } from './live-clock';
           <sentinel-icon name="menu" [size]="22" label="Open navigation" />
         </button>
         <span class="divider desktop-only" aria-hidden="true"></span>
-        <sentinel-logo />
+        <a class="home" routerLink="/" aria-label="SENTINEL AI home"><sentinel-logo /></a>
       </div>
 
       <div class="controls">

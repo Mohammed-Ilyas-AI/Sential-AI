@@ -1,6 +1,8 @@
 import { Injectable, computed, effect, inject, signal, untracked, type Signal } from '@angular/core';
 import { Store } from '@ngrx/store';
 import type { CaseSummary, DecisionRecord, EvidenceBundle, RiskExplanation } from '@sentinel/domain';
+import { transactionsFeature } from '../../../state/transactions/transactions.feature';
+import type { TapeRow } from '../../../workers/transaction-worker-protocol';
 import { selectFocusedDecision } from '../../../state/account-focus/account-focus.selectors';
 import type { AdvisoryState, RequestStatus, TimelineEntry } from '../models/investigation-view';
 import { InvestigationsApi } from './investigations-api';
@@ -8,21 +10,26 @@ import { InvestigationsApi } from './investigations-api';
 const TIMELINE_LIMIT = 24;
 const IDLE = { status: 'IDLE', outcome: null } as const;
 
-function timelineOf(evidence: EvidenceBundle): readonly TimelineEntry[] {
+function timelineOf(evidence: EvidenceBundle, decided: ReadonlyMap<string, TapeRow>): readonly TimelineEntry[] {
   const entries: TimelineEntry[] = [
-    ...evidence.recentTransactions.map((transaction) => ({
-      at: transaction.ts,
-      kind: 'TRANSFER' as const,
-      title: `${transaction.type.toLowerCase()} to ${transaction.destInstitutionId}`,
-      detail: transaction.id,
-      amount: transaction.amount,
-    })),
+    ...evidence.recentTransactions.map((transaction) => {
+      const row = decided.get(transaction.id);
+      return {
+        at: transaction.ts,
+        kind: 'TRANSFER' as const,
+        title: `${transaction.type.toLowerCase()} to ${transaction.destInstitutionId}`,
+        detail: transaction.id,
+        amount: transaction.amount,
+        ...(row ? { decided: { score: row.score, band: row.band, decision: row.decision } } : {}),
+      };
+    }),
     ...evidence.interventions.map((intervention) => ({
       at: intervention.actedAt,
       kind: 'INTERVENTION' as const,
       title: `${intervention.state} by ${intervention.actor.toLowerCase()}`,
       detail: `${intervention.reasonCodes.join(', ')} · ${intervention.transactionId}`,
       amount: null,
+      state: intervention.state,
     })),
     ...evidence.deviceHistory.map((event) => ({ at: event.occurredAt, kind: 'DEVICE' as const, title: event.eventType.replaceAll('_', ' ').toLowerCase(), detail: event.deviceId, amount: null })),
     ...evidence.payeeHistory.map((event) => ({ at: event.occurredAt, kind: 'PAYEE' as const, title: 'payee added', detail: event.payeeId, amount: null })),
@@ -38,7 +45,10 @@ function timelineOf(evidence: EvidenceBundle): readonly TimelineEntry[] {
 export class InvestigationsFacade {
   private readonly api = inject(InvestigationsApi);
 
-  readonly decision: Signal<DecisionRecord | null> = inject(Store).selectSignal(selectFocusedDecision);
+  private readonly store = inject(Store);
+  readonly decision: Signal<DecisionRecord | null> = this.store.selectSignal(selectFocusedDecision);
+  /** The gate's recorded score and decision per transaction, from the live tape, for the timeline. */
+  private readonly tape = this.store.selectSignal(transactionsFeature.selectTape);
   readonly assessmentId = computed(() => this.decision()?.assessmentId ?? null);
 
   private readonly evidenceState = signal<{ readonly status: RequestStatus; readonly evidence: EvidenceBundle | null }>({ status: 'IDLE', evidence: null });
@@ -51,7 +61,8 @@ export class InvestigationsFacade {
   readonly summary = this.summaryState.asReadonly();
   readonly timeline = computed(() => {
     const evidence = this.evidence();
-    return evidence ? timelineOf(evidence) : [];
+    if (!evidence) return [];
+    return timelineOf(evidence, new Map(this.tape().map((row) => [row.transactionId, row])));
   });
 
   constructor() {

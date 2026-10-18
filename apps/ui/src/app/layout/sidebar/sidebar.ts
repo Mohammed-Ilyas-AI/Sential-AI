@@ -3,17 +3,17 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Icon } from '../../shared/ui/icon/icon';
 import { alertsFeature } from '../../state/alerts/alerts.feature';
-import { AtmosphereWave } from '../atmosphere/atmosphere-wave';
+import { SkylineArtwork } from '../brand/skyline-artwork';
 import { NAVIGATION_ITEMS, NAVIGATION_SECTIONS, type NavigationItem } from '../navigation/navigation-items';
 import { ShellState } from '../shell/shell-state';
 
 /**
  * Desktop and tablet rail. The top-bar toggle is the only collapse control; collapsing animates the width and
- * fades labels, and collapsed items show a tooltip. The atmospheric wave anchors the lower-left corner.
+ * fades labels, and collapsed items show a tooltip. The Singapore skyline artwork, with its slogan, anchors the footer.
  */
 @Component({
   selector: 'sentinel-sidebar',
-  imports: [Icon, RouterLink, RouterLinkActive, AtmosphereWave],
+  imports: [Icon, RouterLink, RouterLinkActive, SkylineArtwork],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.collapsed]': '!shell.sidebarExpanded()' },
   template: `
@@ -56,13 +56,7 @@ import { ShellState } from '../shell/shell-state';
         </div>
       }
     </nav>
-    <div class="atmosphere">
-      <sentinel-atmosphere-wave class="wave" />
-      <div class="signature">
-        <p>Financial intelligence<br />for a safer world</p>
-        <span class="rule" aria-hidden="true"></span>
-      </div>
-    </div>
+    <sentinel-skyline-artwork class="atmosphere" />
   `,
   styleUrl: './sidebar.css',
 })

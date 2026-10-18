@@ -1,0 +1,92 @@
+<div class="scrim" (click)="closed.emit()" aria-hidden="true"></div>
+<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="advisory-dialog-title">
+  <header>
+    <span class="mark" aria-hidden="true"><sentinel-icon name="explain" [size]="22" /></span>
+    <span class="heading">
+      <h2 id="advisory-dialog-title">{{ title() }} <span class="tier">{{ tier() }}</span></h2>
+      <span class="badge">Gemini · AI-generated · advisory only</span>
+    </span>
+    <button #closeButton type="button" class="close" (click)="closed.emit()">
+      <sentinel-icon name="close" [size]="20" label="Close" />
+    </button>
+  </header>
+
+  <div class="body sentinel-scroll">
+    @switch (state().status) {
+      @case ('LOADING') {
+        <sentinel-advisory-loader [label]="kind() === 'EXPLAIN' ? 'Gemini is explaining the score…' : 'Gemini is correlating the evidence…'" />
+      }
+      @case ('FAILED') {
+        <div class="notice" role="alert">
+          <b>sentinel-core could not be reached.</b>
+          <p>The deterministic attribution stands. Check the connection and try again.</p>
+          <button type="button" class="retry" (click)="retry.emit(kind())">Try again</button>
+        </div>
+      }
+      @case ('READY') {
+        @if (state().outcome; as outcome) {
+          @if (outcome.status === 'FALLBACK') {
+            <div class="notice" role="status">
+              <b>{{ fallbackReason[outcome.reason] }}</b>
+              <p>The deterministic attribution is the explanation of record. No Gemini text is shown in its place.</p>
+              <button type="button" class="retry" (click)="retry.emit(kind())">Try again</button>
+            </div>
+          } @else if (kind() === 'EXPLAIN') {
+            @if (explained(); as result) {
+              <p class="provenance">
+                <sentinel-icon name="check" [size]="16" />
+                {{ result.status === 'CACHED' ? 'Cached for this assessment' : 'Generated, schema-validated' }}
+              </p>
+              <p class="lead">{{ result.advisory.primaryReason }}</p>
+              <div class="next">
+                <span class="next-label"><sentinel-icon name="arrowRight" [size]="16" /> Next investigative step</span>
+                <p>{{ result.advisory.recommendedAction }}</p>
+              </div>
+            }
+          } @else {
+            @if (summarised(); as result) {
+              <p class="provenance">
+                <span class="chip" [attr.data-confidence]="result.advisory.confidence">Confidence {{ result.advisory.confidence }}</span>
+                @if (result.advisory.escalate) {
+                  <span class="chip escalate">Escalation suggested</span>
+                }
+                @if (result.droppedClaims > 0) {
+                  <span class="chip">{{ result.droppedClaims }} ungrounded {{ result.droppedClaims === 1 ? 'claim' : 'claims' }} removed</span>
+                }
+              </p>
+              <p class="lead">{{ result.advisory.hypothesis }}</p>
+              <h3>Evidence, each claim tied to a bundle field</h3>
+              <ol class="evidence">
+                @for (item of result.advisory.evidence; track $index) {
+                  <li>
+                    <span class="index">{{ $index + 1 }}</span>
+                    <span class="claim">
+                      {{ item.claim }}
+                      <code>{{ item.sourceField }} = {{ item.value }}</code>
+                    </span>
+                  </li>
+                }
+              </ol>
+              @if (result.advisory.recommendedActions.length > 0) {
+                <h3>Recommended investigative actions</h3>
+                <ul class="actions">
+                  @for (action of result.advisory.recommendedActions; track $index) {
+                    <li><sentinel-icon name="arrowRight" [size]="16" />{{ action }}</li>
+                  }
+                </ul>
+              }
+            }
+          }
+        }
+      }
+    }
+  </div>
+
+  <footer>
+    <span class="decision" [attr.data-decision]="decision().decision">{{ decision().decision }}</span>
+    <span class="fact">
+      Policy decision by the deterministic rules engine · {{ decision().reasonCodes.join(', ') }} · score {{ decision().riskScore }}.
+      Gemini cannot change it.
+    </span>
+  </footer>
+</section>

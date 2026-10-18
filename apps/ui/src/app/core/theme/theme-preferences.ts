@@ -1,4 +1,4 @@
-import { DOCUMENT, Injectable, inject, signal, type Signal } from '@angular/core';
+import { DOCUMENT, Injectable, computed, inject, signal, type Signal } from '@angular/core';
 
 export type BrandPresetId = 'sentinel' | 'bank-a' | 'bank-b' | 'bank-c';
 export type AppearanceMode = 'dark' | 'light';
@@ -23,7 +23,7 @@ export const APPEARANCE_OPTIONS: readonly { readonly id: AppearanceMode; readonl
   { id: 'light', label: 'Light' },
 ];
 
-/** Read by the inline boot script in index.html too, so the first paint already has the right theme. */
+/** Read by the inline boot script in index.html too, so the first paint already has the right theme (light by default). */
 export const BRAND_PREFERENCE_KEY = 'sentinel.theme.brand';
 export const APPEARANCE_PREFERENCE_KEY = 'sentinel.theme.appearance';
 
@@ -59,10 +59,17 @@ export class ThemePreferences {
     readPreference(BRAND_PREFERENCE_KEY, BRAND_PRESET_OPTIONS.map((option) => option.id), 'sentinel'),
   );
   private readonly appearanceState = signal<AppearanceMode>(
-    readPreference(APPEARANCE_PREFERENCE_KEY, APPEARANCE_OPTIONS.map((option) => option.id), 'dark'),
+    // Light is the default; a visitor who chose dark (or light) keeps that choice.
+    readPreference(APPEARANCE_PREFERENCE_KEY, APPEARANCE_OPTIONS.map((option) => option.id), 'light'),
   );
 
-  readonly brand: Signal<BrandPresetId> = this.brandState.asReadonly();
+  /**
+   * A temporary bank lens (the Control Tower's selected bank): applied on top of the saved brand, never saved,
+   * never touching the appearance. Cleared, the saved brand returns.
+   */
+  private readonly previewState = signal<BrandPresetId | null>(null);
+  readonly brand: Signal<BrandPresetId> = computed(() => this.previewState() ?? this.brandState());
+  readonly savedBrand: Signal<BrandPresetId> = this.brandState.asReadonly();
   readonly appearance: Signal<AppearanceMode> = this.appearanceState.asReadonly();
 
   constructor() {
@@ -72,6 +79,13 @@ export class ThemePreferences {
   selectBrand(brand: BrandPresetId): void {
     writePreference(BRAND_PREFERENCE_KEY, brand);
     this.brandState.set(brand);
+    // An explicit choice in Settings replaces any temporary bank lens.
+    this.previewState.set(null);
+    this.apply();
+  }
+
+  previewBrand(brand: BrandPresetId | null): void {
+    this.previewState.set(brand);
     this.apply();
   }
 
@@ -83,7 +97,7 @@ export class ThemePreferences {
 
   private apply(): void {
     const root = this.document.documentElement;
-    const brand = this.brandState();
+    const brand = this.previewState() ?? this.brandState();
     const appearance = this.appearanceState();
     if (brand === 'sentinel') root.removeAttribute('data-tenant-theme');
     else root.setAttribute('data-tenant-theme', brand);

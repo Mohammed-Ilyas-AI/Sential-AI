@@ -1,9 +1,10 @@
 import { DECISION_REASON, type Alert, type DecisionRecord, type Intervention } from '@sentinel/domain';
 import type { TapeRow } from '../../../workers/transaction-worker-protocol';
-import type { GlobeRoute, GlobeScene, GlobeTone } from '../components/operations-globe/globe-renderer';
+import type { GlobeNode, GlobeRoute, GlobeScene, GlobeTone } from '../components/operations-globe/globe-renderer';
 import { accountNodeFor } from '../geo/account-placement';
 import { INSTITUTION_ANCHORS, anchorFor } from '../geo/geo-anchors';
 import type {
+  AttentionItem,
   GlobeCallout,
   KpiView,
   NetworkStats,
@@ -68,7 +69,7 @@ export function buildKpis(rows: readonly TapeRow[], openAlerts: readonly Alert[]
       'critical',
       seriesOf(rows, (bucket) => bucket.filter((row) => isHighRisk(row.band)).length),
     ),
-    kpi('holds', 'Held Transactions', activeHolds.length, 'shieldAlert', 'warning', seriesOf(rows, (bucket) => bucket.filter((row) => row.decision === 'HOLD').length)),
+    kpi('holds', 'Active Holds', activeHolds.length, 'shieldAlert', 'warning', seriesOf(rows, (bucket) => bucket.filter((row) => row.decision === 'HOLD').length)),
     kpi('institutions', 'Monitored Banks', institutionsIn(rows).size, 'bank', 'success', seriesOf(rows, (bucket) => institutionsIn(bucket).size)),
   ];
 }
@@ -82,18 +83,33 @@ function toneOf(row: TapeRow): GlobeTone {
 /** Every recent transfer becomes a route from its account's node to the receiving institution. */
 export function buildGlobeScene(rows: readonly TapeRow[]): GlobeScene {
   const routes: GlobeRoute[] = [];
-  const nodes = new Map<string, { latitude: number; longitude: number }>();
+  const nodes = new Map<string, GlobeNode>();
   for (const row of rows.slice(0, LIVE_ROUTES)) {
     const source = anchorFor(row.institutionId);
     const destination = anchorFor(row.destinationInstitutionId);
     if (!source || !destination) continue;
-    const node = nodes.get(row.accountId) ?? accountNodeFor(row.accountId, source);
+    const node = nodes.get(row.accountId) ?? {
+      id: row.accountId,
+      point: accountNodeFor(row.accountId, source),
+      label: `Account ${row.accountReference ?? row.accountId} · ${source.label}`,
+    };
     nodes.set(row.accountId, node);
-    routes.push({ id: row.transactionId, from: node, to: destination, tone: toneOf(row) });
+    routes.push({
+      id: row.transactionId,
+      from: node.point,
+      to: destination,
+      tone: toneOf(row),
+      label: `Transfer ${institutionLabel(row.institutionId)} → ${destination.label} · ${row.decision} · score ${row.score}`,
+    });
   }
   const heldDestinations = new Set(rows.filter((row) => row.decision === 'HOLD').map((row) => row.destinationInstitutionId));
   return {
-    markers: Object.entries(INSTITUTION_ANCHORS).map(([id, anchor]) => ({ id, point: anchor, tone: heldDestinations.has(id) ? 'held' : 'accent' })),
+    markers: Object.entries(INSTITUTION_ANCHORS).map(([id, anchor]) => ({
+      id,
+      point: anchor,
+      tone: heldDestinations.has(id) ? 'held' : 'accent',
+      label: anchor.label,
+    })),
     nodes: [...nodes.values()],
     routes: routes.reverse(),
     holds: [...heldDestinations].flatMap((id) => {
@@ -115,6 +131,8 @@ export function buildGlobeCallouts(rows: readonly TapeRow[]): readonly GlobeCall
       label: 'HOLD',
       detail: 'Rapid-drain pattern',
       tone: 'held',
+      transactionId: hold.transactionId,
+      accountId: hold.accountId,
     });
   }
   for (const row of rows) {
@@ -154,6 +172,48 @@ export function buildStreamRows(rows: readonly TapeRow[]): readonly StreamRow[] 
       status,
     };
   });
+}
+
+const ATTENTION_ROWS = 3;
+
+/** The highest-risk open alerts, newest first among equals, each with its transfer and its current state. */
+export function buildNeedsAttention(alerts: readonly Alert[], rows: readonly TapeRow[], latest: readonly Intervention[]): readonly AttentionItem[] {
+  return [...alerts]
+    .sort((left, right) => right.score - left.score || right.updatedAt.localeCompare(left.updatedAt))
+    .slice(0, ATTENTION_ROWS)
+    .map((alert) => {
+      const row = rows.find((candidate) => candidate.transactionId === alert.transactionId);
+      const intervention = latest.find((candidate) => candidate.transactionId === alert.transactionId);
+      const decision = row?.decision;
+      const status = intervention
+        ? intervention.state === 'HELD'
+          ? 'HOLD'
+          : intervention.state
+        : decision && decision !== 'ALLOW'
+          ? decision
+          : isHighRisk(alert.band)
+            ? 'HIGH RISK'
+            : 'REVIEW';
+      const tone: AttentionItem['tone'] =
+        status === 'HOLD' || status === 'REJECT' || status === 'REJECTED'
+          ? 'held'
+          : status === 'HIGH RISK'
+            ? 'high'
+            : status === 'REVIEW'
+              ? 'elevated'
+              : 'cleared';
+      return {
+        alertId: alert.id,
+        accountId: alert.accountId,
+        account: alert.accountReference ?? row?.accountReference ?? alert.accountId,
+        transactionId: alert.transactionId,
+        route: row ? `${institutionLabel(row.institutionId)} → ${institutionLabel(row.destinationInstitutionId)}` : null,
+        amount: row?.amount ?? null,
+        status,
+        tone,
+        at: alert.updatedAt,
+      };
+    });
 }
 
 export function buildThreatLandscape(rows: readonly TapeRow[]): ThreatLandscapeView {

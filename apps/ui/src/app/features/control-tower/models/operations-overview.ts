@@ -25,6 +25,26 @@ export interface GlobeCallout {
   readonly label: string;
   readonly detail?: string;
   readonly tone: GlobeTone;
+  /** The held transfer a HOLD callout stands for; clicking the callout selects it. */
+  readonly transactionId?: string;
+  /** The paying account of that held transfer: the callout opens its alert. */
+  readonly accountId?: string;
+}
+
+/**
+ * One open alert on the dashboard, with its transfer's context. `status` is the current intervention state when
+ * there is one (a recorded HOLD may since have been RELEASED), else the policy decision, else the risk band.
+ */
+export interface AttentionItem {
+  readonly alertId: string;
+  readonly accountId: string;
+  readonly account: string;
+  readonly transactionId: string;
+  readonly route: string | null;
+  readonly amount: MinorUnits | null;
+  readonly status: string;
+  readonly tone: 'held' | 'high' | 'elevated' | 'cleared';
+  readonly at: string;
 }
 
 export interface NetworkStats {
@@ -82,6 +102,58 @@ export interface PolicyGateView {
   /** True when the recorded hold is shorter than an hour: the demo runs 24 hours as 24 seconds (T§4). */
   readonly demoTime: boolean;
 }
+
+/**
+ * What the globe's detail panel shows for the selected target. Every value is the tape's or the intervention
+ * record's own; the policy decision and the current intervention state are always separate fields.
+ */
+export type GlobeDetail =
+  | {
+      readonly kind: 'bank';
+      readonly id: string;
+      readonly label: string;
+      readonly focused: boolean;
+      readonly transfersOut: number;
+      readonly transfersIn: number;
+      readonly held: number;
+      readonly accounts: number;
+    }
+  | {
+      readonly kind: 'transaction';
+      readonly id: string;
+      readonly accountId: string;
+      readonly account: string;
+      readonly from: string;
+      readonly to: string;
+      readonly amount: MinorUnits;
+      readonly score: number;
+      readonly band: RiskBand;
+      readonly decision: 'ALLOW' | 'HOLD' | 'REJECT';
+      readonly reasonCodes: readonly string[];
+      readonly interventionState: string | null;
+      readonly interventionActor: string | null;
+      readonly hasAlert: boolean;
+    }
+  | {
+      readonly kind: 'account';
+      readonly id: string;
+      readonly account: string;
+      readonly institution: string;
+      readonly transfers: number;
+      readonly latestDecision: 'ALLOW' | 'HOLD' | 'REJECT';
+      readonly latestScore: number;
+      readonly band: RiskBand;
+      readonly hasAlert: boolean;
+    };
+
+/** Every action the detail panel offers; each one is a real route or state transition. */
+export type GlobeAction =
+  | { readonly type: 'focus-bank'; readonly id: string }
+  | { readonly type: 'clear-bank' }
+  | { readonly type: 'bank-transactions'; readonly id: string }
+  | { readonly type: 'open-transaction'; readonly id: string }
+  | { readonly type: 'open-alert'; readonly accountId: string }
+  | { readonly type: 'open-investigation'; readonly accountId: string };
 
 export type SystemState = 'operational' | 'degraded' | 'offline';
 

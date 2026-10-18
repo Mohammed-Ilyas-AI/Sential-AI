@@ -22,6 +22,14 @@ header {
   gap: var(--sentinel-space-4);
   min-width: 0;
 }
+/* The logo is the way home: same artwork and size, now a link. */
+.home {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: 10px;
+  text-decoration: none;
+}
 .toggle {
   width: 42px;
   height: 42px;

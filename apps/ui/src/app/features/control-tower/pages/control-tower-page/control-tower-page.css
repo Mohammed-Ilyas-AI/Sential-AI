@@ -1,58 +1,36 @@
 /*
- * One viewport on desktop: the page is exactly the space below the top bar, and every surface flexes into it.
- * Four height tiers keep the whole tower visible from a 1080p monitor down to a laptop browser window.
+ * One viewport on desktop: the KPI row, the Singapore network and the three bottom panels share exactly the space
+ * below the top bar; the network card takes what the others leave. The page bleeds into <main>'s padding so the
+ * soft dashboard artwork covers everything between the rail and the window edge, never the top bar or the rail.
  */
 :host {
-  --lower-height: 240px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(300px, 23vw, 340px);
-  gap: 14px;
-  animation: sentinel-enter var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
-}
-.main,
-.context {
+  --lower-height: 212px;
+  --veil: color-mix(in srgb, var(--sentinel-color-background) 82%, transparent);
+  /* Text on the accent: the dark theme's accent is light, so it carries dark ink. */
+  --accent-ink: var(--sentinel-color-background);
+  --sentinel-surface-card: color-mix(in srgb, var(--sentinel-color-surface) 90%, transparent);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 0;
-  min-height: 0;
+  margin: calc(-1 * var(--sentinel-space-4)) calc(-1 * var(--sentinel-space-6));
+  padding: var(--sentinel-space-4) var(--sentinel-space-6);
+  background:
+    linear-gradient(var(--veil), var(--veil)),
+    url('/backgrounds/dashboard-bg.webp') right center / cover no-repeat,
+    var(--sentinel-color-background);
 }
-.hero {
-  padding-left: 2px;
+:host > * {
+  animation: sentinel-enter var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
 }
-.eyebrow {
-  margin: 0 0 2px;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--sentinel-color-text-secondary);
-}
-h1 {
-  margin: 0;
-  font-size: clamp(1.5rem, 1rem + 1.1vw, 1.875rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.12;
-}
-.emphasis {
-  background: var(--sentinel-gradient-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.lede {
-  margin: 2px 0 0;
-  font-size: 0.9375rem;
-  color: var(--sentinel-color-text-secondary);
-}
-.prevent {
-  color: color-mix(in srgb, var(--sentinel-color-accent-tertiary) 85%, var(--sentinel-color-tone-ink));
+:host-context([data-appearance='light']) {
+  --veil: color-mix(in srgb, var(--sentinel-color-background) 70%, transparent);
+  --accent-ink: #fff;
 }
 .kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
+  flex: none;
 }
 .network {
   flex: 1;
@@ -60,124 +38,57 @@ h1 {
 }
 .lower {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 14px;
   height: var(--lower-height);
   flex: none;
 }
 .surface {
   min-height: 0;
+  overflow: hidden;
   border: 1px solid var(--sentinel-surface-panel-border);
   border-radius: var(--sentinel-radius-large);
   background: var(--sentinel-surface-panel);
   box-shadow: inset 0 1px 0 var(--sentinel-color-highlight);
 }
-.alerts {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  padding: 10px 10px 4px;
-  overflow: hidden;
-}
-.alerts header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 6px 2px;
-}
-.alerts h2 {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-.alerts-list {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  mask-image: linear-gradient(180deg, #000 72%, transparent);
-}
-.threat {
-  flex: none;
-  height: 190px;
-}
-.gate {
-  flex: none;
-  height: var(--lower-height);
-}
 
+/* The 32px of <main>'s vertical padding is absorbed by the page, so the outer height is the full space. */
 @media (min-width: 1280px) and (min-height: 600px) {
   :host {
-    height: calc(100dvh - var(--sentinel-top-bar-height) - 32px);
+    height: calc(100dvh - var(--sentinel-top-bar-height));
     overflow: hidden;
   }
 }
 @media (min-width: 1280px) and (max-height: 940px) {
   :host {
-    --lower-height: 204px;
-  }
-  .main,
-  .context {
+    --lower-height: 196px;
     gap: 10px;
-  }
-  .threat {
-    height: 168px;
   }
 }
 @media (min-width: 1280px) and (max-height: 800px) {
   :host {
-    --lower-height: 184px;
-    gap: 12px;
-  }
-  .main,
-  .context {
+    --lower-height: 176px;
     gap: 8px;
-  }
-  h1 {
-    font-size: 1.5rem;
-  }
-  .lede {
-    font-size: 0.8125rem;
   }
   .kpis {
     gap: 10px;
   }
-  .threat {
-    height: 140px;
-  }
 }
-@media (min-width: 1280px) and (max-height: 680px) {
-  :host {
-    --lower-height: 172px;
-  }
-  .eyebrow {
-    display: none;
-  }
-  h1 {
-    font-size: 1.375rem;
-  }
-  .threat {
-    height: 118px;
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .lower {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr) minmax(290px, 0.85fr);
   }
 }
 @media (max-width: 1279px) {
   :host {
-    grid-template-columns: minmax(0, 1fr);
+    margin-inline: calc(-1 * var(--sentinel-space-4));
+    padding-inline: var(--sentinel-space-4);
   }
   .network {
-    min-height: 480px;
+    min-height: 460px;
   }
-  .context {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .alerts {
-    min-height: 240px;
-  }
-}
-@media (max-width: 1100px) {
   .lower {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     height: auto;
   }
   .lower > * {
@@ -189,15 +100,16 @@ h1 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-}
-@media (max-width: 767px) {
-  .network {
-    min-height: 0;
-  }
-  .context {
+  .lower {
     grid-template-columns: minmax(0, 1fr);
   }
-  .gate {
-    height: auto;
+}
+@media (max-width: 767px) {
+  :host {
+    margin: calc(-1 * var(--sentinel-space-4)) calc(-1 * var(--sentinel-space-3)) 0;
+    padding: var(--sentinel-space-4) var(--sentinel-space-3);
+  }
+  .network {
+    min-height: 0;
   }
 }

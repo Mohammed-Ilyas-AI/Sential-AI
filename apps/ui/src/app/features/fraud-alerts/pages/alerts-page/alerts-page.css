@@ -1,0 +1,169 @@
+/*
+ * The page is the whole content surface: it bleeds into <main>'s padding so the alert-network artwork covers
+ * everything between the rail and the window edge, and on desktop it is exactly the height below the top bar.
+ * Only the queue and the case body scroll inside it.
+ */
+:host {
+  --veil-strong: color-mix(in srgb, var(--sentinel-color-background) 94%, transparent);
+  --veil-soft: color-mix(in srgb, var(--sentinel-color-background) 82%, transparent);
+  --veil-edge: color-mix(in srgb, var(--sentinel-color-background) 68%, transparent);
+  --accent-ink: var(--sentinel-color-background);
+  --sentinel-surface-card: color-mix(in srgb, var(--sentinel-color-surface) 90%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sentinel-space-3);
+  margin: calc(-1 * var(--sentinel-space-4)) calc(-1 * var(--sentinel-space-6));
+  padding: var(--sentinel-space-4) var(--sentinel-space-6);
+  background:
+    linear-gradient(90deg, var(--veil-strong) 0%, var(--veil-strong) 30%, var(--veil-soft) 62%, var(--veil-edge) 100%),
+    url('/backgrounds/alerts-cases-bg.webp') right center / cover no-repeat,
+    var(--sentinel-color-background);
+}
+:host-context([data-appearance='light']) {
+  --veil-strong: color-mix(in srgb, var(--sentinel-color-background) 88%, transparent);
+  --veil-soft: color-mix(in srgb, var(--sentinel-color-background) 50%, transparent);
+  --veil-edge: transparent;
+  --accent-ink: #fff;
+}
+sentinel-page-header {
+  flex: none;
+  margin-bottom: 0;
+}
+
+.metrics {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sentinel-space-3);
+}
+.metric {
+  --tone: var(--sentinel-color-info);
+  display: flex;
+  align-items: center;
+  gap: var(--sentinel-space-3);
+  padding: 10px var(--sentinel-space-4);
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-left: 3px solid var(--tone);
+  border-radius: var(--sentinel-radius-large);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 7%, var(--sentinel-surface-card)), var(--sentinel-surface-card));
+  box-shadow: var(--sentinel-elevation-panel);
+}
+.metric[data-tone='critical'] { --tone: var(--sentinel-color-risk-critical); }
+.metric[data-tone='high'] { --tone: var(--sentinel-color-risk-high); }
+.metric[data-tone='success'] { --tone: var(--sentinel-color-success); }
+.tile {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: var(--sentinel-radius-medium);
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  color: var(--tone);
+}
+.text {
+  display: grid;
+  min-width: 0;
+}
+.label,
+.hint,
+.note {
+  color: var(--sentinel-color-text-muted);
+  font-size: var(--sentinel-font-size-caption);
+}
+.hint {
+  font-size: var(--sentinel-font-size-micro);
+}
+.text b {
+  font-size: 1.625rem;
+  line-height: 1.2;
+}
+.value {
+  display: flex;
+  align-items: center;
+  gap: var(--sentinel-space-2);
+}
+
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.25fr);
+  gap: var(--sentinel-space-3);
+}
+.layout > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--sentinel-z-scrim);
+  background: color-mix(in srgb, #0b1220 55%, transparent);
+  backdrop-filter: blur(4px);
+}
+.dialog {
+  position: fixed;
+  z-index: var(--sentinel-z-drawer);
+  top: 50%;
+  left: 50%;
+  width: min(560px, calc(100vw - 32px));
+  max-height: 80dvh;
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  padding: var(--sentinel-space-4) var(--sentinel-space-6);
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: 18px;
+  background: var(--sentinel-color-surface);
+  box-shadow: 0 30px 80px color-mix(in srgb, #0b1220 30%, transparent);
+}
+.dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.dialog h2 {
+  margin: 0;
+  font-size: var(--sentinel-font-size-title);
+}
+.close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--sentinel-color-border);
+  border-radius: 10px;
+  background: var(--sentinel-surface-control);
+  color: var(--sentinel-color-text);
+  cursor: pointer;
+}
+
+/* Desktop: one viewport; 32px of <main>'s vertical padding is absorbed by the page. */
+@media (min-width: 1280px) and (min-height: 600px) {
+  :host {
+    height: calc(100dvh - var(--sentinel-top-bar-height));
+    overflow: hidden;
+  }
+}
+@media (max-width: 1279px) {
+  :host {
+    margin-inline: calc(-1 * var(--sentinel-space-4));
+    padding-inline: var(--sentinel-space-4);
+  }
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  sentinel-alert-queue {
+    max-height: 420px;
+  }
+}
+@media (max-width: 767px) {
+  :host {
+    margin: calc(-1 * var(--sentinel-space-4)) calc(-1 * var(--sentinel-space-3)) 0;
+    padding: var(--sentinel-space-4) var(--sentinel-space-3);
+  }
+}

@@ -13,6 +13,14 @@ export interface TapeRow {
   readonly decision: DecisionRecord['decision'];
   readonly occurredAt: string;
   readonly decidedAt: string;
+  /** Carried unchanged from the decision, for the transaction detail panel: never recomputed in the browser. */
+  readonly assessmentId: string;
+  readonly reasonCodes: readonly string[];
+  readonly policyVersion: string;
+  readonly rulesetVersion: string;
+  readonly drain: DecisionRecord['assessment']['drain'];
+  readonly holdUntil?: string;
+  readonly cascadeOfTransactionId?: string;
 }
 
 /** Only accounts that changed in a batch, each with its latest decision. */

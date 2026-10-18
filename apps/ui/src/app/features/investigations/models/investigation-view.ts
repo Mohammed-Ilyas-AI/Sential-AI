@@ -1,4 +1,4 @@
-import type { AdvisoryOutcome } from '@sentinel/domain';
+import type { AdvisoryOutcome, Decision, InterventionState, RiskBand } from '@sentinel/domain';
 
 export type RequestStatus = 'IDLE' | 'LOADING' | 'READY' | 'FAILED';
 
@@ -18,4 +18,8 @@ export interface TimelineEntry {
   readonly detail: string;
   /** Minor units, for transfers only. */
   readonly amount: number | null;
+  /** For a transfer still on the live tape: the gate's own score and decision for it. Never inferred. */
+  readonly decided?: { readonly score: number; readonly band: RiskBand; readonly decision: Decision };
+  /** For an intervention: the state it recorded. */
+  readonly state?: InterventionState;
 }

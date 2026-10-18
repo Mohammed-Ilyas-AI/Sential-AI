@@ -66,6 +66,7 @@ const ROW_ICON: Readonly<Record<string, IconName>> = {
       color: var(--sentinel-color-success);
       font-size: 0.75rem;
       white-space: nowrap;
+      overflow: hidden;
     }
     .overall[data-state='degraded'] {
       color: var(--sentinel-color-warning);
@@ -109,6 +110,11 @@ const ROW_ICON: Readonly<Record<string, IconName>> = {
     }
     li[data-state='offline'] sentinel-icon {
       color: var(--sentinel-color-text-muted);
+    }
+    .label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .value {
       font-size: 0.75rem;

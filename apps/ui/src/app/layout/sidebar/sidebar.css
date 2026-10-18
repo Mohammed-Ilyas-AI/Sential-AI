@@ -49,13 +49,11 @@ ul {
   white-space: nowrap;
 }
 .section-label span,
-.label,
-.signature {
+.label {
   transition: opacity var(--sentinel-motion-duration-base) var(--sentinel-motion-easing-standard);
 }
 :host(.collapsed) .section-label span,
-:host(.collapsed) .label,
-:host(.collapsed) .signature {
+:host(.collapsed) .label {
   opacity: 0;
   pointer-events: none;
 }
@@ -146,53 +144,23 @@ ul {
   visibility: visible;
   transform: none;
 }
+/* The whole artwork, sized so the navigation above it never has to scroll. */
 .atmosphere {
-  position: relative;
   flex: none;
-  height: 200px;
-  margin: 0 calc(-1 * var(--sentinel-space-3));
+  width: min(100%, 210px);
+  margin: auto auto var(--sentinel-space-3);
+  transition: width var(--sentinel-motion-duration-slow) var(--sentinel-motion-easing-standard);
 }
-.atmosphere::before {
-  content: '';
-  position: absolute;
-  inset: 10% -30% -20% -20%;
-  background:
-    radial-gradient(60% 55% at 40% 70%, color-mix(in srgb, var(--sentinel-color-nav) 22%, transparent), transparent 70%),
-    radial-gradient(45% 40% at 75% 85%, color-mix(in srgb, var(--sentinel-color-accent-tertiary) 18%, transparent), transparent 70%);
-  pointer-events: none;
-}
-.wave {
-  position: absolute;
-  inset: 0;
-}
-.signature {
-  position: absolute;
-  left: 28px;
-  bottom: 26px;
-}
-.signature p {
-  margin: 0 0 var(--sentinel-space-3);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  line-height: 1.7;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--sentinel-color-text-secondary);
-  white-space: nowrap;
-}
-.rule {
-  display: block;
-  width: 150px;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--sentinel-color-nav) 0 34%, var(--sentinel-color-track) 34%);
+/* The collapsed rail keeps a small emblem of the same artwork. */
+:host(.collapsed) .atmosphere {
+  width: 100%;
 }
 @media (max-height: 940px) {
   :host {
     padding-top: var(--sentinel-space-4);
   }
   .atmosphere {
-    height: 150px;
+    width: min(100%, 180px);
   }
   ul {
     gap: 2px;
@@ -203,14 +171,8 @@ ul {
 }
 @media (max-height: 800px) {
   .atmosphere {
-    height: 104px;
-  }
-  .signature {
-    bottom: 14px;
-  }
-  .signature p {
-    margin-bottom: 6px;
-    font-size: 0.625rem;
+    width: min(100%, 140px);
+    margin-bottom: var(--sentinel-space-2);
   }
   .item {
     height: 36px;
@@ -221,9 +183,6 @@ ul {
 }
 @media (max-height: 680px) {
   .atmosphere {
-    height: 64px;
-  }
-  .signature {
     display: none;
   }
   .item {

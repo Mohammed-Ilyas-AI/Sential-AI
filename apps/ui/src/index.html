@@ -1,20 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-appearance="light">
   <head>
     <meta charset="utf-8" />
     <title>SENTINEL AI</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#070b10" />
+    <meta name="theme-color" content="#f4f7fb" />
     <link rel="preload" href="fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="fonts/sora-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <script>
       // Apply the remembered theme before the first paint (see core/theme/theme-preferences.ts). Presentation only.
+      // Light is the default and is already in the markup, so even blocked storage paints light; a saved dark wins.
       try {
         var brand = localStorage.getItem('sentinel.theme.brand');
         var appearance = localStorage.getItem('sentinel.theme.appearance');
         if (brand === 'bank-a' || brand === 'bank-b' || brand === 'bank-c') document.documentElement.setAttribute('data-tenant-theme', brand);
-        if (appearance === 'light') document.documentElement.setAttribute('data-appearance', 'light');
+        if (appearance === 'dark') {
+          document.documentElement.removeAttribute('data-appearance');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#070b10');
+        }
       } catch (error) {}
     </script>
   </head>

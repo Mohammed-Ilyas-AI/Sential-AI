@@ -5,14 +5,14 @@ import { MinorUnitsCurrencyPipe } from '../../../../shared/pipes/minor-units-cur
 import { Icon } from '../../../../shared/ui/icon/icon';
 import type { StreamRow } from '../../models/operations-overview';
 
-/** The five latest decisions at a glance. The full tape, with its tools, lives in Live Transactions. */
+/** The latest decisions at a glance. The full tape, with its tools, lives in Live Transactions. */
 @Component({
   selector: 'sentinel-transaction-stream',
   imports: [DatePipe, Icon, MinorUnitsCurrencyPipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header>
-      <h2><sentinel-icon name="chevronRightSmall" [size]="16" />Live Transaction Stream</h2>
+      <h2><sentinel-icon name="chevronRightSmall" [size]="16" />Latest Transactions</h2>
       <a class="sentinel-link-button" routerLink="/live-transactions">View All <sentinel-icon name="arrowRight" [size]="14" /></a>
     </header>
     <table>

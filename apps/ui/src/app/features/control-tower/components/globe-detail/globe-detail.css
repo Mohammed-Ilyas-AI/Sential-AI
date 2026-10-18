@@ -1,0 +1,135 @@
+:host {
+  display: block;
+}
+.panel {
+  display: grid;
+  gap: 6px;
+  width: 268px;
+  padding: 10px 12px;
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: var(--sentinel-radius-medium);
+  background: var(--sentinel-surface-callout);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px color-mix(in srgb, #0b1220 22%, transparent);
+  animation: sentinel-enter var(--sentinel-motion-duration-base) var(--sentinel-motion-easing-standard);
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kind {
+  color: var(--sentinel-color-text-muted);
+  font-size: var(--sentinel-font-size-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--sentinel-color-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sentinel-color-text);
+  cursor: pointer;
+}
+p {
+  margin: 0;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.mono {
+  font-family: var(--sentinel-font-family-mono);
+  font-size: var(--sentinel-font-size-caption);
+}
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  color: var(--sentinel-color-text-secondary);
+  font-size: var(--sentinel-font-size-micro);
+}
+.chip {
+  padding: 1px 8px;
+  border-radius: var(--sentinel-radius-pill);
+  background: color-mix(in srgb, var(--sentinel-color-accent) 14%, transparent);
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font-size: var(--sentinel-font-size-micro);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+dt {
+  color: var(--sentinel-color-text-muted);
+  font-size: 0.625rem;
+}
+dd {
+  margin: 0;
+  font-family: var(--sentinel-font-family-mono);
+  font-weight: 700;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.fact {
+  --tone: var(--sentinel-color-success);
+  display: grid;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tone) 9%, transparent);
+}
+.fact span {
+  color: var(--sentinel-color-text-muted);
+  font-size: 0.625rem;
+}
+.fact b {
+  color: var(--tone);
+  font-size: var(--sentinel-font-size-caption);
+}
+.fact[data-decision='HOLD'],
+.fact[data-decision='REJECT'],
+.fact[data-state='HELD'],
+.fact[data-state='REJECTED'] {
+  --tone: var(--sentinel-color-hold);
+}
+.fact[data-state='NONE'],
+.fact[data-state='CANCELLED'] {
+  --tone: var(--sentinel-color-text-muted);
+}
+.actions {
+  display: flex;
+  gap: 6px;
+}
+.actions button {
+  flex: 1;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--sentinel-color-accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font: inherit;
+  font-size: var(--sentinel-font-size-micro);
+  font-weight: 700;
+  cursor: pointer;
+}
+.actions button.primary {
+  background: var(--sentinel-color-accent);
+  color: var(--accent-ink, #fff);
+}

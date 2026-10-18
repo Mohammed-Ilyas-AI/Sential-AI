@@ -16,6 +16,13 @@ function toTapeRow(decision: DecisionRecord): TapeRow {
     decision: decision.decision,
     occurredAt: decision.occurredAt,
     decidedAt: decision.decidedAt,
+    assessmentId: decision.assessmentId,
+    reasonCodes: decision.reasonCodes,
+    policyVersion: decision.policyVersion,
+    rulesetVersion: decision.rulesetVersion,
+    drain: decision.assessment.drain,
+    ...(decision.holdUntil ? { holdUntil: decision.holdUntil } : {}),
+    ...(decision.cascadeOfTransactionId ? { cascadeOfTransactionId: decision.cascadeOfTransactionId } : {}),
   };
 }
 

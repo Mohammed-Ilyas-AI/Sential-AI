@@ -32,6 +32,8 @@ export const ICON_PATHS = {
   trendUp: 'M4 16l6-6 4 4 6-6m-5 0h5v5',
   trendDown: 'M4 8l6 6 4-4 6 6m-5 0h5v-5',
   minus: 'M6 12h12',
+  pause: 'M9 6v12M15 6v12',
+  play: 'M8 5.5v13L18.5 12 8 5.5Z',
   plus: 'M12 6v12M6 12h12',
   bank: 'M3 9.5 12 4l9 5.5M5 10v8m4.7-8v8m4.6-8v8M19 10v8M3.5 20.5h17',
   transfer: 'M5 8h13m-4-4 4 4-4 4M19 16H6m4 4-4-4 4-4',
@@ -49,6 +51,8 @@ export const ICON_PATHS = {
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13v4.5l3 2',
   chevronRightSmall: 'm10 8 4 4-4 4',
   lock: 'M6 11h12v10H6V11Zm2.5 0V8a3.5 3.5 0 0 1 7 0v3',
+  rotateLeft: 'M4 4v5h5M4.6 9A8 8 0 1 1 4 13',
+  rotateRight: 'M20 4v5h-5M19.4 9A8 8 0 1 0 20 13',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
