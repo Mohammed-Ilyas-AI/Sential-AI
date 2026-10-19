@@ -2,7 +2,7 @@ import type { CustomerContactChannel, CustomerContactOutcome } from '@sentinel/d
 import type { RequestBodyValidator } from '../../../api/middleware/request-validation.middleware.js';
 import { FieldReader, toValidationResult } from '../../../api/validation/field-reader.js';
 
-const CHANNELS: readonly CustomerContactChannel[] = ['PHONE', 'SECURE_MESSAGE', 'IN_APP_PUSH'];
+const CHANNELS: readonly CustomerContactChannel[] = ['PHONE', 'SECURE_MESSAGE', 'IN_APP_PUSH', 'AUTOMATED_CALL', 'EMAIL'];
 const OUTCOMES: readonly CustomerContactOutcome[] = ['REACHED', 'NO_ANSWER', 'MESSAGE_LEFT', 'NOTIFICATION_SENT'];
 
 export interface KillSwitchActivationBody {

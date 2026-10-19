@@ -40,8 +40,11 @@ by the scheduler (actor `SYSTEM`).
 | `GET` | `/v1/accounts/:accountToken/customer-contacts` | — → `{ accountId, contacts }` | 200 |
 | `POST` | `/v1/accounts/:accountToken/customer-contacts` | `{ analystIdentity, channel, outcome, idempotencyKey, note?, transactionId?, caseId? }` → simulated attempt record | 201; 200 retry |
 
-Contact records are explicitly simulated; no external customer messaging is performed. Kill-switch release has no
-analyst route and uses the customer-verification path.
+Contact records are explicitly simulated; no external customer messaging is performed. `channel` is `PHONE`,
+`SECURE_MESSAGE`, `IN_APP_PUSH`, `AUTOMATED_CALL` or `EMAIL` (the last two are system-generated from the outreach
+draft). Kill-switch release has no analyst route and uses the customer-verification path. While an account's kill
+switch is active, the cooling-period auto-release skips its holds; they are released on a later pass once the
+customer has verified and the switch is lifted.
 
 ## Intelligence and network path
 
@@ -53,6 +56,12 @@ analyst route and uses the customer-verification path.
 | `GET` | `/v1/investigations/:assessmentId/evidence` | — → persisted `EvidenceBundle` | 200; 404 |
 | `POST` | `/v1/investigations/:assessmentId/explanation` | — → grounded advisory or explicit fallback | 200 |
 | `POST` | `/v1/investigations/:assessmentId/case-summary` | — → grounded advisory or explicit fallback | 200 |
+| `POST` | `/v1/investigations/:assessmentId/customer-outreach` | — → `CustomerOutreachProposal`: `{ source: GEMINI \| TEMPLATE, draft: { subject, emailBody, callScript }, model }` | 200 |
+
+The customer outreach draft is the fast tier's `CUSTOMER_OUTREACH` job on a customer-facing slice of the bundle (the
+assessment, the drain and the paused transfer only). A draft carrying a link, a phone number, a request for a secret or
+a promise of release is rejected; on any fallback sentinel-core returns its fixed wording, so a message is always
+ready. Sending it is a separate, recorded contact attempt.
 
 Graph queries use bounded indexed traversal over recorded edges; they do not create evidence. `x-sentinel-lens`
 projects other-institution references and values before response serialization. Investigation requests resolve
@@ -104,6 +113,17 @@ starts the simulator workspace with `SIMULATOR_RUN_ID` and the noise settings) o
 `run.jobs.runWithOverrides` on that job, and is not exercised by this repository's tests). One run at a time; the
 browser never holds a job name, command or credential. Seeded noise is off by default, bounded to 1–60 events per
 minute, uses its own run-scoped synthetic accounts and never changes DEMO_TAKEOVER_01.
+
+### Live demo
+
+| Method | Path | Body → Response | Status |
+|---|---|---|---|
+| `POST` | `/v1/demo/live-demo` | `{ analystIdentity }` → `LiveDemoReport`: `{ runId, transfers, held: [{ transactionId, assessmentId, accountId, amount, riskScore, holdUntil? }] }` | 200 after about 46 s; 400; 409 already running |
+
+Plays DEMO_TAKEOVER_01 in-process through the same use cases the bank-facing routes call, on fresh run-scoped
+synthetic accounts, within the request (so it keeps CPU on Cloud Run and needs no job or extra resource). One run at
+a time per instance; audited as `LIVE_DEMO_STARTED`. The UI's Live demo button then walks the case through
+Investigations as the demo analyst.
 
 ## Idempotency
 

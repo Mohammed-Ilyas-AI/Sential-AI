@@ -11,6 +11,8 @@ import { TransactionsActions } from '../../../../state/transactions/transactions
 import { InvestigationsApi } from '../../data-access/investigations-api';
 import { InvestigationsFacade } from '../../data-access/investigations-facade';
 import { InvestigationPage } from './investigation-page';
+import { LOCAL_RUNTIME_CONFIG, provideRuntimeConfig } from '../../../../core/config/runtime-config';
+import { CoreApiClient } from '../../../../core/http/api-client/core-api-client';
 
 const decision = demoFinalDecision();
 const evidence: EvidenceBundle = {
@@ -55,6 +57,11 @@ const summary: AdvisoryOutcome<CaseSummary> = {
 describe('InvestigationPage', () => {
   let api: { evidence: ReturnType<typeof vi.fn>; explain: ReturnType<typeof vi.fn>; summarise: ReturnType<typeof vi.fn> };
 
+  const core = {
+    get: vi.fn((path: string) => (path.endsWith('/kill-switch') ? of({ accountId: decision.accountId, active: false, history: [] }) : of({ accountId: decision.accountId, contacts: [] }))),
+    post: vi.fn(),
+  };
+
   beforeEach(async () => {
     api = {
       evidence: vi.fn(() => of<InvestigationEvidence>({ assessmentId: decision.assessmentId, evidence })),
@@ -63,7 +70,14 @@ describe('InvestigationPage', () => {
     };
     await TestBed.configureTestingModule({
       imports: [InvestigationPage],
-      providers: [provideTestStore(), provideRouter([]), InvestigationsFacade, { provide: InvestigationsApi, useValue: api }],
+      providers: [
+        provideTestStore(),
+        provideRouter([]),
+        provideRuntimeConfig(LOCAL_RUNTIME_CONFIG),
+        InvestigationsFacade,
+        { provide: InvestigationsApi, useValue: api },
+        { provide: CoreApiClient, useValue: core },
+      ],
     }).compileComponents();
   });
 
@@ -218,5 +232,14 @@ describe('InvestigationPage', () => {
     await settle();
     expect(text(host.querySelector('sentinel-gemini-advisory [role="status"]'))).toContain('No Gemini model is configured');
     expect(host.querySelectorAll('sentinel-risk-attribution li')).toHaveLength(decision.assessment.contributions.length);
+  });
+  it('puts the action centre on the page: hold exceptions, customer outreach and the kill switch', async () => {
+    focusDemoAccount();
+    const { host } = await render();
+    const centre = host.querySelector('sentinel-action-centre');
+    expect(centre?.textContent).toContain('Held transfer');
+    expect(centre?.textContent).toContain('Automated call');
+    expect(centre?.textContent).toContain('Email the customer');
+    expect(centre?.textContent).toContain('Activate kill switch');
   });
 });

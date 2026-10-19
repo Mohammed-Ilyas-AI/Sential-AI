@@ -9,7 +9,6 @@ import { RiskAttribution } from '../../../../shared/ui/risk-attribution/risk-att
 import { FraudAlertsFacade } from '../../data-access/fraud-alerts-facade';
 import { AccountTimeline } from '../account-timeline/account-timeline';
 import { CustomerNotification } from '../customer-notification/customer-notification';
-import { HoldActions } from '../hold-actions/hold-actions';
 
 /** The HTML reference colours the meter amber above 35% drain; the gate line itself is the policy percentage. */
 const DRAIN_METER_NEAR_PERCENT = 35;
@@ -21,7 +20,7 @@ const DRAIN_METER_NEAR_PERCENT = 35;
  */
 @Component({
   selector: 'sentinel-case-detail',
-  imports: [DatePipe, DecimalPipe, RouterLink, InstitutionLabelPipe, MinorUnitsCurrencyPipe, Icon, RiskAttribution, AccountTimeline, CustomerNotification, HoldActions],
+  imports: [DatePipe, DecimalPipe, RouterLink, InstitutionLabelPipe, MinorUnitsCurrencyPipe, Icon, RiskAttribution, AccountTimeline, CustomerNotification],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './case-detail.html',
   styleUrl: './case-detail.css',

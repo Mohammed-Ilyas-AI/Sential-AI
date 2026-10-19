@@ -35,3 +35,26 @@ export interface ScenarioLaunchCapability {
   readonly launcher: 'LOCAL_PROCESS' | 'CLOUD_RUN_JOB' | 'DISABLED';
   readonly reason?: string;
 }
+
+/** One transfer the live demo's policy gate held, for the walkthrough to open. */
+export interface LiveDemoHold {
+  readonly transactionId: string;
+  readonly assessmentId: string;
+  readonly accountId: string;
+  readonly amount: number;
+  readonly riskScore: number;
+  readonly holdUntil?: IsoTimestamp;
+}
+
+/**
+ * The in-app live demo (M§6): DEMO_TAKEOVER_01 played through sentinel-core's own control path on fresh,
+ * run-scoped synthetic accounts, within one request. Synthetic only; never a real bank or customer.
+ */
+export interface LiveDemoReport {
+  readonly runId: string;
+  readonly scenarioId: 'DEMO_TAKEOVER_01';
+  readonly startedAt: IsoTimestamp;
+  readonly finishedAt: IsoTimestamp;
+  readonly transfers: number;
+  readonly held: readonly LiveDemoHold[];
+}

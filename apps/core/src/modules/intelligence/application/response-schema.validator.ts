@@ -1,7 +1,11 @@
 import {
   CASE_SUMMARY_EVIDENCE_MAX_ITEMS,
   CASE_SUMMARY_HYPOTHESIS_MAX_CHARS,
+  CUSTOMER_OUTREACH_BODY_MAX_CHARS,
+  CUSTOMER_OUTREACH_SCRIPT_MAX_CHARS,
+  CUSTOMER_OUTREACH_SUBJECT_MAX_CHARS,
   type CaseSummary,
+  type CustomerOutreachDraft,
   type CaseSummaryConfidence,
   type CaseSummaryEvidence,
   type IsoTimestamp,
@@ -16,6 +20,21 @@ const MAX_RECOMMENDED_ACTIONS = 5;
  * "Do not release before the customer verifies" is a negation, not a recommendation, and passes.
  */
 const RECOMMENDS_RELEASE = /(?<!(?:not|never|no|n't)\b[^.;]{0,24})\b(?:release|unhold|un-hold|let (?:it|the (?:transfer|payment)) (?:go|through))/i;
+
+/** A customer message may not carry a link or a phone number (fraudsters' tools; T§7). */
+const LINK_OR_NUMBER = /https?:|www\.|\+?\d[\d\s-]{6,}\d/i;
+const SECRET = /\b(?:password|passcode|pin|otp|one-time (?:code|password)|card (?:number|details)|cvv)\b/i;
+const NEGATION = /\b(?:never|not|no one|nobody)\b|n't\b/i;
+
+/**
+ * A sentence that names a secret must be a warning ("we will never ask for your PIN"), never a request
+ * ("reply with your PIN"): without a negation in the same sentence it is unsafe.
+ */
+function asksForSecret(text: string): boolean {
+  return text.split(/[.!?\n]+/).some((sentence) => SECRET.test(sentence) && !NEGATION.test(sentence));
+}
+
+const ISO_DATE_TIME = /\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z?)?/g;
 
 type JsonObject = Readonly<Record<string, unknown>>;
 
@@ -79,5 +98,18 @@ export class ResponseSchemaValidator {
     const recommendedAction = text(value['recommendedAction']);
     if (!primaryReason || !recommendedAction || RECOMMENDS_RELEASE.test(recommendedAction)) return null;
     return { assessmentId, primaryReason, recommendedAction, generatedAt };
+  }
+
+  customerOutreach(raw: unknown): CustomerOutreachDraft | null {
+    const value = parsed(raw);
+    if (!isObject(value)) return null;
+    const subject = text(value['subject'], CUSTOMER_OUTREACH_SUBJECT_MAX_CHARS);
+    const emailBody = text(value['emailBody'], CUSTOMER_OUTREACH_BODY_MAX_CHARS);
+    const callScript = text(value['callScript'], CUSTOMER_OUTREACH_SCRIPT_MAX_CHARS);
+    if (!subject || !emailBody || !callScript) return null;
+    // Dates and times are not phone numbers: they are removed before the number check.
+    const unsafe = (part: string) => LINK_OR_NUMBER.test(part.replace(ISO_DATE_TIME, '')) || asksForSecret(part) || RECOMMENDS_RELEASE.test(part);
+    if ([subject, emailBody, callScript].some(unsafe)) return null;
+    return { subject, emailBody, callScript };
   }
 }

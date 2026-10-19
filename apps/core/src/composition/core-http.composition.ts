@@ -14,6 +14,10 @@ import { TenantAccessService } from '../modules/tenant-access/application/tenant
 import { ScenarioLaunchService } from '../modules/scenarios/application/scenario-launch.service.js';
 import type { ScenarioRunner } from '../modules/scenarios/application/ports/scenario-runner.port.js';
 import { scenarioRunRoutes } from '../modules/scenarios/presentation/scenario-run.routes.js';
+import { LiveDemoService } from '../modules/scenarios/application/live-demo.service.js';
+import { liveDemoRoutes } from '../modules/scenarios/presentation/live-demo.routes.js';
+import { InProcessBankConnector, RealTimeTimeline } from '../infrastructure/scenario-launch/in-process-bank-connector.js';
+import type { ScenarioTimeline } from '@sentinel/scenarios';
 import {
   CloudRunJobScenarioRunner,
   DisabledScenarioRunner,
@@ -46,6 +50,8 @@ export interface CoreHttpInputs {
   readonly modelGateway?: ModelGateway;
   /** Tests only: a scripted launcher in place of the configured one. */
   readonly scenarioRunner?: ScenarioRunner;
+  /** Tests only: the live demo's clock, instant instead of real time. */
+  readonly liveDemoTimeline?: () => ScenarioTimeline;
 }
 
 function scenarioRunnerFor(settings: ScenarioLauncherSettings, clock: Clock): ScenarioRunner {
@@ -61,7 +67,7 @@ function pushAuthenticatorFor(config: CoreHttpInputs['config']): PushAuthenticat
 }
 
 /** The whole HTTP surface for a given persistence: used by main.ts with Atlas and by tests with in-memory adapters. */
-export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway, scenarioRunner }: CoreHttpInputs): CoreHttpComposition {
+export function composeCoreHttp({ config, persistence, clock, ids, logger, modelGateway, scenarioRunner, liveDemoTimeline }: CoreHttpInputs): CoreHttpComposition {
   const audit = new AuditTrail(persistence.auditLog, clock, ids);
   const tenantAccess = new TenantAccessService(persistence.accounts, audit);
   const performanceMetrics = new PerformanceMetrics(clock);
@@ -87,12 +93,19 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
     access: tenantAccess,
     ...(modelGateway ? { modelGateway } : {}),
   });
+  const liveDemo = new LiveDemoService(
+    new InProcessBankConnector({ ...controlPath.bank, observations: intelligencePath.network }),
+    liveDemoTimeline ?? (() => new RealTimeTimeline()),
+    audit,
+    clock,
+  );
   const app = createApp({
     routes: [
       ...controlPath.routes,
       ...intelligencePath.routes,
       auditEventRoutes(audit),
       performanceRoutes(performanceMetrics),
+      liveDemoRoutes(liveDemo),
       scenarioRunRoutes(new ScenarioLaunchService(persistence.scenarioRuns, scenarioRunner ?? scenarioRunnerFor(config.scenarioLauncher, clock), audit, clock)),
     ],
     corsAllowedOrigins: config.corsAllowedOrigins,

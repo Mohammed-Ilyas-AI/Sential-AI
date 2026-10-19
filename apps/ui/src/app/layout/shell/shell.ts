@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
-import { PerformancePanel } from '../../features/demo-controls';
+import { LiveDemoNarrator, PerformancePanel } from '../../features/demo-controls';
 import { CommandPalette } from '../command-palette/command-palette';
 import { MobileBottomBar } from '../mobile-navigation/mobile-bottom-bar';
 import { MobileNavigationSheet } from '../mobile-navigation/mobile-navigation-sheet';
@@ -14,7 +14,7 @@ import { ShellState } from './shell-state';
 /** One operator surface: top bar, rail, content frame and the overlays. Owns the global shortcuts. */
 @Component({
   selector: 'sentinel-shell',
-  imports: [RouterOutlet, TopBar, Sidebar, MobileBottomBar, MobileNavigationSheet, NotificationPanel, SettingsPanel, UserMenu, CommandPalette, PerformancePanel],
+  imports: [RouterOutlet, TopBar, Sidebar, MobileBottomBar, MobileNavigationSheet, NotificationPanel, SettingsPanel, UserMenu, CommandPalette, PerformancePanel, LiveDemoNarrator],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.rail-collapsed]': '!state.sidebarExpanded()',
@@ -51,6 +51,7 @@ import { ShellState } from './shell-state';
     @if (performancePanelOpen()) {
       <sentinel-performance-panel (closed)="performancePanelOpen.set(false)" />
     }
+    <sentinel-live-demo-narrator />
   `,
   styleUrl: './shell.css',
 })

@@ -8,6 +8,7 @@ import type { CaseRepository } from '../modules/cases/application/ports/case-rep
 import type { CaseReportRepository } from '../modules/cases/application/ports/case-report-repository.port.js';
 import { PdfReportRenderer } from '../infrastructure/documents/pdf-report.renderer.js';
 import type { ExploreNetwork } from '../modules/graph/application/explore-network.use-case.js';
+import type { RecordNetworkObservation } from '../modules/graph/application/record-network-observation.use-case.js';
 import { GraphService } from '../modules/graph/application/graph.service.js';
 import type { GraphRepository } from '../modules/graph/application/ports/graph-repository.port.js';
 import { NetworkExplorationController } from '../modules/graph/presentation/network-exploration.controller.js';
@@ -65,7 +66,7 @@ export interface IntelligencePathDependencies {
 export interface IntelligencePath {
   readonly routes: readonly HttpRouteRegistration[];
   readonly cases: ManageCase & CaseReports;
-  readonly network: ExploreNetwork;
+  readonly network: ExploreNetwork & RecordNetworkObservation;
 }
 
 /**

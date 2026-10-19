@@ -1,4 +1,4 @@
-import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type CaseSummary, type EvidenceBundle, type InvestigationEvidence, type ModelJob, type RiskExplanation } from '@sentinel/domain';
+import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type CustomerOutreachProposal, type CaseSummary, type EvidenceBundle, type InvestigationEvidence, type ModelJob, type RiskExplanation } from '@sentinel/domain';
 import { INSTANT_TIMELINE, buildDemoTakeover01, playScenario, syntheticToken, type PlaybackReport } from '@sentinel/scenarios';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { ModelGateway } from '../../src/modules/intelligence/application/ports/model-gateway.port.js';
@@ -65,6 +65,29 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect(evidence.deviceHistory.length + evidence.payeeHistory.length).toBeGreaterThanOrEqual(2);
     expect(evidence.interventions.map((intervention) => intervention.state)).toEqual(['HELD']);
     expect(JSON.stringify(evidence)).not.toContain(DEMO_TAKEOVER_01.accountDisplayId);
+  });
+
+  it('drafts the customer outreach with Gemini, and sends fixed wording when the draft is unsafe or Gemini is down', async () => {
+    const outreach = () => callJson<CustomerOutreachProposal>(harness.baseUrl, 'POST', `/v1/investigations/${finalAssessmentId()}/customer-outreach`);
+    const drafted = { subject: 'We paused a transfer from your account', emailBody: 'We paused a transfer of S$11,500.00. Please call the number on your card.', callScript: 'This is your bank. Please call the number on your card.' };
+    model.script = [drafted];
+    const gemini = await outreach();
+    expect(gemini.status).toBe(200);
+    expect(gemini.body).toMatchObject({ source: 'GEMINI', draft: drafted });
+    expect(model.calls.map((call) => call.job)).toEqual(['CUSTOMER_OUTREACH']);
+
+    model.script = [
+      { ...drafted, emailBody: 'Verify at https://example.test/login with your OTP.' },
+      { ...drafted, callScript: 'Your transfer will be released shortly.' },
+    ];
+    const unsafe = await outreach();
+    expect(unsafe.body.source).toBe('TEMPLATE');
+    expect(unsafe.body.model).toMatchObject({ status: 'FALLBACK', reason: 'INVALID_RESPONSE' });
+    expect(unsafe.body.draft.emailBody).toContain('S$11,500.00');
+    expect(unsafe.body.draft.emailBody).not.toMatch(/https?:/);
+
+    model.script = [new ModelUnavailableError('NOT_CONFIGURED', 'no model')];
+    expect((await outreach()).body).toMatchObject({ source: 'TEMPLATE', model: { reason: 'MODEL_NOT_CONFIGURED' } });
   });
 
   it('answers 404 for an assessment that does not exist', async () => {

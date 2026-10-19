@@ -1,3 +1,4 @@
+import { INSTANT_TIMELINE, type ScenarioTimeline } from '@sentinel/scenarios';
 import type { AddressInfo } from 'node:net';
 import { DEFAULT_RAPID_DRAIN_POLICY } from '@sentinel/domain';
 import { composeCoreHttp } from '../../../src/composition/core-http.composition.js';
@@ -32,6 +33,7 @@ export async function startCoreHarness(
     readonly designatedBillingPayeeIds?: ReadonlySet<string>;
     readonly modelGateway?: ModelGateway;
     readonly scenarioRunner?: ScenarioRunner;
+    readonly liveDemoTimeline?: () => ScenarioTimeline;
   } = {},
 ): Promise<CoreHarness> {
   const clock = new TestClock(options.clockStart ?? '2026-09-24T11:30:00.000Z');
@@ -51,6 +53,7 @@ export async function startCoreHarness(
     logger: createLogger('silent'),
     ...(options.modelGateway ? { modelGateway: options.modelGateway } : {}),
     ...(options.scenarioRunner ? { scenarioRunner: options.scenarioRunner } : {}),
+    liveDemoTimeline: options.liveDemoTimeline ?? (() => INSTANT_TIMELINE),
   });
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve) => server.once('listening', resolve));

@@ -8,7 +8,7 @@ COPY apps/stream/package.json ./apps/stream/package.json
 COPY apps/simulator/package.json ./apps/simulator/package.json
 COPY apps/ui/package.json ./apps/ui/package.json
 RUN npm ci
-RUN npm run build --workspace @sentinel/domain --workspace @sentinel/rules --workspace @sentinel/core
+RUN npm run build --workspace @sentinel/domain --workspace @sentinel/rules --workspace @sentinel/scenarios --workspace @sentinel/core
 RUN npm prune --omit=dev
 
 FROM node:24.18.0-slim AS runtime
@@ -19,6 +19,8 @@ COPY --from=build /workspace/packages/domain/package.json ./packages/domain/pack
 COPY --from=build /workspace/packages/domain/dist ./packages/domain/dist
 COPY --from=build /workspace/packages/rules/package.json ./packages/rules/package.json
 COPY --from=build /workspace/packages/rules/dist ./packages/rules/dist
+COPY --from=build /workspace/packages/scenarios/package.json ./packages/scenarios/package.json
+COPY --from=build /workspace/packages/scenarios/dist ./packages/scenarios/dist
 COPY --from=build /workspace/apps/core/package.json ./apps/core/package.json
 COPY --from=build /workspace/apps/core/dist ./apps/core/dist
 USER node

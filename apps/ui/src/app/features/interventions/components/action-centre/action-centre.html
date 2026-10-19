@@ -1,0 +1,161 @@
+<section class="centre" aria-labelledby="action-centre-title">
+  <header class="head">
+    <h2 id="action-centre-title"><sentinel-icon name="lock" [size]="18" /> Action centre <span class="mono ref">{{ reference() }}</span></h2>
+    @if (held().length > 0) {
+      <span class="pill held">{{ held().length }} transfer{{ held().length === 1 ? '' : 's' }} held</span>
+    }
+    @if (controls.killSwitch()?.active) {
+      <span class="pill kill">Kill switch active</span>
+    }
+    @if (demoTime) {
+      <span class="pill demo" title="24 hours of policy time run as 24 seconds in this demo">demo time ×{{ factor }}</span>
+    }
+    <span class="principle">Rules decide · Gemini writes · you authorise</span>
+  </header>
+
+  @if (controls.failure(); as failure) {
+    <p class="failure" role="alert">{{ failure }}</p>
+  }
+  @if (controls.notice(); as notice) {
+    <p class="notice" role="status">{{ notice }}</p>
+  }
+
+  <div class="columns">
+    <!-- 1. The hold -->
+    <section class="column" aria-labelledby="hold-title">
+      <h3 id="hold-title"><span class="number">1</span> Held transfer</h3>
+      @for (row of held(); track row.transactionId) {
+        <article class="hold" [class.focus]="row.transactionId === transactionId()">
+          <div class="line">
+            <b>{{ row.decided ? (row.decided.amount | minorUnitsCurrency) : 'Held transfer' }}</b>
+            <span class="mono id">{{ row.transactionId }}</span>
+          </div>
+          <p class="muted">
+            @if (controls.killSwitch()?.active && row.holdUntil) {
+              Kept held by the kill switch: no auto-release until the customer verifies with the bank.
+            } @else if (secondsLeft(row); as seconds) {
+              Auto-release in <b class="mono">{{ seconds }} s</b>{{ demoTime ? ' (24 h of policy time, compressed)' : '' }} unless you record an exception.
+            } @else if (row.holdUntil) {
+              Cooling period over; the auto-release is being recorded.
+            } @else {
+              Kill-switch hold: only the customer's verification with the bank lifts it.
+            }
+          </p>
+          @if (armed(); as choice) {
+            @if (choice.transactionId === row.transactionId) {
+              <div class="confirm" role="group" [attr.aria-label]="'Confirm ' + labels[choice.action].label">
+                <span>{{ labels[choice.action].confirm }}{{ choice.action === 'fraud-confirmation' ? ' ' + (holds.analystIdentity() ?? '') : '' }}?</span>
+                <button type="button" class="primary" [disabled]="holds.pendingAction() !== null" (click)="confirmHoldAction(choice)">Record</button>
+                <button type="button" (click)="armed.set(null)">Back</button>
+              </div>
+            }
+          }
+          @if (armed()?.transactionId !== row.transactionId) {
+            <div class="buttons">
+              @for (action of actions; track action) {
+                <button type="button" [attr.data-action]="action" [disabled]="holds.pendingAction() !== null" (click)="arm(action, row.transactionId)">{{ labels[action].label }}</button>
+              }
+            </div>
+          }
+        </article>
+      } @empty {
+        <p class="muted">No transfer on this account is held right now.{{ demoTime ? ' Holds auto-release after 24 s of demo time; the kill switch holds everything until the customer verifies.' : '' }}</p>
+      }
+      @if (holds.actionFailure(); as failure) {
+        <p class="failure" role="alert">{{ failure }}</p>
+      }
+      @for (row of resolved(); track row.transactionId) {
+        <p class="muted small"><span class="mono">{{ row.transactionId }}</span> {{ resolution(row) }} at {{ row.updatedAt | date: 'HH:mm:ss' : 'UTC' }} UTC</p>
+      }
+    </section>
+
+    <!-- 2. Customer outreach -->
+    <section class="column" aria-labelledby="contact-title">
+      <h3 id="contact-title"><span class="number">2</span> Contact the customer <small>simulated channels</small></h3>
+      <div class="big-buttons">
+        <button type="button" class="big" [class.spotlight]="spotlight() === 'CALL'" [disabled]="controls.busy() !== null || call() === 'RINGING'" (click)="placeCall()">
+          <sentinel-icon name="bell" [size]="18" />
+          {{ call() === 'RINGING' ? 'Calling the customer…' : 'Automated call' }}
+        </button>
+        <button type="button" class="big" [class.spotlight]="spotlight() === 'EMAIL'" [disabled]="controls.busy() !== null || controls.drafting() || call() === 'RINGING'" (click)="sendEmail()">
+          <sentinel-icon name="explain" [size]="18" />
+          {{ controls.drafting() && shown() === 'EMAIL' ? 'Gemini is writing the email…' : 'Email the customer' }}
+        </button>
+      </div>
+
+      @if (call() === 'ASK_OUTCOME') {
+        <div class="confirm" role="group" aria-label="Call outcome">
+          <span>Did the customer answer?</span>
+          <button type="button" [disabled]="controls.busy() !== null" (click)="callOutcome(true)">Customer answered</button>
+          <button type="button" class="primary" [disabled]="controls.busy() !== null" (click)="callOutcome(false)">No answer</button>
+        </div>
+      }
+
+      @if (controls.drafting() && !controls.outreach()) {
+        <p class="muted" role="status">Gemini is writing the customer message from the evidence…</p>
+      }
+      @if (controls.outreach(); as proposal) {
+        @if (shown(); as kind) {
+          <article class="message">
+            <p class="source" [attr.data-source]="proposal.source">
+              {{ proposal.source === 'GEMINI' ? 'Drafted by Gemini from the evidence bundle' : 'sentinel-core fixed wording (Gemini unavailable)' }}
+            </p>
+            @if (kind === 'EMAIL') {
+              <p class="subject">{{ proposal.draft.subject }}</p>
+              <p class="body">{{ proposal.draft.emailBody }}</p>
+            } @else {
+              <p class="subject">Call script</p>
+              <p class="body">{{ proposal.draft.callScript }}</p>
+            }
+          </article>
+        }
+      }
+
+      <ol class="history" aria-label="Contact history">
+        @for (contact of controls.contacts().slice(0, 4); track contact.id) {
+          <li>{{ contact.recordedAt | date: 'HH:mm:ss' : 'UTC' }} UTC · {{ channelLabel(contact.channel) }} · {{ contact.outcome.replace('_', ' ').toLowerCase() }}</li>
+        } @empty {
+          <li>No contact recorded yet.</li>
+        }
+      </ol>
+    </section>
+
+    <!-- 3. Kill switch -->
+    <section class="column" aria-labelledby="kill-title" [class.armed]="controls.killSwitch()?.active">
+      <h3 id="kill-title"><span class="number">3</span> Kill switch</h3>
+      <p class="muted">Holds every eligible outflow on {{ reference() }} until the customer verifies with the bank. Bill, GIRO and standing-instruction exclusions still apply.</p>
+      @if (controls.killSwitch()?.active) {
+        <p class="state-line"><b>ACTIVE</b> · every new outflow is held.</p>
+        <button type="button" class="secondary" [disabled]="controls.busy() !== null" (click)="controls.liftAfterCustomerVerification()"
+          title="Simulates the bank's callback after the customer verified with the bank; recorded as the customer">
+          {{ controls.busy() === 'LIFT' ? 'Recording…' : 'Customer verified with bank · lift' }}
+        </button>
+      } @else {
+        <label class="field">
+          <span>Reason (recorded with your identity)</span>
+          <textarea aria-label="Kill switch reason" rows="2" maxlength="500" [value]="reason()" (input)="reason.set(value($event))"></textarea>
+        </label>
+        @if (killStep() === 'CONFIRM') {
+          <div class="confirm" role="group" aria-label="Confirm kill switch">
+            <span>Hold every eligible outflow on <b>{{ reference() }}</b>?</span>
+            <button type="button" class="danger" [disabled]="controls.busy() !== null || reason().trim() === ''" (click)="confirmKillSwitch()">
+              {{ controls.busy() === 'ACTIVATE' ? 'Activating…' : 'Confirm kill switch' }}
+            </button>
+            <button type="button" (click)="killStep.set('IDLE')">Back</button>
+          </div>
+        } @else {
+          <button type="button" class="danger big" [class.spotlight]="spotlight() === 'KILL_SWITCH'" [disabled]="controls.busy() !== null || !controls.killSwitch() || reason().trim() === ''" (click)="killStep.set('CONFIRM')">
+            Activate kill switch…
+          </button>
+        }
+      }
+      @if (controls.killSwitch()?.history?.length) {
+        <ol class="history">
+          @for (record of (controls.killSwitch()?.history ?? []).slice(-3); track record.id) {
+            <li>{{ record.actedAt | date: 'HH:mm:ss' : 'UTC' }} UTC · {{ record.state.toLowerCase() }} by {{ record.actorIdentity ?? record.actor.toLowerCase() }}</li>
+          }
+        </ol>
+      }
+    </section>
+  </div>
+</section>

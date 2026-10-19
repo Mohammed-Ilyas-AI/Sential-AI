@@ -7,11 +7,12 @@ import { SentinelLogo } from '../brand/sentinel-logo';
 import { NotificationCenter } from '../notification-panel/notification-center';
 import { ShellState } from '../shell/shell-state';
 import { LiveClock } from './live-clock';
+import { LiveDemoButton } from '../../features/demo-controls';
 
 /** Toggle, brand, live state, clock, notifications, settings, analyst. No search here. */
 @Component({
   selector: 'sentinel-top-bar',
-  imports: [Icon, SentinelLogo, LiveClock, RouterLink],
+  imports: [Icon, SentinelLogo, LiveClock, RouterLink, LiveDemoButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header>
@@ -27,6 +28,7 @@ import { LiveClock } from './live-clock';
       </div>
 
       <div class="controls">
+        <sentinel-live-demo-button />
         <span class="mode" role="status" [attr.data-status]="streamStatus()">
           <span class="dot" aria-hidden="true"></span>
           <span class="mode-label">{{ streamStatus() === 'LIVE' ? 'Live Mode' : streamStatus() === 'RECONNECTING' ? 'Reconnecting' : 'Connecting' }}</span>

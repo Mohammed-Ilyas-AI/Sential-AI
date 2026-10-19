@@ -50,6 +50,7 @@ export * from './intelligence/case-summary.js';
 export * from './intelligence/model-job.js';
 export * from './intelligence/risk-explanation.js';
 export * from './intelligence/advisory-outcome.js';
+export * from './intelligence/customer-outreach.js';
 
 export * from './graph/graph-node.js';
 export * from './graph/graph-edge.js';

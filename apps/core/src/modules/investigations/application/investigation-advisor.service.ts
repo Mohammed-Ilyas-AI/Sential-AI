@@ -1,4 +1,5 @@
-import type { AdvisoryOutcome, CaseSummary, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
+import type { AdvisoryOutcome, CaseSummary, CustomerOutreachProposal, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
+import { templateOutreach } from './customer-outreach.template.js';
 import type { ActingContext } from '../../audit/application/audit-trail.js';
 import type { TenantAccessService } from '../../tenant-access/application/tenant-access.service.js';
 import type { ExplainAndSummarise } from '../../intelligence/application/explain-and-summarise.use-case.js';
@@ -34,6 +35,15 @@ export class InvestigationAdvisor implements AdviseInvestigation {
       await this.summaries.store({ assessmentId, summary: outcome.advisory, archivedAt: this.clock.now().toISOString() });
     }
     return outcome;
+  }
+
+  async customerOutreach(assessmentId: string, context: ActingContext): Promise<CustomerOutreachProposal> {
+    await this.authorise(assessmentId, context);
+    const evidence = await this.bundles.compile(assessmentId);
+    const model = await this.intelligence.draftCustomerOutreach(evidence);
+    return model.status === 'FALLBACK'
+      ? { source: 'TEMPLATE', draft: templateOutreach(evidence), model }
+      : { source: 'GEMINI', draft: model.advisory, model };
   }
 
   private async authorise(assessmentId: string, context: ActingContext): Promise<void> {

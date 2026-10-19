@@ -5,6 +5,7 @@ import { ModelNotConfiguredError, type ModelRouter } from '../model-router/model
 import { EXPLANATION_SYSTEM_INSTRUCTION_V1 } from '../prompts/explanation-system-instruction.v1.js';
 import { JOB_INSTRUCTIONS_V1 } from '../prompts/job-instructions.v1.js';
 import { CASE_SUMMARY_RESPONSE_SCHEMA } from '../response-schemas/case-summary.response-schema.js';
+import { CUSTOMER_OUTREACH_RESPONSE_SCHEMA } from '../response-schemas/customer-outreach.response-schema.js';
 import { RISK_EXPLANATION_RESPONSE_SCHEMA } from '../response-schemas/risk-explanation.response-schema.js';
 
 export interface VertexAiLocation {
@@ -29,6 +30,7 @@ export interface VertexTransport {
 const RESPONSE_SCHEMAS: Partial<Readonly<Record<ModelJob, object>>> = {
   RISK_EXPLANATION: RISK_EXPLANATION_RESPONSE_SCHEMA,
   CASE_SUMMARY: CASE_SUMMARY_RESPONSE_SCHEMA,
+  CUSTOMER_OUTREACH: CUSTOMER_OUTREACH_RESPONSE_SCHEMA,
 };
 
 /**

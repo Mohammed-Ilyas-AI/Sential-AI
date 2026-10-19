@@ -10,6 +10,7 @@ import {
 import { ApplicationError } from '../../../platform/errors/application-error.js';
 import type { IdGenerator } from '../../../platform/ids/id-generator.js';
 import type { Clock } from '../../../platform/time/clock.js';
+import type { KillSwitchLookup } from './account-controls.use-case.js';
 import type { InterventionWorkflow } from './intervention-workflow.use-case.js';
 import type { CustomerNotificationPublisher } from './ports/customer-notification.port.js';
 import type { InterventionRepository } from './ports/intervention-repository.port.js';
@@ -28,6 +29,8 @@ export class InterventionService implements InterventionWorkflow {
     private readonly notifications: CustomerNotificationPublisher,
     private readonly clock: Clock,
     private readonly ids: IdGenerator,
+    /** An account under the kill switch keeps every hold until the customer verifies, cooling period or not. */
+    private readonly killSwitches: KillSwitchLookup | null = null,
   ) {}
 
   /**
@@ -90,10 +93,17 @@ export class InterventionService implements InterventionWorkflow {
     return active;
   }
 
-  /** Held → Released by the system once the 24-hour cooling period has elapsed. */
+  /**
+   * Held → Released by the system once the 24-hour cooling period has elapsed, except on an account whose kill
+   * switch is active: there the hold stays until the customer verifies with the bank, and is released on a later
+   * pass once the switch has been lifted.
+   */
   async releaseDueHolds(now: IsoTimestamp): Promise<number> {
     const due = await this.interventions.findHeldDueForRelease(now);
+    let released = 0;
     for (const hold of due) {
+      if (await this.killSwitches?.activeKillSwitch(hold.accountId)) continue;
+      released += 1;
       await this.append(hold, {
         state: 'RELEASED',
         actor: 'SYSTEM',
@@ -101,7 +111,7 @@ export class InterventionService implements InterventionWorkflow {
         actedAt: now,
       });
     }
-    return due.length;
+    return released;
   }
 
   /** Held → Released on the published expedited route, only once the customer has verified with the bank. */

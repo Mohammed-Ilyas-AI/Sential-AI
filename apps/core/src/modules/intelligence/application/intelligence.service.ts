@@ -3,6 +3,7 @@ import {
   type AdvisoryFallbackReason,
   type AdvisoryOutcome,
   type CaseSummary,
+  type CustomerOutreachDraft,
   type EvidenceBundle,
   type ModelJob,
   type RiskExplanation,
@@ -77,6 +78,26 @@ export class IntelligenceService implements ExplainAndSummarise {
       return summary.evidence.length > 0 && grounded.summary.evidence.length === 0
         ? null
         : { advisory: grounded.summary, droppedClaims: grounded.droppedClaims };
+    });
+  }
+
+  /**
+   * The customer needs only the paused transfer, so the model gets the assessment, the drain and that one
+   * transaction: no device, payee, alert or network history. Less to read, a faster draft, nothing to leak.
+   */
+  draftCustomerOutreach(evidence: EvidenceBundle): Promise<AdvisoryOutcome<CustomerOutreachDraft>> {
+    const customerFacing: EvidenceBundle = {
+      ...evidence,
+      recentTransactions: evidence.recentTransactions.filter((transaction) => transaction.id === evidence.assessment.transactionId),
+      deviceHistory: [],
+      payeeHistory: [],
+      priorAlerts: [],
+      interventions: [],
+      neighbourhood: { ...evidence.neighbourhood, nodes: [], edges: [], truncated: false },
+    };
+    return this.generate('CUSTOMER_OUTREACH', customerFacing, (raw) => {
+      const draft = this.dependencies.responseSchemas.customerOutreach(raw);
+      return draft ? { advisory: draft, droppedClaims: 0 } : null;
     });
   }
 

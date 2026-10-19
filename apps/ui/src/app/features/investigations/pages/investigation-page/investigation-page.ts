@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeader } from '../../../../shared/ui/page-header/page-header';
+import { ActionCentre } from '../../../interventions';
 import { AccountSummary } from '../../components/account-summary/account-summary';
 import { AdvisoryDialog, type AdvisoryKind } from '../../components/advisory-dialog/advisory-dialog';
 import { AttributionPanel } from '../../components/attribution-panel/attribution-panel';
@@ -15,12 +16,12 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
  */
 @Component({
   selector: 'sentinel-investigation-page',
-  imports: [PageHeader, RouterLink, AccountSummary, AdvisoryDialog, AttributionPanel, EvidencePanel, GeminiAdvisory, Timeline],
+  imports: [PageHeader, RouterLink, ActionCentre, AccountSummary, AdvisoryDialog, AttributionPanel, EvidencePanel, GeminiAdvisory, Timeline],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sentinel-page-header
       heading="Investigations"
-      summary="Evidence bundle, deterministic risk attribution, and Gemini's advisory on request."
+      summary="Act on the account: hold exceptions, customer outreach and the kill switch. Evidence, deterministic risk attribution and Gemini's advisory below."
     />
     @if (facade.decision(); as decision) {
       @switch (facade.evidenceStatus()) {
@@ -34,6 +35,12 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
           @if (facade.evidence(); as evidence) {
             <div class="workspace">
               <sentinel-account-summary [decision]="decision" [evidence]="evidence" />
+              <sentinel-action-centre
+                [accountId]="decision.accountId"
+                [reference]="decision.accountReference ?? decision.accountId"
+                [assessmentId]="decision.assessmentId"
+                [transactionId]="decision.transactionId"
+              />
               <div class="layout">
                 <sentinel-attribution-panel class="attribution" [evidence]="evidence" />
                 <sentinel-gemini-advisory
@@ -98,15 +105,15 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
       flex: none;
       margin-bottom: 0;
     }
-    sentinel-account-summary {
+    sentinel-account-summary,
+    sentinel-action-centre {
       flex: none;
     }
     .workspace {
       display: flex;
       flex-direction: column;
       gap: var(--sentinel-space-3);
-      flex: 1;
-      min-height: 0;
+      flex: 1 0 auto;
     }
     .layout {
       display: grid;
@@ -116,7 +123,7 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
         'attribution advisory timeline'
         'attribution bundle bundle';
       gap: var(--sentinel-space-3);
-      flex: 1;
+      flex: 1 0 560px;
       min-height: 0;
     }
     .layout > * {
@@ -137,7 +144,7 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
     @media (min-width: 1280px) and (min-height: 600px) {
       :host {
         height: calc(100dvh - var(--sentinel-top-bar-height));
-        overflow: hidden;
+        overflow-y: auto;
       }
     }
     @media (max-width: 1279px) {

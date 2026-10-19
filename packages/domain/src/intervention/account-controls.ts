@@ -28,7 +28,8 @@ export interface KillSwitchStatus {
   readonly history: readonly KillSwitchRecord[];
 }
 
-export type CustomerContactChannel = 'PHONE' | 'SECURE_MESSAGE' | 'IN_APP_PUSH';
+/** AUTOMATED_CALL and EMAIL are system-generated from the outreach draft; every channel is simulated. */
+export type CustomerContactChannel = 'PHONE' | 'SECURE_MESSAGE' | 'IN_APP_PUSH' | 'AUTOMATED_CALL' | 'EMAIL';
 export type CustomerContactOutcome = 'REACHED' | 'NO_ANSWER' | 'MESSAGE_LEFT' | 'NOTIFICATION_SENT';
 
 /**

@@ -72,8 +72,17 @@ export interface ControlPathDependencies {
   readonly tenantAccess: TenantAccessService;
 }
 
+/** The use cases a participating bank drives over HTTP and Pub/Sub, for the in-process live demo. */
+export interface ControlPathBankPorts {
+  readonly reports: AccountReportService;
+  readonly securityEvents: SecurityEventService;
+  readonly decisions: DecisionService;
+  readonly lifecycle: TransactionProjectionService;
+}
+
 export interface ControlPath {
   readonly routes: readonly HttpRouteRegistration[];
+  readonly bank: ControlPathBankPorts;
   readonly interventions: InterventionWorkflow;
   readonly accountControls: AccountControlService;
 }
@@ -92,7 +101,6 @@ export function composeControlPath(dependencies: ControlPathDependencies): Contr
   const rollingWindow = new RollingWindowService(persistence.outflowWindow, policy);
   const transactionLifecycle = new TransactionProjectionService(persistence.transactionEvents, persistence.transactionProjections);
   const notifications = new MockPushCustomerNotificationPublisher(dependencies.logger);
-  const interventions = new InterventionService(persistence.interventions, notifications, clock, ids);
   const accountControls = new AccountControlService(
     persistence.accountControls,
     notifications,
@@ -101,6 +109,7 @@ export function composeControlPath(dependencies: ControlPathDependencies): Contr
     clock,
     ids,
   );
+  const interventions = new InterventionService(persistence.interventions, notifications, clock, ids, accountControls);
   const decisions = new DecisionService({
     decisions: persistence.decisions,
     accounts: persistence.accounts,
@@ -125,15 +134,18 @@ export function composeControlPath(dependencies: ControlPathDependencies): Contr
     rules: RISK_RULES,
   });
 
+  const reports = new AccountReportService(persistence.accounts, policy);
+
   return {
     routes: [
-      accountRoutes(new AccountController(new AccountReportService(persistence.accounts, policy))),
+      accountRoutes(new AccountController(reports)),
       decisionRoutes(new DecisionController(decisions)),
       securityEventRoutes(new SecurityEventController(securityEvents)),
       interventionRoutes(new InterventionController(interventions, dependencies.tenantAccess)),
       accountControlsRoutes(new AccountControlsController(accountControls)),
       transactionEventPushRoutes(transactionLifecycle, dependencies.pushAuthenticator),
     ],
+    bank: { reports, securityEvents, decisions, lifecycle: transactionLifecycle },
     interventions,
     accountControls,
   };

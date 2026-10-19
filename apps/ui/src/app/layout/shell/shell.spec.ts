@@ -37,8 +37,10 @@ describe('Shell', () => {
     expect(host.querySelectorAll('sentinel-sidebar .item')).toHaveLength(12);
     expect(host.querySelector('sentinel-top-bar input, sentinel-top-bar .search')).toBeNull();
     expect(host.querySelector('sentinel-logo img')?.getAttribute('src')).toBe('brand/sentinel-logo.webp');
-    const topBar = host.querySelector('sentinel-top-bar')?.textContent ?? '';
+    // The only demo wording in the top bar is the one-click live demo button.
+    const topBar = (host.querySelector('sentinel-top-bar')?.textContent ?? '').replace(host.querySelector('sentinel-live-demo-button')?.textContent ?? '', '');
     expect(topBar).not.toMatch(/synthetic|demo/i);
+    expect(host.querySelector('sentinel-top-bar sentinel-live-demo-button button')?.textContent).toContain('Live demo');
     expect(host.querySelectorAll('sentinel-top-bar sentinel-icon[name="settings"]')).toHaveLength(1);
     expect(host.querySelector('sentinel-top-bar .mode')?.tagName).not.toBe('BUTTON');
     expect(host.querySelectorAll('sentinel-mobile-bottom-bar .tab')).toHaveLength(5);

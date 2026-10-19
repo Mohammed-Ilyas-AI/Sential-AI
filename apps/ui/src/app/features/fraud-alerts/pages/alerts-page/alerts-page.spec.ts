@@ -76,7 +76,7 @@ describe('AlertsPage', () => {
   it('opens the decision trace in a dialog and closes it with Escape', async () => {
     loadReleasedHold();
     const { host, settle } = await render();
-    (host.querySelector('sentinel-case-detail button.secondary') as HTMLButtonElement).click();
+    (host.querySelector('sentinel-case-detail footer button.secondary') as HTMLButtonElement).click();
     await settle();
     expect(text(host.querySelector('.dialog'))).toContain('Deterministic policy gate');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

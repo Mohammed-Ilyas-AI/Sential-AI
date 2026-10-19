@@ -93,6 +93,20 @@ describe('Account kill switch and customer contact', () => {
       expect((await call<KillSwitchStatus>('GET', `/v1/accounts/${TOKEN}/kill-switch`)).body.history).toHaveLength(1);
     });
 
+    it('keeps a threshold hold already in force past its cooling period while the switch is active', async () => {
+      const breach = await decideAt(outflow(3_000_000, events.at(0)).request);
+      expect(breach).toMatchObject({ decision: 'HOLD', holdUntil: expect.any(String) });
+      await activate('k-1');
+
+      harness.clock.set(events.at(25 * HOUR_MS));
+      expect(await harness.controlPath.interventions.releaseDueHolds(harness.clock.now().toISOString())).toBe(0);
+      const history = (await call<{ history: Intervention[] }>('GET', `/v1/interventions/${breach.transactionId}`)).body.history;
+      expect(history.at(-1)?.state).toBe('HELD');
+
+      await call('POST', `/v1/accounts/${TOKEN}/kill-switch/customer-verified-release`, { idempotencyKey: 'v-1' });
+      expect(await harness.controlPath.interventions.releaseDueHolds(harness.clock.now().toISOString())).toBe(1);
+    });
+
     it('lifts only on customer verification; afterwards outflows are decided by the policy alone', async () => {
       expect((await call('POST', `/v1/accounts/${TOKEN}/kill-switch/customer-verified-release`, { idempotencyKey: 'v-0' })).status).toBe(409);
       await activate('k-1');
