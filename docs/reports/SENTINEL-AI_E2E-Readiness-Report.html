@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SENTINEL AI · End-to-End Readiness Report</title>
+<style>
+  @page { size: A4; margin: 14mm 13mm; }
+  :root {
+    color-scheme: light;
+    --ink: #142238;
+    --muted: #53647b;
+    --line: #d7e0eb;
+    --paper: #fff;
+    --wash: #f3f6fa;
+    --blue: #2454bd;
+    --green: #08784d;
+    --amber: #9a5c00;
+    --red: #aa2b24;
+  }
+  * { box-sizing: border-box; }
+  html { background: #edf1f6; }
+  body {
+    max-width: 1000px;
+    margin: 24px auto;
+    padding: 30px 38px;
+    color: var(--ink);
+    background: var(--paper);
+    font: 10pt/1.48 "Segoe UI", Arial, sans-serif;
+  }
+  h1 { margin: 0; font-size: 25pt; line-height: 1.12; letter-spacing: -.5px; }
+  h2 { margin: 24px 0 9px; padding-bottom: 5px; border-bottom: 2px solid var(--ink); font-size: 14pt; page-break-after: avoid; }
+  h3 { margin: 15px 0 6px; font-size: 11pt; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  a { color: var(--blue); }
+  code, pre { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; }
+  code { overflow-wrap: anywhere; }
+  .brand { margin-bottom: 5px; color: var(--blue); font-size: 9pt; font-weight: 800; letter-spacing: 3px; }
+  .subtitle { margin: 7px 0 14px; color: var(--muted); font-size: 11pt; }
+  .meta { display: grid; grid-template-columns: 135px 1fr; margin: 12px 0; }
+  .meta dt, .meta dd { margin: 0; padding: 3px 5px; border-bottom: 1px solid var(--line); }
+  .meta dt { color: var(--muted); font-weight: 650; }
+  table { width: 100%; margin: 8px 0 12px; border-collapse: collapse; }
+  th, td { padding: 6px 7px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: var(--wash); color: var(--muted); font-size: 8.3pt; letter-spacing: .35px; text-transform: uppercase; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  .callout { margin: 12px 0; padding: 10px 13px; border-left: 4px solid var(--blue); background: #f3f7ff; }
+  .callout.good { border-color: var(--green); background: #f0faf5; }
+  .callout.warn { border-color: var(--amber); background: #fff8ec; }
+  .callout.stop { border-color: var(--red); background: #fff4f2; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 12px; font-size: 8.2pt; font-weight: 700; white-space: nowrap; }
+  .pass { color: var(--green); background: #e6f5ed; }
+  .partial { color: var(--amber); background: #fff0d8; }
+  .blocked { color: var(--red); background: #fde8e5; }
+  .neutral { color: #34455b; background: #e9eef5; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
+  .stat { padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; }
+  .stat b { display: block; font-size: 17pt; }
+  .stat span { color: var(--muted); font-size: 8.4pt; }
+  .small, .muted { color: var(--muted); font-size: 8.7pt; }
+  .key { font-weight: 700; }
+  ul, ol { margin: 5px 0 9px 20px; padding: 0; }
+  li { margin: 3px 0; }
+  .footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8pt; }
+  @media (max-width: 680px) {
+    body { margin: 0; padding: 18px; }
+    .meta { grid-template-columns: 1fr; }
+    .meta dt { padding-bottom: 0; border-bottom: 0; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    table { font-size: 9pt; }
+    th, td { padding: 5px; }
+  }
+  @media print {
+    html { background: white; }
+    body { max-width: none; margin: 0; padding: 0; font-size: 9pt; }
+    h2 { margin-top: 17px; }
+    .callout, .stat, table { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">SENTINEL AI · BFSI CONTROL TOWER</div>
+  <h1>End-to-End Readiness Report</h1>
+  <p class="subtitle">Current implementation status, automated verification, and a bounded live-browser smoke test. Findings are distinguished from assumptions and from prior audit evidence.</p>
+  <dl class="meta">
+    <dt>Report timestamp</dt><dd>18 October 2026, 23:42 SGT</dd>
+    <dt>Repository</dt><dd><code>Mohammed-Ilyas-AI/Sential-AI</code> · local working tree; no commit, push, deployment or cloud operation performed for this report</dd>
+    <dt>Browser target</dt><dd>Local Angular application at <code>http://localhost:4200/control-tower</code>, shared browser, approximately 927 × 420 viewport</dd>
+    <dt>Automated verification</dt><dd><code>npm run verify</code> completed successfully on 18 October 2026, approximately 23:38 SGT</dd>
+    <dt>Scope</dt><dd>Eight MVP modules, core control path, synthetic scenario, dashboard browser smoke check, and known launch/tenant/performance limitations</dd>
+  </dl>
+  <p class="small">All institutions and data are synthetic. The bank lens is a presentation/projection mechanism, not authentication or production tenant isolation. No real bank integration or COSMIC integration is claimed.</p>
+</header>
+
+<h2>1. Executive result</h2>
+<div class="callout good">
+  <b>Automated repository verification passes.</b> The current source tree typechecks, passes ESLint, passes the workspace test suites and builds all workspaces. The deterministic policy path and the synthetic takeover scenario are covered by tests. The Case Reports, graph, account controls, audit, performance and seeded-noise workstreams are present in the local implementation.
+</div>
+<div class="callout warn">
+  <b>This is not a production deployment certification.</b> This run did not call deployed services, operate cloud resources, invoke Gemini, or exercise every UI route in a browser. The live browser check below is limited to the local Control Tower's bank focus/reset behavior. Stream tenant filtering and several performance dimensions remain unimplemented.
+</div>
+<div class="stats" aria-label="Verification summary">
+  <div class="stat"><b>387</b><span>automated tests passed</span></div>
+  <div class="stat"><b>21</b><span>control-path scenario tests</span></div>
+  <div class="stat"><b>8 / 8</b><span>MVP modules implemented; scenario launcher capability gated</span></div>
+  <div class="stat"><b>1</b><span>browser interaction flow exercised here</span></div>
+</div>
+
+<h2>2. Verification method and limits</h2>
+<table>
+  <thead><tr><th>Method</th><th>Result / scope</th><th>Boundary</th></tr></thead>
+  <tbody>
+    <tr><td><code>npm run verify</code></td><td><span class="pill pass">PASS</span> Typecheck, lint, all workspace tests and builds; detailed counts in section 8.</td><td>Local repository state only.</td></tr>
+    <tr><td><code>npm run test:scenario</code></td><td><span class="pill pass">PASS</span> Three scenario test files, 21 tests including canonical repeatability and isolated synthetic noise.</td><td>Harness-based control path, not a deployed bank integration.</td></tr>
+    <tr><td>Shared browser: Control Tower</td><td><span class="pill pass">SMOKE PASS</span> Page rendered. Bank B marker selection showed the focused state; Reset global view restored Singapore / All Banks and cleared the focus.</td><td>No full cross-page or multi-viewport browser regression was run.</td></tr>
+    <tr><td>Production, cloud and model checks</td><td><span class="pill neutral">NOT RUN</span></td><td>No deployed endpoint call, Cloud Run operation, or Gemini invocation was made in this update.</td></tr>
+  </tbody>
+</table>
+
+<h2>3. MVP implementation status</h2>
+<table>
+  <thead><tr><th>Module</th><th>Status</th><th>Current implementation and verification evidence</th></tr></thead>
+  <tbody>
+    <tr><td>1 · Transaction simulator</td><td><span class="pill pass">Implemented</span></td><td>Deterministic <code>DEMO_TAKEOVER_01</code>, run-scoped IDs, synthetic noise generator disabled by default, and bounded rate/seed configuration. Scenario suite confirms noise is isolated and does not HOLD.</td></tr>
+    <tr><td>2 · Real-time risk engine</td><td><span class="pill pass">Implemented</span></td><td>Seven pure rules and the decision gate remain deterministic. Rule tests, control-path API tests and the canonical scenario exercise ALLOW/HOLD behavior without any model decision.</td></tr>
+    <tr><td>3 · Rapid-drain detection</td><td><span class="pill pass">Implemented</span></td><td>Thresholds remain domain configuration; score contributions are distinct from the policy gate. Canonical scenario regression preserves the documented score ladder, threshold crossing and hold behavior.</td></tr>
+    <tr><td>4 · Intervention workflow</td><td><span class="pill pass">Implemented</span></td><td>Append-only customer contact records, account kill-switch history and customer-verified release path are wired with audit records. Control-path enforcement keeps the policy decision separate from score changes.</td></tr>
+    <tr><td>5 · Investigation workspace</td><td><span class="pill pass">Implemented</span></td><td>Evidence bundle and advisory endpoints use recorded evidence. Cross-lens investigation reads are denied before bundle compilation or model invocation; covered by API tests.</td></tr>
+    <tr><td>6 · AI explanation</td><td><span class="pill pass">Implemented in code</span></td><td>Grounded explanation and summary orchestration remain in the core AI infrastructure boundary. This report run did not invoke Gemini or remeasure live latency; do not treat past live calls as reverified here.</td></tr>
+    <tr><td>7 · Entity graph</td><td><span class="pill pass">Implemented</span></td><td>Bounded two-hop traversal, graph projection, fund trace, evidence provenance and tests. The implementation reuses indexed BFS rather than a single <code>$graphLookup</code>; this deviation is documented.</td></tr>
+    <tr><td>8 · Case report</td><td><span class="pill pass">Implemented</span></td><td>Case lifecycle, evidence-backed report generation, draft edits with revision checks, sign-off, revisions, text export and audit persistence. Only previously archived validated summaries are included; report generation does not issue a model call.</td></tr>
+  </tbody>
+</table>
+
+<h2>4. Control-path and scenario results</h2>
+<p>The core contract remains: <b>rules decide, AI explains, humans authorize.</b> The decision path does not call a language model; score changes do not authorize a transaction. Contributions are recorded as the score source, interventions are append-only, and lifecycle events are tested for idempotent handling.</p>
+<table>
+  <thead><tr><th>Scenario check</th><th>Observed test outcome</th></tr></thead>
+  <tbody>
+    <tr><td>Canonical scenario score ladder</td><td>Scenario regression asserts the documented sequence and final hold score against <code>DEMO_TAKEOVER_01</code>.</td></tr>
+    <tr><td>Noise traffic isolation</td><td>Seeded, run-scoped events avoid the canonical victim; sampled noise transfers land in the ELEVATED band and do not HOLD. Canonical replay remains unchanged after noise playback.</td></tr>
+    <tr><td>Policy and intervention paths</td><td>Core API tests cover account controls, customer contact, hold cascade, graph, case reports and investigation authorization; see the full suite counts below.</td></tr>
+    <tr><td>Cloud execution</td><td>Not started from the browser. No unauthenticated Cloud Run Job trigger is exposed.</td></tr>
+  </tbody>
+</table>
+
+<h2>5. Live browser smoke check</h2>
+<p><b>Page:</b> <code>http://localhost:4200/control-tower</code>. The shared browser showed the Control Tower, headline metrics and the Live Singapore Network panel with the bank markers, map controls, route legend, transaction table and system status.</p>
+<table>
+  <thead><tr><th>Action</th><th>Observed result</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Load Control Tower</td><td>Rendered without a browser error in the shared local tab. At capture, displayed 200 live transactions, 7 high-risk alerts, 1 active hold, 3 monitored banks; network figures showed 3 banks, 12 active routes and 76 monitored accounts. These are time-specific UI readings, not invented fixtures or guaranteed current counts.</td><td><span class="pill pass">Verified</span></td></tr>
+    <tr><td>Select the Bank B map marker</td><td>Bank B marker became active, the bank focus selector selected Bank B, and the view indicated it was focused.</td><td><span class="pill pass">Verified</span></td></tr>
+    <tr><td>Click Reset global view</td><td>Selector returned to Singapore (All Banks); Show all banks returned to its pressed/global state; focused state cleared. The map returned to the all-bank view. No theme control was changed during this interaction.</td><td><span class="pill pass">Verified</span></td></tr>
+    <tr><td>Select Bank A, select a transaction, then reset</td><td>Not performed in this browser run.</td><td><span class="pill neutral">Not verified</span></td></tr>
+    <tr><td>Zoom/rotation, layers, reduced motion, dark mode, narrow/large desktop</td><td>Not manually exercised in this browser run. Automated UI suite passed; that is not a substitute for visual regression at these conditions.</td><td><span class="pill neutral">Not verified</span></td></tr>
+  </tbody>
+</table>
+<p class="small">The browser viewport was approximately 927 × 420 pixels. This check verifies the accessible bank-focus and reset controls, not pixel-perfect appearance against a separate design reference.</p>
+
+<h2>6. Supporting capabilities and boundaries</h2>
+<table>
+  <thead><tr><th>Capability</th><th>Current state</th><th>Important limit</th></tr></thead>
+  <tbody>
+    <tr><td>Case/report API and UI</td><td>Persisted case/report lifecycle with audited operations; report export is saved UTF-8 text.</td><td>No PDF report renderer is claimed; UI workflow was not manually walked in the browser during this verification.</td></tr>
+    <tr><td>Entity graph</td><td>Bounded graph API with two-hop neighbourhood and explicit fund trace behavior.</td><td>Uses indexed BFS to preserve directed provenance, not the originally proposed single MongoDB graphLookup.</td></tr>
+    <tr><td>Tenant lens</td><td>Projection/authorization checks cover supported core resources, including graph, cases, account controls, interventions and investigations; cross-lens investigation denial is tested and audited.</td><td><b>Not authentication.</b> The WebSocket stream still broadcasts globally and does not filter messages per tenant connection; production tenant isolation is not established.</td></tr>
+    <tr><td>Performance panel</td><td>Core records fixed-label request timings in a bounded five-minute window; dashboard exposes counts, failures and latency percentiles.</td><td>WebSocket delivery, worker batches and browser rendering are not measured. Empty percentiles are null, not fabricated values.</td></tr>
+    <tr><td>Scenario launcher</td><td>UI now states the launch capability is unavailable.</td><td>No authenticated operator principal or configured server-side Cloud Run Job invoker exists. Simulator can run through its configured local/job entrypoint; do not add a browser-triggered unauthenticated job call.</td></tr>
+    <tr><td>AI summary in reports</td><td>Report may include a previously archived, validated grounded summary.</td><td>Report generation itself does not call Gemini. AI never returns a policy decision.</td></tr>
+  </tbody>
+</table>
+
+<h2>7. Readiness actions</h2>
+<ol>
+  <li><b>Keep the scenario-launch blocker explicit</b> until the platform provides authenticated operator identity, server-side job configuration/credentials, idempotent run persistence and truthful status polling. See <code>docs/decisions/ADR-010-scenario-launcher-auth-boundary.md</code>.</li>
+  <li><b>Complete per-connection tenant filtering for the stream</b> before presenting the tenant lens as an isolation boundary. Continue labelling the current lens as presentation/projection only.</li>
+  <li><b>Add browser E2E coverage</b> for bank A → bank B, transaction selection → global reset, case report workflow, layers/zoom, reduced motion, light/dark themes and responsive desktop dimensions.</li>
+  <li><b>Add telemetry only for measured paths</b>; separately instrument stream delivery, worker processing and browser rendering before claiming those targets.</li>
+  <li><b>Run deployment and Gemini verification separately</b> in an explicitly authorized environment. This local report does not assert cloud readiness, live model availability, or deployment status.</li>
+</ol>
+
+<h2>8. Automated test evidence</h2>
+<table>
+  <thead><tr><th>Workspace / command</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td><code>npm run typecheck</code> (all workspaces)</td><td><span class="pill pass">PASS</span> Domain, rules, scenarios, core, stream, simulator and UI.</td></tr>
+    <tr><td><code>npm run lint</code></td><td><span class="pill pass">PASS</span> ESLint including the repository import-boundary rules.</td></tr>
+    <tr><td><code>@sentinel/domain</code></td><td>10 tests passed.</td></tr>
+    <tr><td><code>@sentinel/rules</code></td><td>62 tests passed.</td></tr>
+    <tr><td><code>@sentinel/scenarios</code></td><td>21 tests passed.</td></tr>
+    <tr><td><code>@sentinel/core</code></td><td>166 tests passed, including graph/case/performance/account-controls APIs and cross-lens investigation denial.</td></tr>
+    <tr><td><code>@sentinel/stream</code></td><td>8 tests passed. These do not validate tenant-specific filtering, which is not implemented.</td></tr>
+    <tr><td><code>@sentinel/simulator</code></td><td>8 tests passed.</td></tr>
+    <tr><td><code>@sentinel/ui</code></td><td>112 tests passed.</td></tr>
+    <tr><td><code>npm run build</code> (all workspaces)</td><td><span class="pill pass">PASS</span> TypeScript applications and Angular production bundle built successfully.</td></tr>
+    <tr><td><code>npm run test:scenario</code></td><td><span class="pill pass">PASS</span> 21 tests across 3 files.</td></tr>
+    <tr><td><code>git diff --check</code></td><td><span class="pill pass">PASS</span> No whitespace errors.</td></tr>
+  </tbody>
+</table>
+<p class="small">Total: 387 tests passed across the full workspace run (10 + 62 + 21 + 166 + 8 + 8 + 112). Test counts are from the successful run at approximately 23:38 SGT on 18 October 2026.</p>
+
+<h2>9. Scope and data handling</h2>
+<ul>
+  <li>All scenario records and participating institutions are synthetic.</li>
+  <li>No backend API schema, policy threshold, score curve or cloud resource was changed for this report update.</li>
+  <li>No credentials, customer data, secrets or model identifiers were copied into this report.</li>
+  <li>The report reflects the local source tree and the explicitly described local browser check. It does not represent a deployment approval or security certification.</li>
+</ul>
+
+<footer class="footer">SENTINEL AI · Internal E2E readiness evidence · Updated 18 October 2026, 23:42 SGT. Earlier readiness reports and other files in <code>docs/reports</code> were not used as current verification evidence.</footer>
+</body>
+</html>

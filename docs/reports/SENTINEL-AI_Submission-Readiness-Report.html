@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SENTINEL AI · Submission Readiness Report</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 16mm 15mm; }
+  :root { --ink:#0f1b2d; --muted:#55657a; --line:#d5dde8; --done:#0f7b4f; --part:#a86200; --no:#b42318; --bg:#f4f7fb; --accent:#2747c9; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 10.2pt; line-height: 1.42; margin: 0; background:#fff; }
+  h1 { font-size: 22pt; margin: 0 0 2px; letter-spacing: -0.3px; }
+  h2 { font-size: 13.5pt; margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 2px solid var(--ink); page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12px 0 6px; page-break-after: avoid; }
+  p { margin: 5px 0; }
+  .brand { font-size: 10pt; letter-spacing: 3px; color: var(--accent); font-weight: 700; }
+  .sub { color: var(--muted); font-size: 10.5pt; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 8px; page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 5px 6px; }
+  th { background: var(--bg); font-size: 9pt; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  .meta td { border: none; padding: 2px 6px 2px 0; }
+  .meta td:first-child { color: var(--muted); width: 120px; }
+  .tag { display: inline-block; font-weight: 700; font-size: 8.5pt; padding: 1px 7px; border-radius: 9px; white-space: nowrap; }
+  .done { background: #e3f4ec; color: var(--done); }
+  .part { background: #fdf0dc; color: var(--part); }
+  .no { background: #fde6e4; color: var(--no); }
+  .verdict { border-left: 5px solid var(--no); background: #fff6f5; padding: 10px 14px; margin: 10px 0; }
+  .ok { border-left-color: var(--done); background: #f2faf6; }
+  .kpis { display: flex; gap: 10px; margin: 12px 0; }
+  .kpi { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .kpi b { display: block; font-size: 17pt; }
+  .kpi span { color: var(--muted); font-size: 8.8pt; }
+  code, pre { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; }
+  pre { background: #0f1b2d; color: #e6edf7; padding: 8px 10px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 8.8pt; }
+  ol, ul { margin: 4px 0 6px 18px; padding: 0; }
+  li { margin: 2px 0; }
+  .pb { page-break-before: always; }
+  .foot { margin-top: 18px; color: var(--muted); font-size: 8.5pt; border-top: 1px solid var(--line); padding-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="brand">SENTINEL AI</div>
+<h1>Submission Readiness Report</h1>
+<div class="sub">Where the build stands against the v1.2 Master, Technical and Toolchain &amp; Compliance documents, what is left, and the plan for the final hours before submission.</div>
+
+<table class="meta">
+  <tr><td>Competition</td><td>AI Builder Cup 2026 · BFSI — Intelligent Risk, Fraud &amp; Financial Experiences</td></tr>
+  <tr><td>Report date</td><td>17 October 2026, evening (IST). Freeze was 15 October; submission is 18 October.</td></tr>
+  <tr><td>Repository</td><td>github.com/Mohammed-Ilyas-AI/Sential-AI · branch <code>main</code> · last pushed commit <code>5d594c3</code></td></tr>
+  <tr><td>Live application</td><td><code>https://sentinal-ai.cloud.run/</code> and <code>/control-tower</code> (Cloud Run, asia-southeast1)</td></tr>
+  <tr><td>Supersedes</td><td>Phase 1 Completion Report and Phase 1 Audit Corrections Report (both 13 October)</td></tr>
+  <tr><td>Evidence</td><td>Code inspection of <code>main</code>; the live URL opened on 17 October; the local <code>npm run doctor</code> output; the two earlier reports' test results (285 in <code>npm run verify</code>, 26 on Atlas, per commit <code>97ab06f</code>)</td></tr>
+</table>
+
+<h2>1. Verdict</h2>
+
+<div class="verdict ok"><b>Deployed and publicly reachable on Google Cloud — entry requirement met.</b> The UI, sentinel-core, sentinel-stream and the simulator job run on Cloud Run, built by Cloud Build on every push to <code>main</code>. The Control Tower loads live data on the public URL; DEMO_TAKEOVER_01 is visible end to end (score 95, 65.4% drain, HOLD under SG-RD-50, system release after the cooling period).</div>
+
+<div class="verdict"><b>Gemini is not answering on the live application — the most urgent gap.</b> On 17 October the live Investigations page, after pressing <i>Explain</i>, showed: “No Gemini model is configured for this environment.” The Vertex AI integration is fully built and tested in code, but the deployed service has no model IDs (<code>_GEMINI_FAST_MODEL</code> and <code>_GEMINI_DEEP_MODEL</code> are empty in <code>cloudbuild.yaml</code>, and so is the local <code>.env</code>). Until a real Gemini response appears on the live URL, “meaningful use of Google AI” (C§2) cannot be shown, and that criterion sits inside the 40% Technical Merit &amp; GenAI weight (M§4). This is a configuration step of about 20 minutes, not new code (section 6).</div>
+
+<div class="kpis">
+  <div class="kpi"><b>4 of 8</b><span>MVP modules done (1, 2, 3, 5)</span></div>
+  <div class="kpi"><b>3 of 8</b><span>partial (4 intervention, 6 Gemini not live, 7 graph)</span></div>
+  <div class="kpi"><b>1 of 8</b><span>not started (8 case report)</span></div>
+  <div class="kpi"><b>1 live URL</b><span>on Cloud Run, public</span></div>
+</div>
+
+<h2>2. Competition entry requirements (M§4, C§2)</h2>
+<table>
+  <tr><th style="width:32%">Requirement</th><th style="width:12%">Status</th><th>Evidence and what remains</th></tr>
+  <tr><td>Functional prototype, not a concept</td><td><span class="tag done">Met</span></td><td>Seven deterministic rules, SG-RD-50 gate with hold cascade, live stream, Control Tower, Alerts &amp; Cases with analyst actions, Investigation workspace.</td></tr>
+  <tr><td>Deployed on Google Cloud</td><td><span class="tag done">Met</span></td><td>Four Cloud Run workloads in asia-southeast1, Cloud Build trigger on <code>main</code>, Atlas reached through a Cloud NAT reserved IP, MongoDB URI in Secret Manager.</td></tr>
+  <tr><td>Meaningful use of Google AI</td><td><span class="tag no">Not yet shown</span></td><td>Vertex AI gateway, structured output, schema and sourceField validation, two model tiers, cache and fallback all built and tested with a scripted model. <b>No real Gemini response on the live URL</b> — model IDs not configured.</td></tr>
+  <tr><td>English-only submission material</td><td><span class="tag done">Met so far</span></td><td>Code, docs and UI are English. Keep it so for the video captions and proposal.</td></tr>
+  <tr><td>Team of 2–4, working professionals 21+</td><td><span class="tag part">Owner to confirm</span></td><td>Registration closed 11 October; confirm the team record on the competition site.</td></tr>
+</table>
+
+<h2>3. MVP modules — Master Document §7</h2>
+<table>
+  <tr><th style="width:20%">Module</th><th style="width:11%">Status</th><th style="width:42%">What exists</th><th>Gap</th></tr>
+  <tr><td>1 Transaction simulator</td><td><span class="tag done">Done</span></td><td>Canonical events (tokenised IDs, eventId, sequence, idempotency key); seeded generators; DEMO_TAKEOVER_01; run-scoped runs so every replay produces fresh activity; Cloud Run Job.</td><td>Noise generator; one-button scenario launcher is a stretch item.</td></tr>
+  <tr><td>2 Real-time risk engine</td><td><span class="tag done">Done</span></td><td>Seven pure rules ported from the HTML reference; <code>POST /v1/decision/transactions</code> answers ALLOW / HOLD / REJECT with versions and trace ID.</td><td>—</td></tr>
+  <tr><td>3 Rapid-drain detection</td><td><span class="tag done">Done</span></td><td>S$50k / &gt;50% / 24h gate, three exclusions, post-threshold hold cascade (ADR-008).</td><td>—</td></tr>
+  <tr><td>4 Intervention workflow</td><td><span class="tag part">Mostly</span></td><td>Automatic hold with decision trace; release after customer verification, customer cancellation and fraud confirmation in the UI with two-step confirm; 24h auto-release; append-only audit; cascade as automatic kill-switch behaviour.</td><td>“Contact customer” action and an analyst-initiated kill switch button.</td></tr>
+  <tr><td>5 Investigation workspace</td><td><span class="tag done">Done</span></td><td>Evidence bundle assembled and displayed (caps 50 tx / 2 hops / 40 nodes), deterministic attribution first, the exact object sent to Gemini, timeline. Live on the public URL.</td><td>—</td></tr>
+  <tr><td>6 Gemini explanation</td><td><span class="tag part">Code done, not live</span></td><td>Vertex AI REST <code>generateContent</code>, responseSchema, versioned system instruction, fast/deep tiers from configuration, sourceField grounding, no-release rule, retry once, deterministic fallback, cache by assessmentId.</td><td>Model IDs not set on Cloud Run; no real response observed. Pre-warm the demo account's explanation.</td></tr>
+  <tr><td>7 Entity graph</td><td><span class="tag part">Backend only</span></td><td>Network observations ingest, entities and edges with provenance, two-hop flagged-link query feeding ENTITY_LINK scoring.</td><td>No graph API for the UI; <code>neighbourhood</code> and <code>traceFunds</code> not implemented; Network Analysis page is a shell.</td></tr>
+  <tr><td>8 Case report</td><td><span class="tag no">Not started</span></td><td>Cases page and component shells only.</td><td>One-click report, edit, sign-off, export; CaseService.</td></tr>
+</table>
+
+<h2>4. Surfaces and the ten demo scenes (M§5, M§6)</h2>
+<table>
+  <tr><th style="width:34%">Surface / scene</th><th style="width:12%">Ready</th><th>Notes</th></tr>
+  <tr><td>5.1 Live Operations Command Center</td><td><span class="tag done">Yes</span></td><td>Control Tower, live on the public URL.</td></tr>
+  <tr><td>5.2 Account risk panel</td><td><span class="tag done">Yes</span></td><td>Alerts &amp; Cases: balance at window start, 24h outflow, drain vs 50%, score, five signals.</td></tr>
+  <tr><td>5.3 Intervention</td><td><span class="tag part">Mostly</span></td><td>Decision trace and analyst actions present; Contact customer and manual kill switch missing.</td></tr>
+  <tr><td>5.4 Investigation workspace</td><td><span class="tag part">Yes, AI pending</span></td><td>Works; the Gemini panel shows the honest fallback until models are configured.</td></tr>
+  <tr><td>5.5 Network analysis</td><td><span class="tag no">No</span></td><td>Shell page.</td></tr>
+  <tr><td>5.6 Case report</td><td><span class="tag no">No</span></td><td>Shell page.</td></tr>
+  <tr><td>Scenes 1–5 (normal ops → intervention)</td><td><span class="tag done">Yes</span></td><td>Scores 37, 49, 75, 95; drain crosses 50% on the fourth transfer; automatic HOLD; notification.</td></tr>
+  <tr><td>Scene 6 Investigation opens</td><td><span class="tag done">Yes</span></td><td>Evidence bundle on screen.</td></tr>
+  <tr><td>Scene 7 Gemini explains</td><td><span class="tag no">Blocked</span></td><td>Needs model IDs on Cloud Run (section 6, step 2).</td></tr>
+  <tr><td>Scene 8 Network expands</td><td><span class="tag no">No</span></td><td>Module 7 UI.</td></tr>
+  <tr><td>Scene 9 Analyst acts</td><td><span class="tag done">Yes</span></td><td>Confirm fraud with analyst identity in Alerts &amp; Cases.</td></tr>
+  <tr><td>Scene 10 Report generated</td><td><span class="tag no">No</span></td><td>Module 8.</td></tr>
+</table>
+
+<h2 class="pb">5. The local error: <code>npm run doctor</code></h2>
+<p>The only failing preflight check is <b>“Atlas is refusing this machine's IP address.”</b> Node 24, the <code>.env</code> keys, Atlas DNS and all three ports pass. This is not a code defect: MongoDB Atlas only accepts connections from addresses on its Network Access list, and this computer's public IP has changed since it was added (home and mobile connections change IP often).</p>
+<ol>
+  <li>Atlas → <b>Security → Network Access → Add IP Address → Add Current IP Address</b>. Add a comment such as “Ilyas laptop 17 Oct”.</li>
+  <li>Wait until the entry shows <b>Active</b> (about a minute), then run <code>npm run doctor</code> and <code>npm run demo</code> again.</li>
+  <li>Do <b>not</b> add <code>0.0.0.0/0</code>. Do not remove <code>34.21.228.185/32</code> — that is the Cloud NAT address the deployed services use.</li>
+</ol>
+<p>The deployed application is unaffected: it reaches Atlas through the Cloud NAT IP, which is why the live URL keeps working.</p>
+
+<h2>6. Final-hours plan, in priority order</h2>
+<p>The Master Document's own rule (M§9, M§11) still applies: a module that renders but does not respond is worse than no module, and if time runs short the entity-graph screen is dropped before anything else. Building modules 7 and 8 after 15 October breaks the team's own freeze rule; that is a conscious trade-off for the owner, and the order below protects the submission even if it is stopped at any point.</p>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:30%">Work</th><th style="width:10%">Time</th><th>Why, and done means</th></tr>
+  <tr><td>1</td><td>Re-allow this machine's IP on Atlas</td><td>5 min</td><td>Unblocks local runs and recording. Done: <code>npm run doctor</code> all green.</td></tr>
+  <tr><td>2</td><td>Turn Gemini on in the live app</td><td>20–30 min</td><td>Entry requirement and 40% weight. Done: <i>Explain</i> and <i>Summarise case</i> on the live URL return a grounded answer, not the fallback.</td></tr>
+  <tr><td>3</td><td>Case report, minimal (module 8)</td><td>~2 h</td><td>Scene 10 and a second visible Gemini use. One click drafts the report from the case summary, timeline and intervention log; the analyst edits, signs off and exports (print to PDF).</td></tr>
+  <tr><td>4</td><td>Contact customer + kill switch buttons (module 4)</td><td>~45 min</td><td>Completes M§5.3 as written. Append-only intervention records, same two-step confirm.</td></tr>
+  <tr><td>5</td><td>Entity graph screen (module 7) — <i>drop first</i></td><td>~2 h</td><td>Only if 2–4 are finished and stable. Otherwise keep the honest shell and describe it as designed.</td></tr>
+  <tr><td>6</td><td>Submission package</td><td>~1.5 h</td><td>README run-through from a clean clone; one-page architecture diagram; Google AI usage section (models, calls, purpose); proposal PDF separating demonstrated from designed; screenshots of all six surfaces; 3-minute captioned video of the ten scenes; offline fallback copy; tag <code>submission-v1</code>.</td></tr>
+</table>
+
+<h3>Step 2 in detail — enabling Gemini on Cloud Run</h3>
+<p>The model identifiers are configuration, never code (CLAUDE.md, T§7). First check which models the project can call. In Cloud Shell, in project <code>project-f4c013ec-ed17-479b-999</code>:</p>
+<pre>for m in gemini-2.5-flash gemini-2.5-pro; do echo "== $m"; curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" -H "Content-Type: application/json" "https://aiplatform.googleapis.com/v1/projects/project-f4c013ec-ed17-479b-999/locations/global/publishers/google/models/$m:generateContent" -d '{"contents":[{"role":"user","parts":[{"text":"Reply with the word OK"}]}]}' | head -c 400; echo; done</pre>
+<p class="small muted">If a model returns 404 or “not found”, open Vertex AI → Model Garden and use the current Gemini Flash / Pro IDs listed there instead. The deep tier has a 15-second ceiling; if the Pro model is slower than that on the demo account, use the Flash model for both tiers.</p>
+<p>Then apply the verified IDs to the running service immediately (no rebuild):</p>
+<pre>gcloud run services update sentinel-core --region asia-southeast1 --update-env-vars VERTEX_LOCATION=global,GEMINI_FAST_MODEL=gemini-2.5-flash,GEMINI_DEEP_MODEL=gemini-2.5-pro</pre>
+<p>Finally make it permanent so the next push does not reset it: set <code>_GEMINI_FAST_MODEL</code> and <code>_GEMINI_DEEP_MODEL</code> in the Cloud Build trigger's substitutions (or as the defaults in <code>infra/cloud-build/cloudbuild.yaml</code>). The service account <code>sentinel-core</code> already holds <code>roles/aiplatform.user</code> and the Vertex AI API is enabled by the bootstrap script.</p>
+
+<h2>7. Submission checklist — Master Document §12</h2>
+<table>
+  <tr><th style="width:52%">Item</th><th style="width:14%">Status</th><th>Note</th></tr>
+  <tr><td>Team registered and locked</td><td><span class="tag part">Confirm</span></td><td>Closed 11 Oct.</td></tr>
+  <tr><td>Deployed, publicly reachable URL on Google Cloud</td><td><span class="tag done">Done</span></td><td>sentinal-ai.cloud.run</td></tr>
+  <tr><td>Public repository with a README a stranger can follow</td><td><span class="tag part">Check</span></td><td>Repo public; README run-through from a clean clone not yet re-tested.</td></tr>
+  <tr><td>One-page architecture diagram</td><td><span class="tag no">To do</span></td><td></td></tr>
+  <tr><td>Proposal document (problem, regulation, solution, architecture, impact)</td><td><span class="tag no">To do</span></td><td>Reuse Master §1–3, §8, §13.</td></tr>
+  <tr><td>Three-minute captioned video, ten scenes</td><td><span class="tag no">To do</span></td><td>Record after Gemini is live.</td></tr>
+  <tr><td>Screenshots of all six surfaces</td><td><span class="tag part">4 of 6</span></td><td>Network and Case report are shells.</td></tr>
+  <tr><td>Google AI usage documented (models, calls, purpose)</td><td><span class="tag no">To do</span></td><td>Explanation (fast tier), case summary (deep tier), report draft.</td></tr>
+  <tr><td>Synthetic data provenance stated</td><td><span class="tag done">Done</span></td><td>README first paragraph; UI footers.</td></tr>
+  <tr><td>COSMIC and SRF wording checked against M§3</td><td><span class="tag done">Done so far</span></td><td>Re-check the proposal and video captions.</td></tr>
+  <tr><td>Demo scenario reproducible from a clean deploy</td><td><span class="tag done">Done</span></td><td>Run-scoped simulator runs.</td></tr>
+  <tr><td>Offline fallback video on the presenting laptop</td><td><span class="tag no">To do</span></td><td></td></tr>
+  <tr><td>Multi-tenant and production claims use the M§13 wording</td><td><span class="tag done">Done so far</span></td><td>“Designed as a multi-tenant platform; demonstrated as a single deployment on synthetic data.”</td></tr>
+</table>
+
+<h2>8. Change made today</h2>
+<p>The deployed core called Vertex AI in <code>asia-southeast1</code> only. The current Gemini models are served from the <code>global</code> location, so Cloud Build now has a <code>_VERTEX_LOCATION</code> substitution (default <code>global</code>) that renders into the sentinel-core manifest; the gateway already handled the global endpoint host. Files: <code>infra/cloud-build/cloudbuild.yaml</code>, <code>infra/cloud-build/scripts/render-manifest.sh</code>, <code>infra/cloud-run/sentinel-core/service.yaml</code>, <code>docs/deployment/cloud-run-deployment.md</code>. Rendering was checked with and without the variable. Not yet committed or pushed.</p>
+
+<h2>9. Risks for the last day</h2>
+<table>
+  <tr><th style="width:36%">Risk</th><th>Mitigation</th></tr>
+  <tr><td>Gemini model ID not available in the project</td><td>Test with the curl above before changing Cloud Run; fall back to the Flash model for both tiers.</td></tr>
+  <tr><td>Cold start during judging (min instances 0)</td><td>Set <code>_MIN_INSTANCES</code> to 1 for the evaluation window (19 Oct – 6 Nov), then back to 0.</td></tr>
+  <tr><td>New code breaks the demo after the freeze</td><td>Every change goes through <code>npm run verify</code> and Cloud Build's test steps; tag <code>submission-v1</code> on the last good commit before any new feature.</td></tr>
+  <tr><td>Video recorded before Gemini works</td><td>Record only after step 2 is verified on the live URL.</td></tr>
+  <tr><td>Local Atlas access lost again</td><td>Re-add the current IP; the deployed app does not depend on it.</td></tr>
+</table>
+
+<div class="foot">All data shown is synthetic. Bank A, Bank B and Bank C are fictional participating institutions. COSMIC-inspired cross-institutional risk intelligence, demonstrated on synthetic, privacy-safe data. No real bank or COSMIC integration is claimed.</div>
+</body>
+</html>

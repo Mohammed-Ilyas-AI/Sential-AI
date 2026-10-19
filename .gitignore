@@ -35,3 +35,6 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Rendered demo videos are build output (GitHub rejects files over 100 MB)
+docs/video/*.mp4
