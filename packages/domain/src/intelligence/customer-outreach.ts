@@ -23,5 +23,6 @@ export interface CustomerOutreachDraft {
 export interface CustomerOutreachProposal {
   readonly source: 'GEMINI' | 'TEMPLATE';
   readonly draft: CustomerOutreachDraft;
-  readonly model: AdvisoryOutcome<CustomerOutreachDraft>;
+  /** Gemini's outcome; absent when the fixed wording was asked for directly (`?draft=template`). */
+  readonly model?: AdvisoryOutcome<CustomerOutreachDraft>;
 }

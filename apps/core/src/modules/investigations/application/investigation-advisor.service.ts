@@ -37,9 +37,11 @@ export class InvestigationAdvisor implements AdviseInvestigation {
     return outcome;
   }
 
-  async customerOutreach(assessmentId: string, context: ActingContext): Promise<CustomerOutreachProposal> {
+  /** TEMPLATE skips the model: the fixed wording at once, for a caller that cannot wait for a draft. */
+  async customerOutreach(assessmentId: string, context: ActingContext, wording: 'DRAFT' | 'TEMPLATE' = 'DRAFT'): Promise<CustomerOutreachProposal> {
     await this.authorise(assessmentId, context);
     const evidence = await this.bundles.compile(assessmentId);
+    if (wording === 'TEMPLATE') return { source: 'TEMPLATE', draft: templateOutreach(evidence) };
     const model = await this.intelligence.draftCustomerOutreach(evidence);
     return model.status === 'FALLBACK'
       ? { source: 'TEMPLATE', draft: templateOutreach(evidence), model }

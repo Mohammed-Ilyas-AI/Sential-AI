@@ -20,6 +20,7 @@ export class InvestigationController {
   };
 
   readonly customerOutreach: RequestHandler<AssessmentParameters> = async (request, response) => {
-    response.status(200).json(await this.advisor.customerOutreach(request.params.assessmentId, actingContext(response, 'ANALYST')));
+    const wording = request.query['draft'] === 'template' ? 'TEMPLATE' : 'DRAFT';
+    response.status(200).json(await this.advisor.customerOutreach(request.params.assessmentId, actingContext(response, 'ANALYST'), wording));
   };
 }

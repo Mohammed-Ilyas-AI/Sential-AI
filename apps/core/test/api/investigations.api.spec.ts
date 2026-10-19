@@ -75,6 +75,11 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect(gemini.status).toBe(200);
     expect(gemini.body).toMatchObject({ source: 'GEMINI', draft: drafted });
     expect(model.calls.map((call) => call.job)).toEqual(['CUSTOMER_OUTREACH']);
+    // Nothing that says why it was paused reaches the model: the attacker may be reading the customer's messages.
+    const sent = model.calls[0]?.evidence;
+    expect(sent?.assessment.contributions).toEqual([]);
+    expect([sent?.deviceHistory, sent?.payeeHistory, sent?.priorAlerts, sent?.neighbourhood.nodes]).toEqual([[], [], [], []]);
+    expect(sent?.recentTransactions.map((transaction) => transaction.id)).toEqual([sent?.assessment.transactionId]);
 
     model.script = [
       { ...drafted, emailBody: 'Verify at https://example.test/login with your OTP.' },
@@ -88,6 +93,12 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
 
     model.script = [new ModelUnavailableError('NOT_CONFIGURED', 'no model')];
     expect((await outreach()).body).toMatchObject({ source: 'TEMPLATE', model: { reason: 'MODEL_NOT_CONFIGURED' } });
+
+    model.calls.length = 0;
+    const fixed = await callJson<CustomerOutreachProposal>(harness.baseUrl, 'POST', `/v1/investigations/${finalAssessmentId()}/customer-outreach?draft=template`);
+    expect(fixed.body.source).toBe('TEMPLATE');
+    expect(fixed.body.model).toBeUndefined();
+    expect(model.calls).toHaveLength(0);
   });
 
   it('answers 404 for an assessment that does not exist', async () => {

@@ -73,7 +73,7 @@
     <section class="column" aria-labelledby="contact-title">
       <h3 id="contact-title"><span class="number">2</span> Contact the customer <small>simulated channels</small></h3>
       <div class="big-buttons">
-        <button type="button" class="big" [class.spotlight]="spotlight() === 'CALL'" [disabled]="controls.busy() !== null || call() === 'RINGING'" (click)="placeCall()">
+        <button type="button" class="big" [class.spotlight]="spotlight() === 'CALL' || spotlight() === 'VOICEMAIL'" [disabled]="controls.busy() !== null || call() === 'RINGING'" (click)="placeCall()">
           <sentinel-icon name="bell" [size]="18" />
           {{ call() === 'RINGING' ? 'Calling the customer…' : 'Automated call' }}
         </button>
@@ -98,7 +98,13 @@
         @if (shown(); as kind) {
           <article class="message">
             <p class="source" [attr.data-source]="proposal.source">
-              {{ proposal.source === 'GEMINI' ? 'Drafted by Gemini from the evidence bundle' : 'sentinel-core fixed wording (Gemini unavailable)' }}
+              {{
+                proposal.source === 'GEMINI'
+                  ? 'Drafted by Gemini from the evidence bundle'
+                  : proposal.model
+                    ? 'sentinel-core fixed wording (Gemini unavailable)'
+                    : 'sentinel-core fixed wording (sent without waiting for Gemini)'
+              }}
             </p>
             @if (kind === 'EMAIL') {
               <p class="subject">{{ proposal.draft.subject }}</p>

@@ -63,7 +63,7 @@ export class ActionCentre {
   protected readonly call = signal<CallState>('IDLE');
   protected readonly shown = signal<'CALL' | 'EMAIL' | null>(null);
   /** The control the live demo is about to press, highlighted so the audience can follow it. */
-  protected readonly spotlight = signal<'CALL' | 'EMAIL' | 'KILL_SWITCH' | null>(null);
+  protected readonly spotlight = signal<'CALL' | 'VOICEMAIL' | 'EMAIL' | 'KILL_SWITCH' | null>(null);
 
   private readonly accountRows = computed(() => this.holds.rows().filter((row) => row.accountId === this.accountId()));
   protected readonly held = computed<readonly InterventionRow[]>(() => {
@@ -156,6 +156,15 @@ export class ActionCentre {
     return ok;
   }
 
+  /** After an unanswered call, the system leaves the drafted script as a voicemail. */
+  protected async leaveVoicemail(): Promise<boolean> {
+    this.shown.set('CALL');
+    const proposal = await this.outreach();
+    if (!proposal) return false;
+    const by = proposal.source === 'GEMINI' ? 'drafted by Gemini' : 'fixed wording';
+    return this.controls.recordContact('AUTOMATED_CALL', 'MESSAGE_LEFT', `Voicemail left (${by})`, this.transactionId());
+  }
+
   protected async sendEmail(): Promise<boolean> {
     this.shown.set('EMAIL');
     const proposal = await this.outreach();
@@ -185,6 +194,8 @@ export class ActionCentre {
       if (command.kind === 'CALL') {
         // Synthetic customers never pick up: the takeover victim is unreachable by design of the scenario.
         ok = (await this.placeCall()) && (await wait(DEMO_STEP_MS).then(() => this.callOutcome(false)));
+      } else if (command.kind === 'VOICEMAIL') {
+        ok = await this.leaveVoicemail();
       } else if (command.kind === 'EMAIL') {
         ok = await this.sendEmail();
       } else if (this.controls.killSwitch()?.active) {

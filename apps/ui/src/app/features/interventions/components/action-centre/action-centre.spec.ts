@@ -79,13 +79,20 @@ describe('ActionCentre', () => {
     expect(host.textContent).toContain('We paused a transfer from your account');
   });
 
-  it('works a live-demo command on screen: the automated call goes unanswered, then the kill switch', async () => {
+  it('works live-demo commands on screen: the unanswered call, the voicemail, then the kill switch', async () => {
     const { fixture, host } = await render();
     const demo = TestBed.inject(LiveDemoAutopilot);
     const complete = vi.spyOn(demo, 'complete');
     (demo as unknown as { commandState: { set(value: unknown): void } }).commandState.set({ id: 7, kind: 'CALL', accountId: hold.accountId });
     await vi.waitFor(() => expect(complete).toHaveBeenCalledWith(7, true), { timeout: 10_000 });
     expect(post).toHaveBeenCalledWith(`/v1/accounts/${hold.accountId}/customer-contacts`, expect.objectContaining({ channel: 'AUTOMATED_CALL', outcome: 'NO_ANSWER' }));
+
+    (demo as unknown as { commandState: { set(value: unknown): void } }).commandState.set({ id: 9, kind: 'VOICEMAIL', accountId: hold.accountId });
+    await vi.waitFor(() => expect(complete).toHaveBeenCalledWith(9, true), { timeout: 10_000 });
+    expect(post).toHaveBeenCalledWith(
+      `/v1/accounts/${hold.accountId}/customer-contacts`,
+      expect.objectContaining({ channel: 'AUTOMATED_CALL', outcome: 'MESSAGE_LEFT', note: 'Voicemail left (drafted by Gemini)' }),
+    );
 
     (demo as unknown as { commandState: { set(value: unknown): void } }).commandState.set({ id: 8, kind: 'KILL_SWITCH', accountId: hold.accountId });
     await vi.waitFor(() => expect(complete).toHaveBeenCalledWith(8, true), { timeout: 10_000 });

@@ -58,8 +58,10 @@ customer has verified and the switch is lifted.
 | `POST` | `/v1/investigations/:assessmentId/case-summary` | — → grounded advisory or explicit fallback | 200 |
 | `POST` | `/v1/investigations/:assessmentId/customer-outreach` | — → `CustomerOutreachProposal`: `{ source: GEMINI \| TEMPLATE, draft: { subject, emailBody, callScript }, model }` | 200 |
 
-The customer outreach draft is the fast tier's `CUSTOMER_OUTREACH` job on a customer-facing slice of the bundle (the
-assessment, the drain and the paused transfer only). A draft carrying a link, a phone number, a request for a secret or
+The customer outreach draft is the fast tier's `CUSTOMER_OUTREACH` job on a customer-facing slice of the bundle: the
+paused transfer only, with no contributions, device, payee, alert or network history, because in a takeover the
+attacker may read the customer's messages. `?draft=template` skips the model and returns the fixed wording at once
+(`model` is then absent); the live demo uses it when a draft has not arrived within 25 s. A draft carrying a link, a phone number, a request for a secret or
 a promise of release is rejected; on any fallback sentinel-core returns its fixed wording, so a message is always
 ready. Sending it is a separate, recorded contact attempt.
 
@@ -119,6 +121,7 @@ minute, uses its own run-scoped synthetic accounts and never changes DEMO_TAKEOV
 | Method | Path | Body → Response | Status |
 |---|---|---|---|
 | `POST` | `/v1/demo/live-demo` | `{ analystIdentity }` → `LiveDemoReport`: `{ runId, transfers, held: [{ transactionId, assessmentId, accountId, amount, riskScore, holdUntil? }] }` | 200 after about 46 s; 400; 409 already running |
+| `POST` | `/v1/demo/live-demo/:runId/follow-up-transfer` | `{ analystIdentity }` → `DecisionResponse` for the attacker's next S$9,800 attempt on that run's victim | 200; 404 not the latest run on this instance |
 
 Plays DEMO_TAKEOVER_01 in-process through the same use cases the bank-facing routes call, on fresh run-scoped
 synthetic accounts, within the request (so it keeps CPU on Cloud Run and needs no job or extra resource). One run at

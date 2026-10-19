@@ -82,12 +82,14 @@ export class IntelligenceService implements ExplainAndSummarise {
   }
 
   /**
-   * The customer needs only the paused transfer, so the model gets the assessment, the drain and that one
-   * transaction: no device, payee, alert or network history. Less to read, a faster draft, nothing to leak.
+   * The customer needs only the paused transfer, so the model gets that one transaction and nothing that says why
+   * it was paused: no contributions, device, payee, alert or network history. In a takeover the attacker may read
+   * the customer's messages, and the signals that caught them must not reach them. Less to read, a faster draft.
    */
   draftCustomerOutreach(evidence: EvidenceBundle): Promise<AdvisoryOutcome<CustomerOutreachDraft>> {
     const customerFacing: EvidenceBundle = {
       ...evidence,
+      assessment: { ...evidence.assessment, contributions: [] },
       recentTransactions: evidence.recentTransactions.filter((transaction) => transaction.id === evidence.assessment.transactionId),
       deviceHistory: [],
       payeeHistory: [],

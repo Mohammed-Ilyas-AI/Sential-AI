@@ -7,5 +7,5 @@ export interface AdviseInvestigation {
   explain(assessmentId: string, context: ActingContext): Promise<AdvisoryOutcome<RiskExplanation>>;
   summarise(assessmentId: string, context: ActingContext): Promise<AdvisoryOutcome<CaseSummary>>;
   /** The customer's email and call script: Gemini's draft when it passes the checks, fixed wording otherwise. */
-  customerOutreach(assessmentId: string, context: ActingContext): Promise<CustomerOutreachProposal>;
+  customerOutreach(assessmentId: string, context: ActingContext, wording?: 'DRAFT' | 'TEMPLATE'): Promise<CustomerOutreachProposal>;
 }

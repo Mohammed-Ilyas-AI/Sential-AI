@@ -1,8 +1,22 @@
-import type { LiveDemoReport } from '@sentinel/domain';
-import { buildDemoTakeover01, newScenarioRunId, playScenario, type BankConnector, type ScenarioTimeline } from '@sentinel/scenarios';
+import { DEMO_TAKEOVER_01, type DecisionResponse, type LiveDemoReport } from '@sentinel/domain';
+import {
+  buildDemoTakeover01,
+  newScenarioRunId,
+  playScenario,
+  ScenarioEventFactory,
+  SYNTHETIC_ACCOUNTS,
+  type BankConnector,
+  type ScenarioRunId,
+  type ScenarioTimeline,
+} from '@sentinel/scenarios';
+
 import { ApplicationError } from '../../../platform/errors/application-error.js';
 import type { Clock } from '../../../platform/time/clock.js';
 import type { ActingContext, AuditTrail } from '../../audit/application/audit-trail.js';
+
+/** The attacker's next attempt after the case is worked: same new device, same mule payee, S$9,800. */
+const FOLLOW_UP_AMOUNT = 980_000;
+const FOLLOW_UP_PAYEE = 'PAYEE-7742';
 
 /**
  * The in-app live demo (M§6): DEMO_TAKEOVER_01 played through sentinel-core's own control path, in-process and
@@ -11,6 +25,8 @@ import type { ActingContext, AuditTrail } from '../../audit/application/audit-tr
  */
 export class LiveDemoService {
   private running: Promise<LiveDemoReport> | null = null;
+  private lastRunId: ScenarioRunId | null = null;
+  private followUps = 0;
 
   constructor(
     private readonly bank: BankConnector,
@@ -32,6 +48,8 @@ export class LiveDemoService {
   private async play(context: ActingContext): Promise<LiveDemoReport> {
     const started = this.clock.now();
     const runId = newScenarioRunId(started.getTime());
+    this.lastRunId = runId;
+    this.followUps = 0;
     await this.audit.record(context, {
       category: 'SCENARIO',
       action: 'LIVE_DEMO_STARTED',
@@ -58,5 +76,27 @@ export class LiveDemoService {
       transfers: report.transfers.length,
       held,
     };
+  }
+
+  /**
+   * The attacker tries again on the same run's synthetic victim, through the same gate. Whatever the gate decides is
+   * the answer: after the kill switch it is a HOLD under KILL_SWITCH; nothing here forces it.
+   */
+  async attemptFollowUpTransfer(context: ActingContext, runId: string): Promise<DecisionResponse> {
+    if (context.actor !== 'ANALYST' || !context.actorIdentity?.trim()) throw new ApplicationError('UNPROCESSABLE', 'An analyst identity is required');
+    if (!this.lastRunId || runId !== this.lastRunId) throw new ApplicationError('NOT_FOUND', `No live demo run ${runId} on this instance`);
+    const victim = SYNTHETIC_ACCOUNTS.find((account) => account.displayId === DEMO_TAKEOVER_01.accountDisplayId);
+    if (!victim) throw new ApplicationError('CONFLICT', 'The demo account is missing from the synthetic roster');
+    this.followUps += 1;
+    const events = new ScenarioEventFactory(`DT01F${this.followUps}`, this.clock.now().getTime(), this.lastRunId);
+    const { request } = events.transfer({
+      source: victim,
+      payeeId: FOLLOW_UP_PAYEE,
+      destinationInstitutionId: 'BANK_C',
+      amount: FOLLOW_UP_AMOUNT,
+      deviceId: DEMO_TAKEOVER_01.newDeviceId,
+      occurredAt: this.clock.now().toISOString(),
+    });
+    return this.bank.requestDecision(request);
   }
 }
