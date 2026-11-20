@@ -1,7 +1,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import type { Alert, EvidenceBundle, FundTraceView, GraphEdgeKind, InvestigationEvidence, NetworkEdgeView, NetworkExploration, NetworkNodeView, NodeKind } from '@sentinel/domain';
+import type { Alert, EvidenceBundle, FundTraceView, GraphEdgeKind, InstitutionId, InvestigationEvidence, NetworkEdgeView, NetworkExploration, NetworkNodeView, NodeKind } from '@sentinel/domain';
 import type { Observable } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
@@ -293,7 +293,7 @@ export class NetworkAnalysisFacade {
     if (!primaryTx) return null;
 
     const hop1Dest = primaryTx.destAccountId;
-    const destInstitution = (primaryTx.destInstitutionId ?? 'BANK_B') as any;
+    const destInstitution: InstitutionId = primaryTx.destInstitutionId ?? 'BANK_B';
     const now = primaryTx.ts ?? new Date().toISOString();
 
     const hops: NetworkEdgeView[] = [
@@ -366,7 +366,7 @@ export class NetworkAnalysisFacade {
       nodes.push({
         id: edge.to,
         kind: 'ACCOUNT',
-        institutionId: 'BANK_C' as any,
+        institutionId: 'BANK_C',
         label: `Laundering Node · ${edge.to.slice(-6)}`,
         flagged: true,
         riskIndicators: ['RAPID_DISPERSAL'],
@@ -385,7 +385,7 @@ export class NetworkAnalysisFacade {
         complete: false,
         observedHops: hops.length,
         reason: 'OUTSIDE_OBSERVED_NETWORK',
-        boundary: hops.length > 1 ? ('BANK_C' as any) : destInstitution,
+        boundary: hops.length > 1 ? 'BANK_C' : destInstitution,
       },
     };
   }

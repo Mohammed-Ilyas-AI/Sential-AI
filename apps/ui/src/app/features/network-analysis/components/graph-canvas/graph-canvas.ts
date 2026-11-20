@@ -255,7 +255,6 @@ export class GraphCanvas {
       const resize = new ResizeObserver(([entry]) => {
         if (!entry) return;
         const ratio = Math.min(2, devicePixelRatio || 1);
-        const firstSize = this.width === 0;
         this.width = entry.contentRect.width;
         this.height = entry.contentRect.height;
         canvas.width = Math.round(this.width * ratio);
