@@ -23,4 +23,8 @@ export class InvestigationController {
     const wording = request.query['draft'] === 'template' ? 'TEMPLATE' : 'DRAFT';
     response.status(200).json(await this.advisor.customerOutreach(request.params.assessmentId, actingContext(response, 'ANALYST'), wording));
   };
+
+  readonly orchestrate: RequestHandler<AssessmentParameters> = async (request, response) => {
+    response.status(200).json(await this.advisor.orchestrateSwarm(request.params.assessmentId, actingContext(response, 'ANALYST')));
+  };
 }

@@ -12,5 +12,7 @@ export function investigationRoutes(controller: InvestigationController): HttpRo
   router.post('/:assessmentId/explanation', controller.explain);
   router.post('/:assessmentId/case-summary', controller.summarise);
   router.post('/:assessmentId/customer-outreach', controller.customerOutreach);
+  router.post('/:assessmentId/orchestrate', controller.orchestrate);
+  router.get('/:assessmentId/orchestrate', controller.orchestrate);
   return { basePath: '/v1/investigations', router };
 }

@@ -215,7 +215,7 @@ export class LiveDemoAutopilot {
 
     this.store.dispatch(AlertsActions.accountSelected({ accountId: held.accountId }));
     await this.router.navigateByUrl('/investigations');
-    this.say('AGENT', 'Case opened in Investigations. Evidence bundle compiled; Gemini is drafting the customer outreach from it.');
+    this.say('AGENT', 'Case opened in Investigations. 7-Agent Swarm activated (ATO, Beneficiary, Scam Intent, Mule Trace, Customer Verification, Recall, CAD STRO).');
     await this.pause(PAUSE_MS.OPEN_CASE);
 
     // The automated call: the line rings, nobody answers.
@@ -301,7 +301,7 @@ export class LiveDemoAutopilot {
     await this.pause(PAUSE_MS.PAGE);
 
     this.at('DONE');
-    this.say('AGENT', 'Account protected. Rules decided, Gemini wrote the words, the analyst authorised. Synthetic data throughout.');
+    this.say('AGENT', 'Account protected. 7-Agent Swarm synthesized multi-institution evidence; MAS SRF & CAD STRO reports ready for 1-click sign-off.');
     this.store.dispatch(AlertsActions.accountSelected({ accountId: held.accountId }));
     await this.router.navigateByUrl('/investigations');
   }

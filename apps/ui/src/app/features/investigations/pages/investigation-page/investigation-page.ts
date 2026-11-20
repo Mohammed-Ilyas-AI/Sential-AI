@@ -4,6 +4,7 @@ import { PageHeader } from '../../../../shared/ui/page-header/page-header';
 import { ActionCentre } from '../../../interventions';
 import { AccountSummary } from '../../components/account-summary/account-summary';
 import { AdvisoryDialog, type AdvisoryKind } from '../../components/advisory-dialog/advisory-dialog';
+import { AgentSwarmComponent } from '../../components/agent-swarm/agent-swarm';
 import { AttributionPanel } from '../../components/attribution-panel/attribution-panel';
 import { EvidencePanel } from '../../components/evidence-panel/evidence-panel';
 import { GeminiAdvisory } from '../../components/gemini-advisory/gemini-advisory';
@@ -16,7 +17,7 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
  */
 @Component({
   selector: 'sentinel-investigation-page',
-  imports: [PageHeader, RouterLink, ActionCentre, AccountSummary, AdvisoryDialog, AttributionPanel, EvidencePanel, GeminiAdvisory, Timeline],
+  imports: [PageHeader, RouterLink, ActionCentre, AccountSummary, AdvisoryDialog, AgentSwarmComponent, AttributionPanel, EvidencePanel, GeminiAdvisory, Timeline],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sentinel-page-header
@@ -40,6 +41,11 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
                 [reference]="decision.accountReference ?? decision.accountId"
                 [assessmentId]="decision.assessmentId"
                 [transactionId]="decision.transactionId"
+              />
+              <sentinel-agent-swarm
+                [report]="facade.swarm().report"
+                [status]="facade.swarm().status"
+                (orchestrate)="facade.orchestrateSwarm()"
               />
               <div class="layout">
                 <sentinel-attribution-panel class="attribution" [evidence]="evidence" />

@@ -1,4 +1,4 @@
-import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type CustomerOutreachProposal, type CaseSummary, type EvidenceBundle, type InvestigationEvidence, type ModelJob, type RiskExplanation } from '@sentinel/domain';
+import { DEMO_TAKEOVER_01, type AdvisoryOutcome, type CustomerOutreachProposal, type CaseSummary, type EvidenceBundle, type InvestigationEvidence, type ModelJob, type RiskExplanation, type SentinelSwarmReport } from '@sentinel/domain';
 import { INSTANT_TIMELINE, buildDemoTakeover01, playScenario, syntheticToken, type PlaybackReport } from '@sentinel/scenarios';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { ModelGateway } from '../../src/modules/intelligence/application/ports/model-gateway.port.js';
@@ -196,6 +196,21 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect((await post<RiskExplanation>('explanation')).body).toMatchObject({ status: 'GENERATED', attempts: 1 });
     expect((await post<RiskExplanation>('explanation')).body).toMatchObject({ status: 'CACHED', attempts: 0, advisory: { assessmentId: finalAssessmentId() } });
     expect(model.calls).toHaveLength(1);
+  });
+
+  it('orchestrates the 7-agent swarm across ATO, beneficiary, scam intent, mule trace, verify, recovery and reporting', async () => {
+    const { status, body } = await callJson<SentinelSwarmReport>(harness.baseUrl, 'POST', `/v1/investigations/${finalAssessmentId()}/orchestrate`);
+    expect(status).toBe(200);
+    expect(body.assessmentId).toBe(finalAssessmentId());
+    expect(body.overallThreatLevel).toBe('CRITICAL');
+    expect(body.agents.ato.isTakeoverLikely).toBe(true);
+    expect(body.agents.ato.deviceRisk).toBe('UNSEEN_COMPROMISED');
+    expect(body.agents.beneficiary.payeeRiskTier).toBe('KNOWN_MULE');
+    expect(body.agents.scamIntent.coercionIndex).toBe('ACUTE_COERCION');
+    expect(body.agents.muleTrace.identifiedMuleRing).toBe(true);
+    expect(body.agents.verification.recommendedImmediateAction).toBe('KILL_SWITCH');
+    expect(body.agents.recovery.killSwitchEngaged).toBe(true);
+    expect(body.agents.reporting.isReadyForSignOff).toBe(true);
   });
 });
 

@@ -77,14 +77,44 @@ npm run test:integration
 The integration suites create a throwaway database per run and drop it afterwards; they never touch
 `sentinel_ai` itself.
 
-## Google AI usage
+## Google AI Usage & 7-Agent Autonomous Swarm
 
-| Model tier | Jobs | Called from |
-|---|---|---|
-| Fast (Gemini Flash-class, ID from configuration) | Risk explanation, alert enrichment, entity summary, next-step suggestion | `sentinel-core` intelligence path |
-| Deep (Gemini Pro-class, ID from configuration) | Case summary, evidence correlation, case report draft | `sentinel-core` intelligence path |
+| Tier | Model | Agents / Roles | Architecture |
+|---|---|---|---|
+| **Fast Tier** | Gemini Flash (`gemini-2.5-flash` / `gemini-3.5-flash`) | • ATO Investigation Agent<br>• Beneficiary Intelligence Agent<br>• Scam & Payment Intent Agent<br>• Mule Tracing Agent | Sub-second parallel triaging of multi-entity telemetry, device fingerprinting, and mule account graph analysis. |
+| **Deep Tier** | Gemini Pro (`gemini-2.5-pro` with High Thinking) | • Customer Verification Agent<br>• Recovery & Recall Agent<br>• Case Reporting Agent (MAS & CAD STRO) | Multi-turn reasoning, synthetic customer challenge evaluation, fund recall dispatch, and statutory regulatory filing compilation. |
 
-Every call uses structured output against a response schema; every claim must cite a field of the evidence
-bundle it was given. The model may not add, remove or re-weight a risk contribution and may not recommend
-releasing a held transaction. Explanations are cached by assessment and the demo account's explanation is
-pre-warmed before a presentation.
+### 4-Stage Multi-Agent Orchestration Pipeline
+
+```text
+[Deterministic Pre-Transaction Policy Gate (SG-RD-50) < 50ms] -> Transaction HELD
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 1: Parallel Triage (Sub-Second Ingestion)                        │
+│ ├─ ATO Agent: Device anomaly & behavioral deviation analysis          │
+│ ├─ Beneficiary Agent: Payee age, velocity & mule risk tiering          │
+│ ├─ Scam Intent Agent: Coercion index, urgency markers, payment intent  │
+│ └─ Mule Trace Agent: Cross-bank synthetic graph & hop boundary check   │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 2: Customer Verification (Active Defense)                        │
+│ └─ Customer Verification Agent: Autonomous phone/push challenge review │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 3: Containment & Fund Protection (Mitigation)                    │
+│ └─ Recovery & Recall Agent: Kill-switch proposal & inter-bank recall   │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│ Stage 4: Regulatory Sign-Off & Statutory Reporting                     │
+│ └─ Case Reporting Agent: MAS SRF Section 4.2.5 & CAD STRO Filing draft │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+Every agent enforces strict schema validation and ground-truth citations against the `EvidenceBundle`. No agent can modify a rule score or bypass a human kill switch. Rules decide. Agents explain. Humans authorize.

@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, inject, signal, untracked, type Signal } from '@angular/core';
 import { Store } from '@ngrx/store';
-import type { CaseSummary, DecisionRecord, EvidenceBundle, RiskExplanation } from '@sentinel/domain';
+import type { CaseSummary, DecisionRecord, EvidenceBundle, RiskExplanation, SentinelSwarmReport } from '@sentinel/domain';
 import { transactionsFeature } from '../../../state/transactions/transactions.feature';
 import type { TapeRow } from '../../../workers/transaction-worker-protocol';
 import { selectFocusedDecision } from '../../../state/account-focus/account-focus.selectors';
@@ -54,11 +54,13 @@ export class InvestigationsFacade {
   private readonly evidenceState = signal<{ readonly status: RequestStatus; readonly evidence: EvidenceBundle | null }>({ status: 'IDLE', evidence: null });
   private readonly explanationState = signal<AdvisoryState<RiskExplanation>>(IDLE);
   private readonly summaryState = signal<AdvisoryState<CaseSummary>>(IDLE);
+  private readonly swarmState = signal<{ readonly status: RequestStatus; readonly report: SentinelSwarmReport | null }>({ status: 'IDLE', report: null });
 
   readonly evidenceStatus = computed(() => this.evidenceState().status);
   readonly evidence = computed(() => this.evidenceState().evidence);
   readonly explanation = this.explanationState.asReadonly();
   readonly summary = this.summaryState.asReadonly();
+  readonly swarm = this.swarmState.asReadonly();
   readonly timeline = computed(() => {
     const evidence = this.evidence();
     if (!evidence) return [];
@@ -92,9 +94,20 @@ export class InvestigationsFacade {
     });
   }
 
+  orchestrateSwarm(): void {
+    const assessmentId = this.assessmentId();
+    if (!assessmentId || this.swarmState().status === 'LOADING') return;
+    this.swarmState.set({ status: 'LOADING', report: null });
+    this.api.orchestrateSwarm(assessmentId).subscribe({
+      next: (report) => this.swarmState.set({ status: 'READY', report }),
+      error: () => this.swarmState.set({ status: 'FAILED', report: null }),
+    });
+  }
+
   private open(assessmentId: string | null): void {
     this.explanationState.set(IDLE);
     this.summaryState.set(IDLE);
+    this.swarmState.set({ status: 'IDLE', report: null });
     if (!assessmentId) {
       this.evidenceState.set({ status: 'IDLE', evidence: null });
       return;

@@ -1,8 +1,9 @@
-import type { AdvisoryOutcome, CaseSummary, CustomerOutreachProposal, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
+import type { AdvisoryOutcome, CaseSummary, CustomerOutreachProposal, InvestigationEvidence, RiskExplanation, SentinelSwarmReport } from '@sentinel/domain';
 import { templateOutreach } from './customer-outreach.template.js';
 import type { ActingContext } from '../../audit/application/audit-trail.js';
 import type { TenantAccessService } from '../../tenant-access/application/tenant-access.service.js';
 import type { ExplainAndSummarise } from '../../intelligence/application/explain-and-summarise.use-case.js';
+import { SentinelAgentOrchestrator } from '../../intelligence/application/sentinel-agent-orchestrator.service.js';
 import type { AdviseInvestigation } from './advise-investigation.use-case.js';
 import type { CompileEvidenceBundle } from './compile-evidence-bundle.use-case.js';
 import type { CaseSummaryArchive } from './ports/case-summary-archive.port.js';
@@ -10,13 +11,18 @@ import type { Clock } from '../../../platform/time/clock.js';
 
 /** Compiles the bundle first, then asks for advice on exactly that bundle. Read-only towards every decision. */
 export class InvestigationAdvisor implements AdviseInvestigation {
+  private readonly defaultOrchestrator: SentinelAgentOrchestrator;
+
   constructor(
     private readonly bundles: CompileEvidenceBundle,
     private readonly intelligence: ExplainAndSummarise,
     private readonly summaries: CaseSummaryArchive,
     private readonly clock: Clock,
     private readonly access: TenantAccessService,
-  ) {}
+    orchestrator?: SentinelAgentOrchestrator,
+  ) {
+    this.defaultOrchestrator = orchestrator ?? new SentinelAgentOrchestrator({ clock: this.clock });
+  }
 
   async evidence(assessmentId: string, context: ActingContext): Promise<InvestigationEvidence> {
     await this.authorise(assessmentId, context);
@@ -46,6 +52,12 @@ export class InvestigationAdvisor implements AdviseInvestigation {
     return model.status === 'FALLBACK'
       ? { source: 'TEMPLATE', draft: templateOutreach(evidence), model }
       : { source: 'GEMINI', draft: model.advisory, model };
+  }
+
+  async orchestrateSwarm(assessmentId: string, context: ActingContext): Promise<SentinelSwarmReport> {
+    await this.authorise(assessmentId, context);
+    const evidence = await this.bundles.compile(assessmentId);
+    return this.defaultOrchestrator.orchestrate(assessmentId, evidence);
   }
 
   private async authorise(assessmentId: string, context: ActingContext): Promise<void> {
