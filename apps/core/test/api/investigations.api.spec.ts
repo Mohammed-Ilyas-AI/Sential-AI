@@ -205,12 +205,18 @@ describe('/v1/investigations — evidence-grounded advisory on DEMO_TAKEOVER_01'
     expect(body.overallThreatLevel).toBe('CRITICAL');
     expect(body.agents.ato.isTakeoverLikely).toBe(true);
     expect(body.agents.ato.deviceRisk).toBe('UNSEEN_COMPROMISED');
-    expect(body.agents.beneficiary.payeeRiskTier).toBe('KNOWN_MULE');
-    expect(body.agents.scamIntent.coercionIndex).toBe('ACUTE_COERCION');
-    expect(body.agents.muleTrace.identifiedMuleRing).toBe(true);
+    // The ATO finding is the rule points behind it, not a made-up confidence: NEW_DEVICE 21 + NEW_PAYEE 16.
+    expect(body.agents.ato.atoSignalPoints).toBe(DEMO_TAKEOVER_01.finalContributions.NEW_DEVICE + DEMO_TAKEOVER_01.finalContributions.NEW_PAYEE);
+    expect(body.agents.beneficiary.payeeRiskTier).toBe('FLAGGED_NEIGHBOURHOOD');
+    expect(body.agents.scamIntent).toMatchObject({ scamTypology: 'ACCOUNT_TAKEOVER', outflowPressure: 'ACUTE' });
+    expect(body.agents.scamIntent.behavioralAnomalySummary).toContain('65.4%');
+    expect(body.agents.muleTrace.flaggedNeighbourhood).toBe(true);
+    expect(body.agents.muleTrace.pathEntities.every((entity) => !entity.includes('MULE-NODE'))).toBe(true);
     expect(body.agents.verification.recommendedImmediateAction).toBe('KILL_SWITCH');
-    expect(body.agents.recovery.killSwitchEngaged).toBe(true);
-    expect(body.agents.reporting.isReadyForSignOff).toBe(true);
+    // Agents recommend; the analyst approves. Nothing in the report says a kill switch is on or a recall was sent.
+    expect(body.agents.recovery).toMatchObject({ killSwitchRecommended: true, heldTransfers: 1, heldMinorUnits: 1_150_000, recallRecommendation: 'RECOMMENDED' });
+    expect(body.agents.reporting.readyForAnalystReview).toBe(true);
+    expect(JSON.stringify(body)).not.toMatch(/MAS|CAD|STRO|Vertex|Gemini|dispatched|RELEASE_HOLD|syndicate/i);
   });
 });
 

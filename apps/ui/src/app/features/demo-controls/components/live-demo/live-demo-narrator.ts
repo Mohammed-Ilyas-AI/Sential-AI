@@ -1,7 +1,7 @@
 import type { ElementRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, viewChild } from '@angular/core';
 import { Icon } from '../../../../shared/ui/icon/icon';
-import { LIVE_DEMO_STEPS, LiveDemoAutopilot, type ConsoleSpeaker } from '../../data-access/live-demo-autopilot';
+import { BURST_DEMO_STEPS, LIVE_DEMO_STEPS, LiveDemoAutopilot, type ConsoleSpeaker } from '../../data-access/live-demo-autopilot';
 import { CustomerPhone } from './customer-phone';
 
 const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
@@ -11,14 +11,14 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
   AGENT: 'SENTINEL agent',
   ANALYST: 'Analyst',
   CUSTOMER: 'Customer',
-  SWARM: 'Swarm Orchestrator',
-  ATO_AGENT: 'Agent 1 · ATO Intel',
-  BENEFICIARY_AGENT: 'Agent 2 · Beneficiary Intel',
-  SCAM_AGENT: 'Agent 3 · Scam Intent',
-  MULE_AGENT: 'Agent 4 · Mule Tracing',
-  VERIFY_AGENT: 'Agent 5 · Customer Verify',
-  RECALL_AGENT: 'Agent 6 · Recovery & Recall',
-  REPORT_AGENT: 'Agent 7 · CAD STRO Filing',
+  SWARM: '7-agent swarm',
+  ATO_AGENT: 'Agent 1 · Account takeover',
+  BENEFICIARY_AGENT: 'Agent 2 · Beneficiary',
+  SCAM_AGENT: 'Agent 3 · Scam pattern',
+  MULE_AGENT: 'Agent 4 · Mule tracing',
+  VERIFY_AGENT: 'Agent 5 · Customer verification',
+  RECALL_AGENT: 'Agent 6 · Containment',
+  REPORT_AGENT: 'Agent 7 · Case reporting',
 };
 
 /**
@@ -47,7 +47,7 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
         </header>
 
         <ol class="steps">
-          @for (item of steps; track item.step; let index = $index) {
+          @for (item of steps(); track item.step; let index = $index) {
             <li [attr.data-state]="index < current() ? 'done' : index === current() ? 'now' : 'next'">{{ item.label }}</li>
           }
         </ol>
@@ -73,7 +73,7 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
         }
 
         @if (!demo.running()) {
-          <button type="button" class="again" (click)="demo.start()">Run the live demo again</button>
+          <button type="button" class="again" (click)="again()">{{ demo.mode() === 'BURST' ? 'Run the burst again' : 'Run the live demo again' }}</button>
         }
       </aside>
 
@@ -297,12 +297,17 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
 })
 export class LiveDemoNarrator {
   protected readonly demo = inject(LiveDemoAutopilot);
-  protected readonly steps = LIVE_DEMO_STEPS;
+  protected readonly steps = computed(() => (this.demo.mode() === 'BURST' ? BURST_DEMO_STEPS : LIVE_DEMO_STEPS));
   protected readonly speakers = SPEAKERS;
   protected readonly current = computed(() => {
     const step = this.demo.step();
-    return step ? LIVE_DEMO_STEPS.findIndex((item) => item.step === step) : -1;
+    return step ? this.steps().findIndex((item) => item.step === step) : -1;
   });
+
+  protected again(): void {
+    if (this.demo.mode() === 'BURST') void this.demo.startBurst();
+    else void this.demo.start();
+  }
   private readonly logList = viewChild<ElementRef<HTMLElement>>('log');
 
   constructor() {

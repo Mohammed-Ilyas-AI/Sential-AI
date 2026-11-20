@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
-import type { SentinelSwarmReport } from '@sentinel/domain';
+import type { ScamPattern, SentinelSwarmReport } from '@sentinel/domain';
 import { Icon } from '../../../../shared/ui/icon/icon';
 
 @Component({
@@ -14,10 +14,10 @@ import { Icon } from '../../../../shared/ui/icon/icon';
           <span class="spark" aria-hidden="true"><sentinel-icon name="radar" [size]="20" /></span>
           <div>
             <div class="heading-row">
-              <h2 id="swarm-title">Google Cloud Vertex AI · 7-Agent Autonomous Swarm</h2>
-              <span class="swarm-badge">Dual-Tier Gemini · 4-Stage Mesh</span>
+              <h2 id="swarm-title">7-Agent Swarm · specialist agents on this case</h2>
+              <span class="swarm-badge">4 stages · deterministic</span>
             </div>
-            <p class="subtitle">Autonomous parallel triage, customer defense challenge, capital containment &amp; MAS SRF statutory filing.</p>
+            <p class="subtitle">Seven specialists work the same evidence bundle: triage in parallel, customer verification, containment, case reporting. Agents recommend; the analyst approves; the rules hold.</p>
           </div>
         </div>
         <button
@@ -28,45 +28,45 @@ import { Icon } from '../../../../shared/ui/icon/icon';
         >
           @if (status() === 'LOADING') {
             <span class="spinner" aria-hidden="true"></span>
-            <span>Orchestrating 7 Agents…</span>
+            <span>Working the case…</span>
           } @else {
             <span class="pulse-dot" aria-hidden="true"></span>
-            <span>{{ report() ? 'Re-run Swarm Analysis' : 'Run 7-Agent Swarm Orchestrator' }}</span>
+            <span>{{ report() ? 'Run the swarm again' : 'Run the 7-agent swarm' }}</span>
           }
         </button>
       </header>
 
-      <!-- 4-Stage Pipeline Visual Tracker -->
-      <nav class="pipeline-track" aria-label="Multi-Agent Pipeline Stages">
+      <!-- The four stages, in the order the orchestrator runs them -->
+      <nav class="pipeline-track" aria-label="Swarm stages">
         <div class="stage-node done">
           <span class="stage-num">STAGE 1</span>
-          <span class="stage-name">Parallel Triage</span>
-          <small class="stage-model">Gemini 2.5 Flash</small>
+          <span class="stage-name">Parallel triage</span>
+          <small class="stage-model">Agents 1–4</small>
         </div>
         <span class="stage-arrow" aria-hidden="true">➔</span>
         <div class="stage-node done">
           <span class="stage-num">STAGE 2</span>
-          <span class="stage-name">Customer Defense</span>
-          <small class="stage-model">Gemini 2.5 Pro</small>
+          <span class="stage-name">Customer verification</span>
+          <small class="stage-model">Agent 5</small>
         </div>
         <span class="stage-arrow" aria-hidden="true">➔</span>
         <div class="stage-node done">
           <span class="stage-num">STAGE 3</span>
-          <span class="stage-name">Capital Containment</span>
-          <small class="stage-model">Gemini 2.5 Pro</small>
+          <span class="stage-name">Containment</span>
+          <small class="stage-model">Agent 6</small>
         </div>
         <span class="stage-arrow" aria-hidden="true">➔</span>
         <div class="stage-node done">
           <span class="stage-num">STAGE 4</span>
-          <span class="stage-name">Regulatory Sign-Off</span>
-          <small class="stage-model">MAS SRF &amp; CAD STRO</small>
+          <span class="stage-name">Case reporting</span>
+          <small class="stage-model">Agent 7</small>
         </div>
       </nav>
 
       @if (status() === 'LOADING') {
         <div class="loading-state" role="status" aria-live="polite">
           <span class="spinner" aria-hidden="true"></span>
-          <span>Orchestrating 7 Autonomous Agents on Vertex AI across sub-second triaging and regulatory synthesis…</span>
+          <span>Seven agents are working the evidence bundle…</span>
         </div>
       }
 
@@ -74,7 +74,11 @@ import { Icon } from '../../../../shared/ui/icon/icon';
         <div class="threat-banner" [attr.data-threat]="swarm.overallThreatLevel">
           <div class="threat-info">
             <span class="threat-pill">THREAT LEVEL: {{ swarm.overallThreatLevel }}</span>
-            <span class="threat-desc">7 Agents reached unanimous consensus · 4-Eyes Kill Switch engaged · S$52,000 Outflow Held</span>
+            <span class="threat-desc">
+              {{ pattern(swarm.agents.scamIntent.scamTypology) }} ·
+              {{ swarm.agents.recovery.heldTransfers > 0 ? swarm.agents.recovery.heldTransfers + ' held by the gate (' + sgd(swarm.agents.recovery.heldMinorUnits) + ')' : 'not held by the gate' }} ·
+              {{ swarm.agents.recovery.killSwitchRecommended ? 'kill switch recommended for analyst approval' : 'no kill switch recommended' }}
+            </span>
           </div>
           <span class="threat-time">Evaluated at {{ swarm.evaluatedAt | date: 'HH:mm:ss' }}</span>
         </div>
@@ -83,130 +87,132 @@ import { Icon } from '../../../../shared/ui/icon/icon';
           <!-- Agent 1 -->
           <article class="agent-card">
             <div class="card-top">
-              <span class="stage-tag">STAGE 1 · FAST TIER</span>
-              <span class="model-tag">Gemini Flash</span>
+              <span class="stage-tag">STAGE 1 · TRIAGE</span>
+              <span class="model-tag">Agent 1</span>
             </div>
-            <h4>1. ATO Investigation</h4>
-            <span class="pill danger" [attr.data-risk]="swarm.agents.ato.deviceRisk">{{ swarm.agents.ato.deviceRisk }}</span>
+            <h4>Account takeover</h4>
+            <span class="pill danger" [attr.data-risk]="swarm.agents.ato.deviceRisk">{{ label(swarm.agents.ato.deviceRisk) }}</span>
             <p>{{ swarm.agents.ato.authenticationLineage }}</p>
             <div class="agent-metric">
-              <b>Confidence: {{ swarm.agents.ato.atoConfidenceScore }}%</b>
-              <span>{{ swarm.agents.ato.isTakeoverLikely ? 'Takeover Likely' : 'Low Risk' }}</span>
+              <b>Signal points: {{ swarm.agents.ato.atoSignalPoints }}</b>
+              <span>{{ swarm.agents.ato.isTakeoverLikely ? 'Takeover likely' : 'No takeover signals' }}</span>
             </div>
           </article>
 
           <!-- Agent 2 -->
           <article class="agent-card">
             <div class="card-top">
-              <span class="stage-tag">STAGE 1 · FAST TIER</span>
-              <span class="model-tag">Gemini Flash</span>
+              <span class="stage-tag">STAGE 1 · TRIAGE</span>
+              <span class="model-tag">Agent 2</span>
             </div>
-            <h4>2. Beneficiary Intel</h4>
-            <span class="pill warning" [attr.data-risk]="swarm.agents.beneficiary.payeeRiskTier">{{ swarm.agents.beneficiary.payeeRiskTier }}</span>
+            <h4>Beneficiary</h4>
+            <span class="pill warning" [attr.data-risk]="swarm.agents.beneficiary.payeeRiskTier">{{ label(swarm.agents.beneficiary.payeeRiskTier) }}</span>
             <p>{{ swarm.agents.beneficiary.counterpartyAssessment }}</p>
             <div class="agent-metric">
-              <b>Payee Risk: {{ swarm.agents.beneficiary.payeeRiskTier }}</b>
-              <span>{{ swarm.agents.beneficiary.dormantPayeeActivated ? 'Dormant Activated' : 'Active Account' }}</span>
+              <b>Payee: {{ label(swarm.agents.beneficiary.payeeRiskTier) }}</b>
+              <span>{{ swarm.agents.beneficiary.dormantPayeeActivated ? 'Large first transfer' : 'Usual size' }}</span>
             </div>
           </article>
 
           <!-- Agent 3 -->
           <article class="agent-card">
             <div class="card-top">
-              <span class="stage-tag">STAGE 1 · FAST TIER</span>
-              <span class="model-tag">Gemini Flash</span>
+              <span class="stage-tag">STAGE 1 · TRIAGE</span>
+              <span class="model-tag">Agent 3</span>
             </div>
-            <h4>3. Scam Intent</h4>
-            <span class="pill danger" [attr.data-coercion]="swarm.agents.scamIntent.coercionIndex">{{ swarm.agents.scamIntent.coercionIndex }}</span>
+            <h4>Scam pattern</h4>
+            <span class="pill danger" [attr.data-pressure]="swarm.agents.scamIntent.outflowPressure">{{ pattern(swarm.agents.scamIntent.scamTypology) }}</span>
             <p>{{ swarm.agents.scamIntent.behavioralAnomalySummary }}</p>
             <div class="agent-metric">
-              <b>Typology: {{ swarm.agents.scamIntent.scamTypology }}</b>
-              <span>Coercion: {{ swarm.agents.scamIntent.coercionIndex }}</span>
+              <b>Pattern: {{ pattern(swarm.agents.scamIntent.scamTypology) }}</b>
+              <span>Outflow pressure: {{ label(swarm.agents.scamIntent.outflowPressure) }}</span>
             </div>
           </article>
 
           <!-- Agent 4 -->
           <article class="agent-card">
             <div class="card-top">
-              <span class="stage-tag">STAGE 1 · FAST TIER</span>
-              <span class="model-tag">Gemini Flash</span>
+              <span class="stage-tag">STAGE 1 · TRIAGE</span>
+              <span class="model-tag">Agent 4</span>
             </div>
-            <h4>4. Mule Tracing</h4>
-            <span class="pill" [class.danger]="swarm.agents.muleTrace.identifiedMuleRing">{{ swarm.agents.muleTrace.identifiedMuleRing ? 'MULE RING DETECTED' : 'CLEAR' }}</span>
+            <h4>Mule tracing</h4>
+            <span class="pill" [class.danger]="swarm.agents.muleTrace.flaggedNeighbourhood">{{ swarm.agents.muleTrace.flaggedNeighbourhood ? 'Flagged entities linked' : 'No flagged links' }}</span>
             <p>{{ swarm.agents.muleTrace.observabilityStopReason }}</p>
             <div class="agent-metric">
-              <b>Observed Hops: {{ swarm.agents.muleTrace.observedHops }}</b>
-              <span>Entities: {{ swarm.agents.muleTrace.pathEntities.length }}</span>
+              <b>Observed hops: {{ swarm.agents.muleTrace.observedHops }}</b>
+              <span>Entities on the path: {{ swarm.agents.muleTrace.pathEntities.length }}</span>
             </div>
           </article>
 
           <!-- Agent 5 -->
           <article class="agent-card">
             <div class="card-top">
-              <span class="stage-tag">STAGE 2 · DEEP TIER</span>
-              <span class="model-tag">Gemini Pro</span>
+              <span class="stage-tag">STAGE 2 · VERIFICATION</span>
+              <span class="model-tag">Agent 5</span>
             </div>
-            <h4>5. Customer Verify</h4>
-            <span class="pill warning" [attr.data-call]="swarm.agents.verification.callOutcome">{{ swarm.agents.verification.callOutcome }}</span>
+            <h4>Customer verification</h4>
+            <span class="pill warning">{{ label(swarm.agents.verification.proposedChannel) }} proposed</span>
             <p>{{ swarm.agents.verification.verificationScript }}</p>
             <div class="agent-metric">
-              <b>Channel: {{ swarm.agents.verification.channelUsed }}</b>
-              <span>Action: {{ swarm.agents.verification.recommendedImmediateAction }}</span>
+              <b>Channel: {{ label(swarm.agents.verification.proposedChannel) }}</b>
+              <span>Recommends: {{ label(swarm.agents.verification.recommendedImmediateAction) }}</span>
             </div>
           </article>
 
           <!-- Agent 6 -->
           <article class="agent-card">
             <div class="card-top">
-              <span class="stage-tag">STAGE 3 · DEEP TIER</span>
-              <span class="model-tag">Gemini Pro</span>
+              <span class="stage-tag">STAGE 3 · CONTAINMENT</span>
+              <span class="model-tag">Agent 6</span>
             </div>
-            <h4>6. Recovery &amp; Recall</h4>
-            <span class="pill" [class.danger]="swarm.agents.recovery.killSwitchEngaged">{{ swarm.agents.recovery.killSwitchEngaged ? 'KILL SWITCH ENGAGED' : 'STANDBY' }}</span>
-            <p>Inter-bank pre-settlement recall dispatched: {{ swarm.agents.recovery.interbankRecallStatus }}.</p>
+            <h4>Recovery &amp; containment</h4>
+            <span class="pill" [class.danger]="swarm.agents.recovery.killSwitchRecommended">{{ swarm.agents.recovery.killSwitchRecommended ? 'Kill switch recommended' : 'Monitoring' }}</span>
+            <p>
+              The gate holds {{ swarm.agents.recovery.heldTransfers }} transfer(s), {{ sgd(swarm.agents.recovery.heldMinorUnits) }}.
+              Recall to the receiving bank: {{ label(swarm.agents.recovery.recallRecommendation) }}, for the analyst.
+            </p>
             <div class="agent-metric">
-              <b>Recall: {{ swarm.agents.recovery.interbankRecallStatus }}</b>
-              <span>Holds Placed: {{ swarm.agents.recovery.cascadedHoldsPlaced }}</span>
+              <b>Held: {{ sgd(swarm.agents.recovery.heldMinorUnits) }}</b>
+              <span>Analyst approves any kill switch</span>
             </div>
           </article>
 
           <!-- Agent 7 -->
           <article class="agent-card full-width">
             <div class="card-top">
-              <span class="stage-tag">STAGE 4 · DEEP TIER</span>
-              <span class="model-tag">Gemini Pro · MAS Compliance</span>
+              <span class="stage-tag">STAGE 4 · CASE REPORTING</span>
+              <span class="model-tag">Agent 7</span>
             </div>
             <div class="reporting-header">
               <div>
-                <h4>7. Regulatory STR Reporting (MAS SRF &amp; CAD STRO)</h4>
+                <h4>Case reporting</h4>
                 <p class="summary-prose">{{ swarm.agents.reporting.executiveSummary }}</p>
               </div>
               <button type="button" class="dossier-btn" (click)="toggleDossier()">
-                {{ dossierOpen() ? 'Hide CAD Dossier' : 'View CAD STRO Form 1 Dossier' }}
+                {{ dossierOpen() ? 'Hide the draft' : 'View the draft for analyst review' }}
               </button>
             </div>
 
             @if (dossierOpen()) {
               <div class="dossier-wrapper">
                 <div class="dossier-meta">
-                  <span>REGULATION: MAS Notice 644 / SRF §4.2.5</span>
-                  <span>CAD FORM 1 STATUTORY FILING READY FOR 1-CLICK SIGN-OFF</span>
+                  <span>DRAFT · for the analyst to review, edit and sign off in the case report</span>
+                  <span>Nothing is filed by an agent</span>
                 </div>
-                <pre class="dossier">{{ swarm.agents.reporting.cadReportDossier }}</pre>
+                <pre class="dossier">{{ swarm.agents.reporting.draftSummary }}</pre>
               </div>
             }
           </article>
         </div>
       } @else if (status() !== 'LOADING') {
-        <!-- Standby Overview when report is not yet loaded -->
         <div class="standby-box">
           <div class="standby-header">
-            <b>Autonomous Defense Mesh on Standby</b>
-            <p>7 specialized Vertex AI agents stand ready to dissect ATO telemetry, counterparty risks, mule routing, and compile CAD STRO statutory reports.</p>
+            <b>Seven specialist agents, ready</b>
+            <p>Takeover, beneficiary, scam pattern and mule tracing in parallel, then customer verification, containment and case reporting, all on this case's evidence bundle.</p>
           </div>
           <button type="button" class="run-cta-btn" (click)="orchestrate.emit()">
             <span class="pulse-dot" aria-hidden="true"></span>
-            <span>Dispatch 7-Agent Swarm Orchestrator</span>
+            <span>Run the 7-agent swarm</span>
           </button>
         </div>
       }
@@ -571,4 +577,27 @@ export class AgentSwarmComponent {
   toggleDossier(): void {
     this.dossierOpen.update((open) => !open);
   }
+
+  protected pattern(value: ScamPattern): string {
+    return SCAM_PATTERN_LABELS[value];
+  }
+
+  /** UPPER_SNAKE codes as words, for the cards. */
+  protected label(value: string): string {
+    const words = value.replaceAll('_', ' ').toLowerCase();
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
+  protected sgd(minorUnits: number): string {
+    return `S$${(minorUnits / 100).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
 }
+
+/** The reference's four scenario patterns as the agents name them (docs/reference/sentinel-ai-prototype.html). */
+export const SCAM_PATTERN_LABELS: Readonly<Record<ScamPattern, string>> = {
+  ACCOUNT_TAKEOVER: 'Account takeover',
+  CREDENTIAL_REPLAY: 'Credential replay',
+  MULE_FORWARDING: 'Mule forwarding',
+  SMURFING: 'Smurfing',
+  UNCLASSIFIED: 'Unclassified outflow',
+};

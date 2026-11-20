@@ -98,6 +98,7 @@ export function composeCoreHttp({ config, persistence, clock, ids, logger, model
     liveDemoTimeline ?? (() => new RealTimeTimeline()),
     audit,
     clock,
+    intelligencePath.investigations,
   );
   const app = createApp({
     routes: [

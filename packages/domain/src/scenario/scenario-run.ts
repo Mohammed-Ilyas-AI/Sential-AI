@@ -1,3 +1,7 @@
+import type { ReferenceScenarioKey } from '../constants/reference-scenarios.constants.js';
+import type { Decision } from '../decision/decision.js';
+import type { SentinelSwarmReport } from '../intelligence/agent-swarm.js';
+import type { RiskBand } from '../risk/risk-assessment.js';
 import type { IsoTimestamp } from '../time/iso-timestamp.js';
 
 export type ScenarioRunStatus = 'LAUNCHING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
@@ -57,4 +61,37 @@ export interface LiveDemoReport {
   readonly finishedAt: IsoTimestamp;
   readonly transfers: number;
   readonly held: readonly LiveDemoHold[];
+}
+
+/** One case of the multi-scam burst: what the gate decided and what the seven agents found. */
+export interface MultiScamBurstCase {
+  readonly scenario: ReferenceScenarioKey;
+  readonly scenarioName: string;
+  readonly institutionId: string;
+  readonly accountDisplayId: string;
+  readonly accountId: string;
+  readonly transfers: number;
+  /** The case's worst outcome: HOLD if the gate held any of its transfers, otherwise ALLOW. */
+  readonly decision: Decision;
+  /** The highest score among its transfers, and the assessment that carried it. */
+  readonly peakScore: number;
+  readonly peakBand: RiskBand;
+  readonly assessmentId: string;
+  readonly drainPct: number;
+  readonly held: readonly LiveDemoHold[];
+  /** Present for every case that reached HIGH or CRITICAL, or was held. */
+  readonly swarm?: SentinelSwarmReport;
+}
+
+/**
+ * MULTI_SCAM_BURST_01 played through sentinel-core's control path: twelve concurrent cases across three banks,
+ * each decided by the rules and worked by the 7-agent swarm. Synthetic only.
+ */
+export interface MultiScamBurstReport {
+  readonly runId: string;
+  readonly scenarioId: 'MULTI_SCAM_BURST_01';
+  readonly startedAt: IsoTimestamp;
+  readonly finishedAt: IsoTimestamp;
+  readonly transfers: number;
+  readonly cases: readonly MultiScamBurstCase[];
 }

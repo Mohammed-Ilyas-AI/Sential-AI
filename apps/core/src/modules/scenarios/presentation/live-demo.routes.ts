@@ -27,8 +27,13 @@ export function liveDemoRoutes(service: LiveDemoService): HttpRouteRegistration 
     const body = validatedBodyOf<LiveDemoBody>(response);
     response.status(200).json(await service.attemptFollowUpTransfer(actingContext(response, 'ANALYST', body.analystIdentity), request.params.runId));
   };
+  const burst: RequestHandler = async (_request, response) => {
+    const body = validatedBodyOf<LiveDemoBody>(response);
+    response.status(200).json(await service.runBurst(actingContext(response, 'ANALYST', body.analystIdentity)));
+  };
   const router = Router();
   router.post('/', validateRequestBody(liveDemoValidator), run);
+  router.post('/burst', validateRequestBody(liveDemoValidator), burst);
   router.post('/:runId/follow-up-transfer', validateRequestBody(liveDemoValidator), followUp);
   return { basePath: '/v1/demo/live-demo', router };
 }

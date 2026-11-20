@@ -2,13 +2,39 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { DEMO_TAKEOVER_01, type CustomerOutreachProposal, type DecisionResponse, type Intervention, type LiveDemoHold, type LiveDemoReport } from '@sentinel/domain';
+import {
+  DEMO_TAKEOVER_01,
+  type CustomerOutreachProposal,
+  type DecisionResponse,
+  type Intervention,
+  type LiveDemoHold,
+  type LiveDemoReport,
+  type MultiScamBurstCase,
+  type MultiScamBurstReport,
+  type SentinelSwarmReport,
+} from '@sentinel/domain';
 import { firstValueFrom } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
 import { sessionFeature } from '../../../state/session/session.feature';
 
-export type LiveDemoStep = 'STREAM' | 'HOLD' | 'SWARM' | 'CALL' | 'KILL_SWITCH' | 'OUTREACH' | 'BLOCKED' | 'TRACE' | 'DONE';
+export type LiveDemoStep =
+  | 'STREAM'
+  | 'HOLD'
+  | 'SWARM'
+  | 'CALL'
+  | 'KILL_SWITCH'
+  | 'OUTREACH'
+  | 'BLOCKED'
+  | 'TRACE'
+  | 'DONE'
+  | 'BURST_STREAM'
+  | 'BURST_DECIDED'
+  | 'BURST_SWARM'
+  | 'BURST_APPROVE'
+  | 'BURST_CASES'
+  | 'BURST_DONE';
+export type LiveDemoMode = 'TAKEOVER' | 'BURST';
 /** What the walkthrough asks the Investigations action centre to do, on screen, as the demo analyst. */
 export type LiveDemoCommandKind = 'CALL' | 'KILL_SWITCH' | 'VOICEMAIL' | 'EMAIL';
 
@@ -65,6 +91,19 @@ export const LIVE_DEMO_STEPS: readonly { readonly step: LiveDemoStep; readonly l
   { step: 'DONE', label: 'Protected' },
 ];
 
+/** The multi-scam burst's tour: twelve cases across three banks, at once. */
+export const BURST_DEMO_STEPS: readonly { readonly step: LiveDemoStep; readonly label: string }[] = [
+  { step: 'BURST_STREAM', label: '12 cases, 3 banks' },
+  { step: 'BURST_DECIDED', label: 'Rules decide' },
+  { step: 'BURST_SWARM', label: '7 agents per case' },
+  { step: 'BURST_APPROVE', label: 'Analyst approves' },
+  { step: 'BURST_CASES', label: 'Cases' },
+  { step: 'BURST_DONE', label: 'Contained' },
+];
+
+/** How long the burst tour stays on each page while the twelve cases play (about 25 s in all). */
+const BURST_PAGE_MS = { TOWER: 5_000, TAPE: 9_000, LINE: 450, CASE: 6_000 } as const;
+
 /**
  * At demo time a hold auto-releases 24 s after it is placed, so everything between the hold and the kill switch is
  * kept short; the customer message is requested the moment the hold is known, and the slower Gemini work (the
@@ -74,6 +113,35 @@ const PAUSE_MS = { SHOW_HOLD: 3_500, OPEN_CASE: 2_500, RING: 4_000, AFTER: 1_500
 const COMMAND_TIMEOUT_MS = 120_000;
 /** How long the tour waits for Gemini's draft after the hold before sending sentinel-core's fixed wording. */
 const DRAFT_PATIENCE_MS = 25_000;
+
+const PATTERN: Readonly<Record<SentinelSwarmReport['agents']['scamIntent']['scamTypology'], string>> = {
+  ACCOUNT_TAKEOVER: 'account takeover',
+  CREDENTIAL_REPLAY: 'credential replay',
+  MULE_FORWARDING: 'mule forwarding',
+  SMURFING: 'smurfing',
+  UNCLASSIFIED: 'unclassified outflow',
+};
+
+/** Stage 1 of the swarm in the console: each triage agent's finding on this case, as the report states it. */
+export function swarmTriageLines(swarm: SentinelSwarmReport | null): readonly (readonly [ConsoleSpeaker, string])[] {
+  if (!swarm) return [['SWARM', 'The swarm report is still being compiled; the Investigations panel shows it when it lands.']];
+  const { ato, beneficiary, scamIntent, muleTrace } = swarm.agents;
+  return [
+    ['ATO_AGENT', `${ato.isTakeoverLikely ? 'Takeover likely' : 'No takeover signals'}. ${ato.authenticationLineage}`],
+    ['BENEFICIARY_AGENT', beneficiary.counterpartyAssessment],
+    ['SCAM_AGENT', scamIntent.behavioralAnomalySummary],
+    ['MULE_AGENT', muleTrace.flaggedNeighbourhood ? `Flagged entities within ${muleTrace.observedHops} hops of the payee. ${muleTrace.observabilityStopReason}` : 'No flagged entities around the payee.'],
+  ];
+}
+
+/** One console line per burst case: what the gate decided and what the seven agents found. */
+export function burstCaseLine(entry: MultiScamBurstCase): string {
+  const bank = entry.institutionId.replace('BANK_', 'Bank ');
+  const outcome = entry.decision === 'HOLD' ? `HOLD (${entry.drainPct}% drain)` : `${entry.peakBand} ${entry.peakScore}, not held`;
+  if (!entry.swarm) return `${entry.accountDisplayId} · ${bank} · ${entry.scenarioName}: ${outcome}. Scored and left in the queue.`;
+  const { scamIntent, recovery } = entry.swarm.agents;
+  return `${entry.accountDisplayId} · ${bank} · ${PATTERN[scamIntent.scamTypology]}: ${outcome}. ${recovery.killSwitchRecommended ? 'Kill switch recommended.' : 'Monitoring.'}`;
+}
 
 const sgd = (minorUnits: number): string => `S$${(minorUnits / 100).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -97,7 +165,9 @@ export class LiveDemoAutopilot {
   private readonly analyst = this.store.selectSignal(sessionFeature.selectAnalystIdentity);
 
   readonly status = signal<'IDLE' | 'RUNNING' | 'DONE' | 'FAILED'>('IDLE');
+  readonly mode = signal<LiveDemoMode>('TAKEOVER');
   readonly step = signal<LiveDemoStep | null>(null);
+  readonly burst = signal<MultiScamBurstReport | null>(null);
   readonly failure = signal<string | null>(null);
   readonly hold = signal<LiveDemoHold | null>(null);
   readonly running = computed(() => this.status() === 'RUNNING');
@@ -120,9 +190,40 @@ export class LiveDemoAutopilot {
   private approve: (() => void) | null = null;
   private stopped = false;
 
+  /**
+   * The multi-scam burst (MULTI_SCAM_BURST_01): the reference's four scam patterns on twelve accounts across three
+   * banks, played concurrently through the real control path. The rules decide every transfer; then the seven agents
+   * work every case the gate held or scored HIGH or CRITICAL; the agents recommend kill switches where the customer's
+   * account looks compromised; the analyst approves them (in the demo, after a visible countdown as the demo analyst).
+   */
+  async startBurst(): Promise<void> {
+    if (this.running()) return;
+    this.reset();
+    this.mode.set('BURST');
+    this.status.set('RUNNING');
+    try {
+      const identity = this.analyst() ?? 'demo-analyst';
+      const run = firstValueFrom(this.api.post<MultiScamBurstReport>('/v1/demo/live-demo/burst', { analystIdentity: identity }));
+      await this.burstTour(run);
+      const report = await run;
+      this.guard();
+      this.burst.set(report);
+      await this.workTheBurst(report, identity);
+      this.status.set('DONE');
+    } catch (error) {
+      if (this.stopped || error instanceof Stopped) return;
+      this.status.set('FAILED');
+      this.failure.set(this.describe(error));
+      this.say('AGENT', `Stopped: ${this.describe(error)}`);
+    } finally {
+      this.approval.set(null);
+    }
+  }
+
   async start(): Promise<void> {
     if (this.running()) return;
     this.reset();
+    this.mode.set('TAKEOVER');
     this.status.set('RUNNING');
     try {
       const identity = this.analyst() ?? 'demo-analyst';
@@ -134,8 +235,8 @@ export class LiveDemoAutopilot {
       if (!held) throw new Error('The scenario finished without a held transfer.');
       this.hold.set(held);
       this.prefetchOutreach(held.assessmentId);
-      void firstValueFrom(this.api.post(`/v1/investigations/${encodeURIComponent(held.assessmentId)}/orchestrate`, {})).catch(() => null);
-      await this.workTheCase(finished.runId, held, identity);
+      const swarm = firstValueFrom(this.api.post<SentinelSwarmReport>(`/v1/investigations/${encodeURIComponent(held.assessmentId)}/orchestrate`, {})).catch(() => null);
+      await this.workTheCase(finished.runId, held, identity, swarm);
       this.status.set('DONE');
     } catch (error) {
       if (this.stopped || error instanceof Stopped) return;
@@ -220,7 +321,7 @@ export class LiveDemoAutopilot {
     return null;
   }
 
-  private async workTheCase(runId: string, held: LiveDemoHold, identity: string): Promise<void> {
+  private async workTheCase(runId: string, held: LiveDemoHold, identity: string, swarmReport: Promise<SentinelSwarmReport | null>): Promise<void> {
     // The hold: the rules decided, the customer was notified at once.
     this.at('HOLD');
     this.say('RULES', `HOLD. ${sgd(held.amount)} takes the 24-hour drain past 50% (SG-RD-50). Risk ${held.riskScore}/100. The transfer does not leave the bank.`);
@@ -232,18 +333,17 @@ export class LiveDemoAutopilot {
     this.store.dispatch(AlertsActions.accountSelected({ accountId: held.accountId }));
     await this.router.navigateByUrl('/investigations');
 
-    // Stage 1: Parallel Triaging across the 7-Agent Autonomous Swarm
+    // Stage 1: four specialist agents triage the case in parallel, each from the same evidence bundle.
     this.at('SWARM');
-    this.say('SWARM', 'Sentinel 7-Agent Swarm activated across 4 autonomous stages on Google Cloud Vertex AI:');
-    this.say('ATO_AGENT', 'Anomalous login from unseen device (dev-x92) · Behavioral deviation score 92/100 · Critical ATO risk.');
-    this.say('BENEFICIARY_AGENT', 'New payee added 14m ago · Velocity 4 transfers in 3h · Flagged Known Mule syndicate.');
-    this.say('SCAM_AGENT', 'Acute coercion pattern detected · Uncharacteristic off-hours rush, rapid balance depletion.');
-    this.say('MULE_AGENT', 'Cross-bank synthetic graph links payee to organized mule ring · Circular routing identified.');
+    const swarm = await Promise.race([swarmReport, sleep(PAUSE_MS.OPEN_CASE).then(() => null)]);
+    this.guard();
+    this.say('SWARM', 'Seven specialist agents take the case, in four stages, from its evidence bundle:');
+    for (const [speaker, text] of swarmTriageLines(swarm)) this.say(speaker, text);
     await this.pause(PAUSE_MS.OPEN_CASE);
 
     // The automated call: the line rings, nobody answers.
     this.at('CALL');
-    this.say('VERIFY_AGENT', 'Stage 2 Active Customer Defense: placing automated voice challenge to customer…');
+    this.say('VERIFY_AGENT', 'Stage 2, customer verification: an automated call to the customer…');
     this.phoneScreen.set('RINGING');
     const called = this.issue('CALL', held.accountId);
     await this.pause(PAUSE_MS.RING);
@@ -251,11 +351,11 @@ export class LiveDemoAutopilot {
     this.push('CALL', 'Missed call', 'Your bank (automated security call)');
     await called;
     this.say('CUSTOMER', 'No answer.');
-    this.say('VERIFY_AGENT', 'Customer verification challenge unreturned. Escalating to emergency containment.');
+    this.say('VERIFY_AGENT', 'The customer did not answer. Recommending containment.');
 
     // The kill switch: the agent proposes, the analyst approves.
     this.at('KILL_SWITCH');
-    this.say('RECALL_AGENT', 'Stage 3 Capital Preservation: 4-Eyes Kill Switch & pre-settlement hold cascade proposed.');
+    this.say('RECALL_AGENT', 'Stage 3, containment: proposes the kill switch, so every further outflow is held until the customer verifies. The analyst decides.');
     await this.requestApproval(`Activate the kill switch on ${DEMO_TAKEOVER_01.accountDisplayId}? The customer cannot be reached and a takeover is suspected.`);
     this.say('ANALYST', `${identity} approved the kill switch.`);
     await this.issue('KILL_SWITCH', held.accountId);
@@ -326,9 +426,100 @@ export class LiveDemoAutopilot {
     await this.pause(PAUSE_MS.PAGE);
 
     this.at('DONE');
-    this.say('AGENT', 'Account protected. 7-Agent Swarm synthesized multi-institution evidence; MAS SRF & CAD STRO reports ready for 1-click sign-off.');
+    this.say('REPORT_AGENT', 'Stage 4, case reporting: a draft is ready for the analyst to review and sign off in the case report.');
+    this.say('AGENT', 'Account protected. The rules held the money, the agents worked the case, the analyst authorised the kill switch.');
     this.store.dispatch(AlertsActions.accountSelected({ accountId: held.accountId }));
     await this.router.navigateByUrl('/investigations');
+  }
+
+  /** While the twelve cases play (about 25 s), the tour shows the stream and the tape reacting to all of them at once. */
+  private async burstTour(run: Promise<MultiScamBurstReport>): Promise<void> {
+    let done = false;
+    void run.then(
+      () => (done = true),
+      () => (done = true),
+    );
+    const hold = async (ms: number) => {
+      const until = Date.now() + ms;
+      while (!done && Date.now() < until) await sleep(250);
+      this.guard();
+    };
+    this.at('BURST_STREAM');
+    await this.router.navigateByUrl('/control-tower');
+    this.say('AGENT', 'Multi-scam burst: four scam patterns on twelve accounts across three banks, all at once. Synthetic data.');
+    this.say('BANK', 'Phishing takeover, mule account, smurfing and credential replay start on Bank A, Bank B and Bank C, 1.5 seconds apart.');
+    await hold(BURST_PAGE_MS.TOWER);
+    await this.router.navigateByUrl('/live-transactions');
+    this.say('RULES', 'Each account is decided on its own lane, in parallel: seven rules score every transfer and the rapid-drain gate decides before it commits.');
+    await hold(BURST_PAGE_MS.TAPE);
+    await this.router.navigateByUrl('/alerts');
+    this.say('RULES', 'High-risk accounts are promoted to the alert queue as they cross the line.');
+    await hold(BURST_PAGE_MS.TAPE);
+  }
+
+  private async workTheBurst(report: MultiScamBurstReport, identity: string): Promise<void> {
+    const order = { HOLD: 0, ALLOW: 1, REJECT: 2 } as const;
+    const cases = [...report.cases].sort((left, right) => order[left.decision] - order[right.decision] || right.peakScore - left.peakScore);
+    const held = cases.filter((entry) => entry.decision === 'HOLD');
+
+    this.at('BURST_DECIDED');
+    this.say('RULES', `${report.transfers} transfers decided across twelve accounts. ${held.length} held by SG-RD-50: their drain passed 50% of the opening balance.`);
+    await this.pause(PAUSE_MS.AFTER);
+
+    this.at('BURST_SWARM');
+    this.say('SWARM', 'Seven specialist agents work every held or high-risk case, each from its own evidence bundle:');
+    for (const entry of cases) {
+      this.say(entry.decision === 'HOLD' ? 'RULES' : entry.swarm ? 'SCAM_AGENT' : 'BANK', burstCaseLine(entry));
+      await this.pause(BURST_PAGE_MS.LINE);
+    }
+
+    const proposals = cases.filter((entry) => entry.decision !== 'HOLD' && entry.swarm?.agents.recovery.killSwitchRecommended);
+    this.at('BURST_APPROVE');
+    if (proposals.length > 0) {
+      this.say('RECALL_AGENT', `${proposals.length} accounts the gate did not hold look compromised. Proposing a kill switch on each.`);
+      await this.requestApproval(`Activate the kill switch on ${proposals.length} accounts: ${proposals.map((entry) => entry.accountDisplayId).join(', ')}?`);
+      this.say('ANALYST', `${identity} approved ${proposals.length} kill switches.`);
+      const results = await Promise.all(proposals.map((entry) => this.activateKillSwitch(entry, identity)));
+      this.guard();
+      const active = results.filter(Boolean).length;
+      this.flash(`Kill switch active on ${active} accounts`);
+      this.say('RULES', `Kill switch active on ${active} accounts: every further outflow is held until each customer verifies with the bank.`);
+    } else {
+      this.say('RECALL_AGENT', 'No account outside the gate needs a kill switch.');
+    }
+    await this.pause(PAUSE_MS.AFTER);
+
+    this.at('BURST_CASES');
+    const shown = [...new Map(cases.filter((entry) => entry.swarm).map((entry) => [entry.scenario, entry])).values()].slice(0, 2);
+    for (const entry of shown) {
+      this.store.dispatch(AlertsActions.accountSelected({ accountId: entry.accountId }));
+      await this.router.navigateByUrl('/investigations');
+      this.say('AGENT', `${entry.accountDisplayId}: the swarm's findings on this case, beside the rules' attribution.`);
+      await this.pause(BURST_PAGE_MS.CASE);
+    }
+
+    this.at('BURST_DONE');
+    const monitored = cases.length - held.length - proposals.length;
+    this.say(
+      'AGENT',
+      `Twelve cases worked at once: ${held.length} held by the rules, ${proposals.length} contained by analyst-approved kill switches, ${monitored} scored and monitored.`,
+    );
+  }
+
+  private async activateKillSwitch(entry: MultiScamBurstCase, identity: string): Promise<boolean> {
+    try {
+      await firstValueFrom(
+        this.api.post(`/v1/accounts/${encodeURIComponent(entry.accountId)}/kill-switch`, {
+          analystIdentity: identity,
+          reason: `Multi-scam burst: ${entry.scenarioName} on ${entry.accountDisplayId}; the customer has not verified.`,
+          confirmAccountId: entry.accountId,
+          idempotencyKey: `burst-${entry.assessmentId}`,
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** The agent never acts on the account alone: the analyst approves, here after a visible countdown. */
@@ -357,6 +548,7 @@ export class LiveDemoAutopilot {
     this.stopped = false;
     this.failure.set(null);
     this.hold.set(null);
+    this.burst.set(null);
     this.log.set([]);
     this.phoneFeed.set([]);
     this.phoneOpen.set(null);

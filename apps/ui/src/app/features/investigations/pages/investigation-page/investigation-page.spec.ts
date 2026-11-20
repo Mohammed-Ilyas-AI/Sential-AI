@@ -62,42 +62,41 @@ const mockSwarmReport: SentinelSwarmReport = {
     ato: {
       isTakeoverLikely: true,
       deviceRisk: 'UNSEEN_COMPROMISED',
-      authenticationLineage: 'Compromised device signature dev-x92 detected',
-      atoConfidenceScore: 94,
+      authenticationLineage: 'dev_tok_bc54a13f, first seen 1 min ago.',
+      atoSignalPoints: 37,
     },
     beneficiary: {
-      payeeRiskTier: 'KNOWN_MULE',
-      dormantPayeeActivated: false,
-      counterpartyAssessment: 'Payee flagged in syndicate mule repository',
+      payeeRiskTier: 'FLAGGED_NEIGHBOURHOOD',
+      dormantPayeeActivated: true,
+      counterpartyAssessment: 'Payee PAYEE-7742 is linked to flagged entities in the observed network: 3 flagged via confirmed links.',
     },
     scamIntent: {
-      scamTypology: 'GOVERNMENT_IMPERSONATION',
-      coercionIndex: 'ACUTE_COERCION',
-      behavioralAnomalySummary: 'High urgency off-hours account drain velocity',
+      scamTypology: 'ACCOUNT_TAKEOVER',
+      outflowPressure: 'ACUTE',
+      behavioralAnomalySummary: 'Matches the account takeover pattern. 65.4% of the opening balance has left in 24h.',
     },
     muleTrace: {
       observedHops: 2,
-      identifiedMuleRing: true,
-      pathEntities: ['acct_tok_mule', 'ben_tok_mule'],
-      observabilityStopReason: 'Inter-bank boundary reached',
+      flaggedNeighbourhood: true,
+      pathEntities: ['acct_tok_victim', 'PAYEE-7742', 'acct_tok_mule'],
+      observabilityStopReason: 'Observation stops at the recorded neighbourhood; nothing beyond it is inferred.',
     },
     verification: {
-      channelUsed: 'AUTOMATED_CALL',
-      callOutcome: 'NO_ANSWER',
+      proposedChannel: 'AUTOMATED_CALL',
       recommendedImmediateAction: 'KILL_SWITCH',
-      verificationScript: 'Automated call unanswered; escalating to containment',
+      verificationScript: 'Your bank has paused a transfer of S$11,500.00 from your account under its rapid-drain safeguard.',
     },
     recovery: {
-      killSwitchEngaged: true,
-      cascadedHoldsPlaced: 1,
-      interbankRecallStatus: 'DISPATCHED_TO_BANK_B',
-      estimatedSalvagedMinorUnits: 5200000,
+      killSwitchRecommended: true,
+      heldTransfers: 1,
+      recallRecommendation: 'RECOMMENDED',
+      heldMinorUnits: 1_150_000,
     },
     reporting: {
       reportVersion: 1,
-      executiveSummary: 'MAS SRF Section 4.2.5 compliant audit dossier compiled',
-      cadReportDossier: 'CAD FORM 1 STATUTORY FILING\nSUSPECT: MULE RING 44',
-      isReadyForSignOff: true,
+      executiveSummary: 'Seven agents agree on account takeover (score 95, CRITICAL).',
+      draftSummary: 'Draft for analyst review. Account acct_tok_victim (BANK_A). Score 95 (CRITICAL).',
+      readyForAnalystReview: true,
     },
   },
 };
@@ -292,7 +291,7 @@ describe('InvestigationPage', () => {
     expect(centre?.textContent).toContain('Activate kill switch');
   });
 
-  it('renders the 7-agent autonomous swarm orchestrator with all pipeline stages and agent findings', async () => {
+  it('renders the 7-agent swarm: four stages, seven specialists, findings from the report and no model claims', async () => {
     focusDemoAccount();
     api.orchestrateSwarm.mockReturnValue(of(mockSwarmReport));
     const { host, settle } = await render();
@@ -301,32 +300,21 @@ describe('InvestigationPage', () => {
     const swarm = host.querySelector('sentinel-agent-swarm');
     expect(swarm).not.toBeNull();
     const swarmText = text(swarm);
-    expect(swarmText).toContain('Google Cloud Vertex AI · 7-Agent Autonomous Swarm');
-    expect(swarmText).toContain('Dual-Tier Gemini · 4-Stage Mesh');
-    expect(swarmText).toContain('STAGE 1');
-    expect(swarmText).toContain('Parallel Triage');
-    expect(swarmText).toContain('STAGE 2');
-    expect(swarmText).toContain('Customer Defense');
-    expect(swarmText).toContain('STAGE 3');
-    expect(swarmText).toContain('Capital Containment');
-    expect(swarmText).toContain('STAGE 4');
-    expect(swarmText).toContain('Regulatory Sign-Off');
+    expect(swarmText).toContain('7-Agent Swarm · specialist agents on this case');
+    expect(swarmText).toContain('4 stages · deterministic');
+    for (const stage of ['Parallel triage', 'Customer verification', 'Containment', 'Case reporting']) expect(swarmText).toContain(stage);
+    for (const agent of ['Agent 1', 'Agent 2', 'Agent 3', 'Agent 4', 'Agent 5', 'Agent 6', 'Agent 7']) expect(swarmText).toContain(agent);
 
     expect(swarmText).toContain('THREAT LEVEL: CRITICAL');
-    expect(swarmText).toContain('1. ATO Investigation');
-    expect(swarmText).toContain('2. Beneficiary Intel');
-    expect(swarmText).toContain('3. Scam Intent');
-    expect(swarmText).toContain('4. Mule Tracing');
-    expect(swarmText).toContain('5. Customer Verify');
-    expect(swarmText).toContain('6. Recovery & Recall');
-    expect(swarmText).toContain('7. Regulatory STR Reporting (MAS SRF & CAD STRO)');
+    expect(swarmText).toContain('Account takeover');
+    expect(swarmText).toContain('1 held by the gate (S$11,500.00)');
+    expect(swarmText).toContain('kill switch recommended for analyst approval');
+    // Nothing on the panel claims a model, a regulator filing or an action the agents did not take.
+    expect(swarmText).not.toMatch(/Vertex|Gemini|MAS|CAD|STRO|engaged|dispatched|consensus|syndicate/);
 
-    // Toggle CAD STRO Dossier
     expect(host.querySelector('pre.dossier')).toBeNull();
-    const dossierBtn = host.querySelector('.dossier-btn') as HTMLButtonElement;
-    dossierBtn.click();
+    (host.querySelector('.dossier-btn') as HTMLButtonElement).click();
     await settle();
-    expect(host.querySelector('pre.dossier')).not.toBeNull();
-    expect(text(host.querySelector('pre.dossier'))).toContain('CAD FORM 1 STATUTORY FILING');
+    expect(text(host.querySelector('pre.dossier'))).toContain('Draft for analyst review');
   });
 });

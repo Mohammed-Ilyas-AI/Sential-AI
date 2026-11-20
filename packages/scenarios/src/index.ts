@@ -10,5 +10,7 @@ export { buildSeededNoiseScenario, noiseGenerator, type NoiseInput } from './gen
 export { takeoverGenerator, type TakeoverInput } from './generators/takeover.generator.js';
 export { muleNetworkGenerator, type MuleNetworkInput } from './generators/mule-network.generator.js';
 export { buildDemoTakeover01, type BuildDemoScenario, type DemoScenarioOptions } from './demo/demo-takeover-01.js';
+export { referenceScenarioGenerator, type ReferenceScenarioInput } from './generators/reference-scenario.generator.js';
+export { buildMultiScamBurst01, type MultiScamBurstCaseScenario, type MultiScamBurstScenario } from './demo/multi-scam-burst-01.js';
 export { INSTANT_TIMELINE, type BankConnector, type ScenarioTimeline } from './playback/bank-connector.js';
 export { playScenario, type PlaybackReport, type PlayedTransfer } from './playback/scenario-playback.js';

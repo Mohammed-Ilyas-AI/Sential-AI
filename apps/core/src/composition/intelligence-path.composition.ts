@@ -20,6 +20,7 @@ import type { ModelGateway } from '../modules/intelligence/application/ports/mod
 import { ResponseSchemaValidator } from '../modules/intelligence/application/response-schema.validator.js';
 import { SourceFieldValidator } from '../modules/intelligence/application/source-field.validator.js';
 import { EvidenceBundleCompiler } from '../modules/investigations/application/evidence-bundle.compiler.js';
+import type { AdviseInvestigation } from '../modules/investigations/application/advise-investigation.use-case.js';
 import { InvestigationAdvisor } from '../modules/investigations/application/investigation-advisor.service.js';
 import type { EvidenceSource } from '../modules/investigations/application/ports/evidence-source.port.js';
 import type { CaseSummaryArchive } from '../modules/investigations/application/ports/case-summary-archive.port.js';
@@ -67,6 +68,8 @@ export interface IntelligencePath {
   readonly routes: readonly HttpRouteRegistration[];
   readonly cases: ManageCase & CaseReports;
   readonly network: ExploreNetwork & RecordNetworkObservation;
+  /** The investigation workspace's reads, for the multi-scam burst's per-case swarm. */
+  readonly investigations: AdviseInvestigation;
 }
 
 /**
@@ -99,13 +102,16 @@ export function composeIntelligencePath({ persistence, vertex, ids, clock, logge
     ids,
   });
 
+  const investigations = new InvestigationAdvisor(bundles, intelligence, persistence.summaries, clock, access);
+
   return {
     routes: [
       networkObservationRoutes(new NetworkObservationController(network), new NetworkExplorationController(network)),
-      investigationRoutes(new InvestigationController(new InvestigationAdvisor(bundles, intelligence, persistence.summaries, clock, access))),
+      investigationRoutes(new InvestigationController(investigations)),
       caseRoutes(new CaseController(cases)),
     ],
     cases,
     network,
+    investigations,
   };
 }

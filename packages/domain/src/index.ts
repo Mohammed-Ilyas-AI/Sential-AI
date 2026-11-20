@@ -71,4 +71,5 @@ export * from './constants/risk.constants.js';
 export * from './constants/capacity.constants.js';
 export * from './constants/latency-budget.constants.js';
 export * from './constants/demo-takeover-01.constants.js';
+export * from './constants/reference-scenarios.constants.js';
 export * from './constants/synthetic-network.constants.js';

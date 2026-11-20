@@ -5,8 +5,10 @@ import { SCENARIO_NOISE_MAX_RATE_PER_MINUTE } from '@sentinel/domain';
 import { DemoControlsFacade } from '../../data-access/demo-controls-facade';
 import { LiveDemoAutopilot } from '../../data-access/live-demo-autopilot';
 
+export type LaunchableScenarioId = 'DEMO_TAKEOVER_01' | 'MULTI_SCAM_BURST_01';
+
 export interface AttackScenarioMeta {
-  readonly id: 'DEMO_TAKEOVER_01' | 'DEMO_MULE_RING_02' | 'DEMO_APP_SCAM_03';
+  readonly id: LaunchableScenarioId;
   readonly name: string;
   readonly badge: string;
   readonly targetAccount: string;
@@ -15,33 +17,25 @@ export interface AttackScenarioMeta {
   readonly description: string;
 }
 
+/** The scenarios this deployment can actually play, as the code plays them. Synthetic accounts only. */
 export const SCENARIO_CATALOG: readonly AttackScenarioMeta[] = [
   {
     id: 'DEMO_TAKEOVER_01',
-    name: 'Account Takeover & Rapid Drain',
-    badge: 'CRITICAL ATO',
-    targetAccount: 'ACC-10291 · Corporate Treasury',
-    vector: 'New device (dev-x92) from unobserved IP · Rapid payee addition · S$50,000 velocity drain across 4 transfers.',
-    expectedGate: 'SG-RD-50 (Rapid Drain >50% threshold hold in 18ms)',
-    description: 'A classic credential-stuffing attack. Attacker logs in from a foreign device, evades cooling-off, and attempts to empty the account to an offshore mule.',
+    name: 'Account takeover & rapid drain',
+    badge: 'TAKEOVER',
+    targetAccount: 'ACC-10291 · Bank A · S$52,000 opening balance',
+    vector: 'Login from unseen device DEV-7f3a · three new payees · four transfers in about five seconds.',
+    expectedGate: 'SG-RD-50: the fourth transfer takes the 24-hour drain to 65.4%, past 50%, and is held.',
+    description: 'The guided live demo: the hold, the 7-agent swarm, an automated call, an analyst-approved kill switch, Gemini-drafted voicemail and email, and the attacker blocked.',
   },
   {
-    id: 'DEMO_MULE_RING_02',
-    name: 'Organized Mule Ring & Laundering Dispersal',
-    badge: 'MULE NETWORK',
-    targetAccount: 'ACC-88412 · High Net Worth',
-    vector: 'Circular fund routing across 4 institutions (Bank A, B, C, D) · Layered micro-dispersal to 5 cash-out accounts.',
-    expectedGate: 'SG-ML-20 (Cross-bank circular laundering graph trigger)',
-    description: 'Organized financial crime syndicate testing smurfing limits. The mule tracing agent uncovers 3 hops to known synthetic identity nodes.',
-  },
-  {
-    id: 'DEMO_APP_SCAM_03',
-    name: 'Authorized Push Payment (APP) Impersonation',
-    badge: 'APP SCAM',
-    targetAccount: 'ACC-39014 · Retail Savings',
-    vector: 'Social engineering coercion · High urgency off-hours transfer · Coerced customer authorization.',
-    expectedGate: 'SG-SC-15 (Scam intent anomaly & biometric challenge)',
-    description: 'Impersonation scam posing as law enforcement. The Scam Intent agent flags coercive linguistics and triggers an out-of-band biometric challenge.',
+    id: 'MULTI_SCAM_BURST_01',
+    name: 'Multi-scam burst',
+    badge: '12 CASES · 3 BANKS',
+    targetAccount: 'Twelve synthetic accounts across Bank A, Bank B and Bank C',
+    vector: "The reference's four patterns at once: phishing takeover, mule account, smurfing, credential replay.",
+    expectedGate: 'SG-RD-50 holds what passes 50% on a protected account; everything else is scored and alerted.',
+    description: 'Twelve cases decided in parallel by the rules; seven agents work every held or high-risk case; the analyst approves the kill switches they recommend.',
   },
 ];
 
@@ -294,7 +288,7 @@ export class ScenarioLauncher implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly catalog = SCENARIO_CATALOG;
-  protected readonly selectedScenarioId = signal<'DEMO_TAKEOVER_01' | 'DEMO_MULE_RING_02' | 'DEMO_APP_SCAM_03'>('DEMO_TAKEOVER_01');
+  protected readonly selectedScenarioId = signal<LaunchableScenarioId>('DEMO_TAKEOVER_01');
   protected readonly currentScenario = computed(() => 
     this.catalog.find((sc) => sc.id === this.selectedScenarioId()) ?? this.catalog[0]
   );
@@ -314,16 +308,21 @@ export class ScenarioLauncher implements OnInit {
   }
 
   protected selectScenario(id: string): void {
-    this.selectedScenarioId.set(id as 'DEMO_TAKEOVER_01' | 'DEMO_MULE_RING_02' | 'DEMO_APP_SCAM_03');
+    const found = this.catalog.find((item) => item.id === id);
+    if (found) this.selectedScenarioId.set(found.id);
   }
 
+  /** The burst always plays in-process. The takeover uses the configured launcher when there is one, else the tour. */
   protected launchScenario(): void {
+    if (this.selectedScenarioId() === 'MULTI_SCAM_BURST_01') {
+      void this.liveDemo.startBurst();
+      return;
+    }
     const capability = this.facade.capability();
     if (capability && capability.available) {
       this.facade.launch(this.noise() ? { seed: this.seed, ratePerMinute: this.rate() } : null);
     } else {
-      // Seamless in-browser execution fallback: runs the live interactive tour with full voice and graphics
-      this.liveDemo.start();
+      void this.liveDemo.start();
       void this.router.navigateByUrl('/control-tower');
     }
   }
