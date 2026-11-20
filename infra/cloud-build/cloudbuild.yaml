@@ -7,15 +7,16 @@
 # Service URLs are derived, not configured: Cloud Run names a service https://<service>-<project-number>.<region>.run.app,
 # and $PROJECT_NUMBER is a built-in substitution, so the first deploy already knows every URL.
 substitutions:
+  SHORT_SHA: 'latest'
   _REGION: asia-southeast1
   _REPOSITORY: sentinel
   # 0 keeps idle cost at zero; raise to 1 for demo windows (cold starts are how demos die).
-  _MIN_INSTANCES: '0'
+  _MIN_INSTANCES: '1'
   # The 24-hour hold runs as 24 seconds and the UI labels it "demo time ×3600".
   _DEMO_TIME_COMPRESSION: 'true'
   # The one public address of the application, and the only browser origin core and stream accept. The generated
   # run.app UI addresses redirect here, so judges and users only ever see this hostname. Exact origin, no path.
-  _PUBLIC_UI_ORIGIN: 'https://sentinal-ai.cloud.run'
+  _PUBLIC_UI_ORIGIN: 'https://sentinel-ui-235841456419.asia-southeast1.run.app'
   # Vertex AI model IDs, verified on 17 Oct 2026 with a direct generateContent call in the global location.
   # Empty means the investigation advisory reports MODEL_NOT_CONFIGURED.
   _GEMINI_FAST_MODEL: 'gemini-3.5-flash'
