@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Store } from '@ngrx/store';
-import type { AdvisoryOutcome, CaseSummary, EvidenceBundle, InvestigationEvidence, RiskExplanation } from '@sentinel/domain';
+import type { AdvisoryOutcome, CaseSummary, EvidenceBundle, InvestigationEvidence, RiskExplanation, SentinelSwarmReport } from '@sentinel/domain';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { provideTestStore } from '../../../../../testing/provide-test-store';
@@ -54,8 +54,56 @@ const summary: AdvisoryOutcome<CaseSummary> = {
   },
 };
 
+const mockSwarmReport: SentinelSwarmReport = {
+  assessmentId: decision.assessmentId,
+  evaluatedAt: '2026-09-24T11:32:00.000Z',
+  overallThreatLevel: 'CRITICAL',
+  agents: {
+    ato: {
+      isTakeoverLikely: true,
+      deviceRisk: 'UNSEEN_COMPROMISED',
+      authenticationLineage: 'Compromised device signature dev-x92 detected',
+      atoConfidenceScore: 94,
+    },
+    beneficiary: {
+      payeeRiskTier: 'KNOWN_MULE',
+      dormantPayeeActivated: false,
+      counterpartyAssessment: 'Payee flagged in syndicate mule repository',
+    },
+    scamIntent: {
+      scamTypology: 'GOVERNMENT_IMPERSONATION',
+      coercionIndex: 'ACUTE_COERCION',
+      behavioralAnomalySummary: 'High urgency off-hours account drain velocity',
+    },
+    muleTrace: {
+      observedHops: 2,
+      identifiedMuleRing: true,
+      pathEntities: ['acct_tok_mule', 'ben_tok_mule'],
+      observabilityStopReason: 'Inter-bank boundary reached',
+    },
+    verification: {
+      channelUsed: 'AUTOMATED_CALL',
+      callOutcome: 'NO_ANSWER',
+      recommendedImmediateAction: 'KILL_SWITCH',
+      verificationScript: 'Automated call unanswered; escalating to containment',
+    },
+    recovery: {
+      killSwitchEngaged: true,
+      cascadedHoldsPlaced: 1,
+      interbankRecallStatus: 'DISPATCHED_TO_BANK_B',
+      estimatedSalvagedMinorUnits: 5200000,
+    },
+    reporting: {
+      reportVersion: 1,
+      executiveSummary: 'MAS SRF Section 4.2.5 compliant audit dossier compiled',
+      cadReportDossier: 'CAD FORM 1 STATUTORY FILING\nSUSPECT: MULE RING 44',
+      isReadyForSignOff: true,
+    },
+  },
+};
+
 describe('InvestigationPage', () => {
-  let api: { evidence: ReturnType<typeof vi.fn>; explain: ReturnType<typeof vi.fn>; summarise: ReturnType<typeof vi.fn> };
+  let api: { evidence: ReturnType<typeof vi.fn>; explain: ReturnType<typeof vi.fn>; summarise: ReturnType<typeof vi.fn>; orchestrateSwarm: ReturnType<typeof vi.fn> };
 
   const core = {
     get: vi.fn((path: string) => (path.endsWith('/kill-switch') ? of({ accountId: decision.accountId, active: false, history: [] }) : of({ accountId: decision.accountId, contacts: [] }))),
@@ -67,6 +115,7 @@ describe('InvestigationPage', () => {
       evidence: vi.fn(() => of<InvestigationEvidence>({ assessmentId: decision.assessmentId, evidence })),
       explain: vi.fn(),
       summarise: vi.fn(),
+      orchestrateSwarm: vi.fn(() => of(null)),
     };
     await TestBed.configureTestingModule({
       imports: [InvestigationPage],
@@ -241,5 +290,43 @@ describe('InvestigationPage', () => {
     expect(centre?.textContent).toContain('Automated call');
     expect(centre?.textContent).toContain('Email the customer');
     expect(centre?.textContent).toContain('Activate kill switch');
+  });
+
+  it('renders the 7-agent autonomous swarm orchestrator with all pipeline stages and agent findings', async () => {
+    focusDemoAccount();
+    api.orchestrateSwarm.mockReturnValue(of(mockSwarmReport));
+    const { host, settle } = await render();
+    await settle();
+
+    const swarm = host.querySelector('sentinel-agent-swarm');
+    expect(swarm).not.toBeNull();
+    const swarmText = text(swarm);
+    expect(swarmText).toContain('Google Cloud Vertex AI · 7-Agent Autonomous Swarm');
+    expect(swarmText).toContain('Dual-Tier Gemini · 4-Stage Mesh');
+    expect(swarmText).toContain('STAGE 1');
+    expect(swarmText).toContain('Parallel Triage');
+    expect(swarmText).toContain('STAGE 2');
+    expect(swarmText).toContain('Customer Defense');
+    expect(swarmText).toContain('STAGE 3');
+    expect(swarmText).toContain('Capital Containment');
+    expect(swarmText).toContain('STAGE 4');
+    expect(swarmText).toContain('Regulatory Sign-Off');
+
+    expect(swarmText).toContain('THREAT LEVEL: CRITICAL');
+    expect(swarmText).toContain('1. ATO Investigation');
+    expect(swarmText).toContain('2. Beneficiary Intel');
+    expect(swarmText).toContain('3. Scam Intent');
+    expect(swarmText).toContain('4. Mule Tracing');
+    expect(swarmText).toContain('5. Customer Verify');
+    expect(swarmText).toContain('6. Recovery & Recall');
+    expect(swarmText).toContain('7. Regulatory STR Reporting (MAS SRF & CAD STRO)');
+
+    // Toggle CAD STRO Dossier
+    expect(host.querySelector('pre.dossier')).toBeNull();
+    const dossierBtn = host.querySelector('.dossier-btn') as HTMLButtonElement;
+    dossierBtn.click();
+    await settle();
+    expect(host.querySelector('pre.dossier')).not.toBeNull();
+    expect(text(host.querySelector('pre.dossier'))).toContain('CAD FORM 1 STATUTORY FILING');
   });
 });

@@ -36,16 +36,16 @@ import { InvestigationsFacade } from '../../data-access/investigations-facade';
           @if (facade.evidence(); as evidence) {
             <div class="workspace">
               <sentinel-account-summary [decision]="decision" [evidence]="evidence" />
+              <sentinel-agent-swarm
+                [report]="facade.swarm().report"
+                [status]="facade.swarm().status"
+                (orchestrate)="facade.orchestrateSwarm()"
+              />
               <sentinel-action-centre
                 [accountId]="decision.accountId"
                 [reference]="decision.accountReference ?? decision.accountId"
                 [assessmentId]="decision.assessmentId"
                 [transactionId]="decision.transactionId"
-              />
-              <sentinel-agent-swarm
-                [report]="facade.swarm().report"
-                [status]="facade.swarm().status"
-                (orchestrate)="facade.orchestrateSwarm()"
               />
               <div class="layout">
                 <sentinel-attribution-panel class="attribution" [evidence]="evidence" />

@@ -11,6 +11,14 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
   AGENT: 'SENTINEL agent',
   ANALYST: 'Analyst',
   CUSTOMER: 'Customer',
+  SWARM: 'Swarm Orchestrator',
+  ATO_AGENT: 'Agent 1 · ATO Intel',
+  BENEFICIARY_AGENT: 'Agent 2 · Beneficiary Intel',
+  SCAM_AGENT: 'Agent 3 · Scam Intent',
+  MULE_AGENT: 'Agent 4 · Mule Tracing',
+  VERIFY_AGENT: 'Agent 5 · Customer Verify',
+  RECALL_AGENT: 'Agent 6 · Recovery & Recall',
+  REPORT_AGENT: 'Agent 7 · CAD STRO Filing',
 };
 
 /**
@@ -186,6 +194,14 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
     .log li[data-speaker='ANALYST'] { border-left-color: #16a34a; }
     .log li[data-speaker='CUSTOMER'] { border-left-color: #ef4444; }
     .log li[data-speaker='BANK'] { border-left-color: #64748b; }
+    .log li[data-speaker='SWARM'] { border-left-color: #06b6d4; background: color-mix(in srgb, #06b6d4 12%, transparent); font-weight: 600; }
+    .log li[data-speaker='ATO_AGENT'] { border-left-color: #ec4899; }
+    .log li[data-speaker='BENEFICIARY_AGENT'] { border-left-color: #a855f7; }
+    .log li[data-speaker='SCAM_AGENT'] { border-left-color: #eab308; }
+    .log li[data-speaker='MULE_AGENT'] { border-left-color: #f97316; }
+    .log li[data-speaker='VERIFY_AGENT'] { border-left-color: #3b82f6; }
+    .log li[data-speaker='RECALL_AGENT'] { border-left-color: #ef4444; }
+    .log li[data-speaker='REPORT_AGENT'] { border-left-color: #10b981; }
     .approval {
       display: grid;
       gap: 8px;

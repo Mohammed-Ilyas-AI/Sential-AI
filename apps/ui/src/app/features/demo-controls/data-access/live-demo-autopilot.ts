@@ -8,7 +8,7 @@ import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
 import { sessionFeature } from '../../../state/session/session.feature';
 
-export type LiveDemoStep = 'STREAM' | 'HOLD' | 'CALL' | 'KILL_SWITCH' | 'OUTREACH' | 'BLOCKED' | 'TRACE' | 'DONE';
+export type LiveDemoStep = 'STREAM' | 'HOLD' | 'SWARM' | 'CALL' | 'KILL_SWITCH' | 'OUTREACH' | 'BLOCKED' | 'TRACE' | 'DONE';
 /** What the walkthrough asks the Investigations action centre to do, on screen, as the demo analyst. */
 export type LiveDemoCommandKind = 'CALL' | 'KILL_SWITCH' | 'VOICEMAIL' | 'EMAIL';
 
@@ -19,7 +19,21 @@ export interface LiveDemoCommand {
 }
 
 /** Who speaks in the agent console: each line is attributed, so the audience sees who decided what. */
-export type ConsoleSpeaker = 'BANK' | 'RULES' | 'GEMINI' | 'AGENT' | 'ANALYST' | 'CUSTOMER';
+export type ConsoleSpeaker =
+  | 'BANK'
+  | 'RULES'
+  | 'GEMINI'
+  | 'AGENT'
+  | 'ANALYST'
+  | 'CUSTOMER'
+  | 'SWARM'
+  | 'ATO_AGENT'
+  | 'BENEFICIARY_AGENT'
+  | 'SCAM_AGENT'
+  | 'MULE_AGENT'
+  | 'VERIFY_AGENT'
+  | 'RECALL_AGENT'
+  | 'REPORT_AGENT';
 
 export interface ConsoleLine {
   readonly id: number;
@@ -42,6 +56,7 @@ export type PhoneScreen = 'LOCK' | 'RINGING' | 'MISSED';
 export const LIVE_DEMO_STEPS: readonly { readonly step: LiveDemoStep; readonly label: string }[] = [
   { step: 'STREAM', label: 'Live traffic' },
   { step: 'HOLD', label: 'Hold' },
+  { step: 'SWARM', label: '7-Agent Swarm' },
   { step: 'CALL', label: 'Automated call' },
   { step: 'KILL_SWITCH', label: 'Kill switch' },
   { step: 'OUTREACH', label: 'Voicemail & email' },
@@ -119,6 +134,7 @@ export class LiveDemoAutopilot {
       if (!held) throw new Error('The scenario finished without a held transfer.');
       this.hold.set(held);
       this.prefetchOutreach(held.assessmentId);
+      void firstValueFrom(this.api.post(`/v1/investigations/${encodeURIComponent(held.assessmentId)}/orchestrate`, {})).catch(() => null);
       await this.workTheCase(finished.runId, held, identity);
       this.status.set('DONE');
     } catch (error) {
@@ -215,12 +231,19 @@ export class LiveDemoAutopilot {
 
     this.store.dispatch(AlertsActions.accountSelected({ accountId: held.accountId }));
     await this.router.navigateByUrl('/investigations');
-    this.say('AGENT', 'Case opened in Investigations. 7-Agent Swarm activated (ATO, Beneficiary, Scam Intent, Mule Trace, Customer Verification, Recall, CAD STRO).');
+
+    // Stage 1: Parallel Triaging across the 7-Agent Autonomous Swarm
+    this.at('SWARM');
+    this.say('SWARM', 'Sentinel 7-Agent Swarm activated across 4 autonomous stages on Google Cloud Vertex AI:');
+    this.say('ATO_AGENT', 'Anomalous login from unseen device (dev-x92) · Behavioral deviation score 92/100 · Critical ATO risk.');
+    this.say('BENEFICIARY_AGENT', 'New payee added 14m ago · Velocity 4 transfers in 3h · Flagged Known Mule syndicate.');
+    this.say('SCAM_AGENT', 'Acute coercion pattern detected · Uncharacteristic off-hours rush, rapid balance depletion.');
+    this.say('MULE_AGENT', 'Cross-bank synthetic graph links payee to organized mule ring · Circular routing identified.');
     await this.pause(PAUSE_MS.OPEN_CASE);
 
     // The automated call: the line rings, nobody answers.
     this.at('CALL');
-    this.say('AGENT', 'Placing an automated security call to the customer…');
+    this.say('VERIFY_AGENT', 'Stage 2 Active Customer Defense: placing automated voice challenge to customer…');
     this.phoneScreen.set('RINGING');
     const called = this.issue('CALL', held.accountId);
     await this.pause(PAUSE_MS.RING);
@@ -228,9 +251,11 @@ export class LiveDemoAutopilot {
     this.push('CALL', 'Missed call', 'Your bank (automated security call)');
     await called;
     this.say('CUSTOMER', 'No answer.');
+    this.say('VERIFY_AGENT', 'Customer verification challenge unreturned. Escalating to emergency containment.');
 
     // The kill switch: the agent proposes, the analyst approves.
     this.at('KILL_SWITCH');
+    this.say('RECALL_AGENT', 'Stage 3 Capital Preservation: 4-Eyes Kill Switch & pre-settlement hold cascade proposed.');
     await this.requestApproval(`Activate the kill switch on ${DEMO_TAKEOVER_01.accountDisplayId}? The customer cannot be reached and a takeover is suspected.`);
     this.say('ANALYST', `${identity} approved the kill switch.`);
     await this.issue('KILL_SWITCH', held.accountId);

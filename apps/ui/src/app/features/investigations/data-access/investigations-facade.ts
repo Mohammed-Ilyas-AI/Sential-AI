@@ -97,6 +97,7 @@ export class InvestigationsFacade {
   orchestrateSwarm(): void {
     const assessmentId = this.assessmentId();
     if (!assessmentId || this.swarmState().status === 'LOADING') return;
+    if (typeof this.api.orchestrateSwarm !== 'function') return;
     this.swarmState.set({ status: 'LOADING', report: null });
     this.api.orchestrateSwarm(assessmentId).subscribe({
       next: (report) => this.swarmState.set({ status: 'READY', report }),
@@ -115,7 +116,10 @@ export class InvestigationsFacade {
     this.evidenceState.set({ status: 'LOADING', evidence: null });
     this.api.evidence(assessmentId).subscribe({
       next: ({ assessmentId: loaded, evidence }) => {
-        if (loaded === this.assessmentId()) this.evidenceState.set({ status: 'READY', evidence });
+        if (loaded === this.assessmentId()) {
+          this.evidenceState.set({ status: 'READY', evidence });
+          this.orchestrateSwarm();
+        }
       },
       error: () => this.evidenceState.set({ status: 'FAILED', evidence: null }),
     });
