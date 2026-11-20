@@ -318,8 +318,8 @@ export class LiveDemoAutopilot {
 
     // Where the money was going, and the record of everything.
     this.at('TRACE');
-    await this.router.navigateByUrl('/network-analysis');
-    this.say('AGENT', 'Where was the money going? The entity graph links the mule payee across banks and stops at the observed boundary.');
+    await this.router.navigate(['/network-analysis'], { queryParams: { trace: 'true' } });
+    this.say('AGENT', 'Where was the money going? The entity graph traces the mule payee across banks and highlights the observed boundary in real time.');
     await this.pause(PAUSE_MS.PAGE);
     await this.router.navigateByUrl('/audit-logs');
     this.say('AGENT', 'Every action is in the audit log: the hold, the call, the kill switch, the voicemail and the email, each with who and when.');

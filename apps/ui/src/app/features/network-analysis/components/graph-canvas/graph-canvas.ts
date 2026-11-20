@@ -46,11 +46,13 @@ function paletteFrom(element: Element): GraphPalette {
       <span class="tooltip" role="status" [style.transform]="'translate(' + tip.x + 'px, ' + tip.y + 'px)'">{{ tip.label }}</span>
     }
     <div class="controls" aria-label="Graph view controls">
-      <button type="button" title="Fit to view" aria-label="Fit to view" (click)="fit()"><sentinel-icon name="focus" [size]="18" /></button>
+      <button type="button" title="Fit to view / Reset" aria-label="Fit to view / Reset" (click)="fit()"><sentinel-icon name="focus" [size]="18" /></button>
       <button type="button" title="Zoom in" aria-label="Zoom in" (click)="zoomButton(zoomStep)"><sentinel-icon name="plus" [size]="18" /></button>
       <button type="button" title="Zoom out" aria-label="Zoom out" (click)="zoomButton(1 / zoomStep)"><sentinel-icon name="minus" [size]="18" /></button>
       <button type="button" title="Centre on selection" aria-label="Centre on selection" (click)="centreSelection()"><sentinel-icon name="radar" [size]="18" /></button>
-      <button type="button" title="Reset view" aria-label="Reset view" (click)="resetRequested.emit()"><sentinel-icon name="expand" [size]="18" /></button>
+      <button type="button" [title]="fullscreen() ? 'Exit full screen (Esc)' : 'Expand graph full screen'" [attr.aria-label]="fullscreen() ? 'Exit full screen' : 'Expand graph full screen'" (click)="fullscreenToggle.emit()">
+        <sentinel-icon [name]="fullscreen() ? 'close' : 'expand'" [size]="18" />
+      </button>
     </div>
   `,
   styles: `
@@ -118,8 +120,10 @@ export class GraphCanvas {
   readonly highlight = input<{ readonly nodes: readonly string[]; readonly edges: readonly string[] } | null>(null);
   /** Changing this value (a new case, or Reset) re-fits the view. */
   readonly framing = input(0);
+  readonly fullscreen = input(false);
   readonly selected = output<GraphTarget | null>();
   readonly resetRequested = output<void>();
+  readonly fullscreenToggle = output<void>();
 
   protected readonly zoomStep = BUTTON_ZOOM;
   protected readonly tooltip = signal<{ readonly label: string; readonly x: number; readonly y: number } | null>(null);
@@ -257,7 +261,7 @@ export class GraphCanvas {
         canvas.width = Math.round(this.width * ratio);
         canvas.height = Math.round(this.height * ratio);
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
-        if (firstSize) this.needsFit = true;
+        this.needsFit = true;
         this.requestRender();
       });
       resize.observe(this.host.nativeElement);

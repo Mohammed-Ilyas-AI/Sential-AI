@@ -215,6 +215,77 @@ select {
   overflow: hidden;
   background: color-mix(in srgb, var(--sentinel-color-surface) 96%, transparent);
 }
+.graph.graph-fullscreen {
+  position: fixed !important;
+  inset: 16px !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: calc(100vw - 32px) !important;
+  height: calc(100vh - 32px) !important;
+  margin: 0 !important;
+  border-radius: 18px !important;
+  border: 1px solid var(--sentinel-color-accent) !important;
+  background: var(--sentinel-color-background) !important;
+  box-shadow: 0 0 0 9999px rgba(3, 6, 10, 0.88), 0 24px 64px rgba(0, 0, 0, 0.95) !important;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.graph.graph-fullscreen sentinel-graph-canvas {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+.fullscreen-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--sentinel-color-surface) 95%, transparent);
+  border-bottom: 1px solid var(--sentinel-surface-panel-border);
+  z-index: 12;
+}
+.fs-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--sentinel-color-text);
+}
+.fs-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--sentinel-color-accent);
+  box-shadow: 0 0 8px var(--sentinel-color-accent);
+}
+.fs-hint {
+  font-size: 0.75rem;
+  color: var(--sentinel-color-text-secondary);
+}
+.fs-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 1px solid var(--sentinel-surface-panel-border);
+  border-radius: 8px;
+  background: var(--sentinel-color-surface);
+  color: var(--sentinel-color-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.fs-close:hover {
+  background: rgba(244, 91, 105, 0.2);
+  border-color: var(--sentinel-color-critical);
+  color: var(--sentinel-color-critical);
+}
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
 .graph sentinel-graph-canvas {
   grid-area: 1 / 1;
 }

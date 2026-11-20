@@ -100,7 +100,17 @@
   <p class="note">People, businesses, wallets and IP addresses appear only when the evidence records them.</p>
 </section>
 
-<section class="graph surface" aria-label="Entity graph">
+<section class="graph surface" [class.graph-fullscreen]="isFullscreen()" aria-label="Entity graph">
+  @if (isFullscreen()) {
+    <div class="fullscreen-banner">
+      <div class="fs-title">
+        <span class="fs-dot"></span>
+        <b>INVESTIGATION GRAPH · FULLSCREEN VIEW</b>
+        <span class="fs-hint">Esc to exit</span>
+      </div>
+      <button type="button" class="fs-close" (click)="toggleFullscreen()"><sentinel-icon name="close" [size]="14" /> Close</button>
+    </div>
+  }
   @switch (facade.status()) {
     @case ('LOADING') {
       <p class="state" role="status">Loading the case evidence…</p>
@@ -118,8 +128,10 @@
     [selection]="facade.selection()"
     [highlight]="facade.highlight()"
     [framing]="framing()"
+    [fullscreen]="isFullscreen()"
     (selected)="select($event)"
     (resetRequested)="resetView()"
+    (fullscreenToggle)="toggleFullscreen()"
   />
   @if (counts(); as count) {
     <p class="counts">{{ count.nodes }} entities · {{ count.edges }} relationships{{ facade.filtered() ? ' (filtered)' : '' }}{{ facade.scene()?.truncated ? ' · neighbourhood truncated by the core' : '' }}</p>

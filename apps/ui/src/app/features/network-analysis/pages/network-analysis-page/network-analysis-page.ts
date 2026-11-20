@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import type { GraphEdgeKind, NodeKind } from '@sentinel/domain';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { EntityInspector } from '../../components/entity-inspector/entity-inspector';
@@ -28,8 +29,10 @@ interface FilterOption<T extends string> {
 })
 export class NetworkAnalysisPage {
   protected readonly facade = inject(NetworkAnalysisFacade);
+  private readonly route = inject(ActivatedRoute);
   /** Bumped for a new case and for Reset: the graph re-frames, the case stays. */
   protected readonly framing = signal(0);
+  protected readonly isFullscreen = signal(false);
 
   protected readonly entityOptions: readonly FilterOption<'ALL' | NodeKind>[] = [
     { value: 'ALL', label: 'All entities' },
@@ -75,6 +78,33 @@ export class NetworkAnalysisPage {
       this.facade.status();
       untracked(() => this.framing.update((value) => value + 1));
     });
+
+    // Auto-trace funds when query parameter ?trace=true is set (e.g. during live demo)
+    effect(() => {
+      const status = this.facade.status();
+      const shouldTrace = this.route.snapshot.queryParamMap.get('trace') === 'true';
+      if (status === 'READY' && shouldTrace) {
+        untracked(() => {
+          setTimeout(() => {
+            this.facade.traceFunds();
+          }, 350);
+        });
+      }
+    });
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.isFullscreen()) {
+      this.toggleFullscreen();
+    }
+  }
+
+  protected toggleFullscreen(): void {
+    this.isFullscreen.update((v) => !v);
+    setTimeout(() => {
+      this.framing.update((v) => v + 1);
+    }, 60);
   }
 
   protected setFilter(key: keyof GraphFilters, value: string): void {

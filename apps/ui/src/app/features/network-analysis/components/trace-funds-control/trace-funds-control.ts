@@ -38,36 +38,54 @@ const REASON: Readonly<Record<string, string>> = {
   styles: `
     :host {
       position: absolute;
-      top: 10px;
-      right: 12px;
-      z-index: 2;
-      display: grid;
-      justify-items: end;
+      top: 14px;
+      left: 14px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       gap: 6px;
-      max-width: min(360px, 70%);
+      max-width: min(440px, 75%);
+      pointer-events: auto;
     }
     .bar {
       display: flex;
-      gap: 6px;
+      gap: 8px;
+      align-items: center;
     }
     button {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      min-height: 30px;
-      padding: 0 12px;
-      border: 1px solid var(--sentinel-surface-panel-border);
-      border-radius: 8px;
-      background: var(--sentinel-color-surface);
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 16px;
+      border: 1px solid var(--sentinel-color-accent);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--sentinel-color-surface) 95%, transparent);
       color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
       font: inherit;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       cursor: pointer;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    button:hover:not(:disabled) {
+      background: var(--sentinel-color-accent);
+      color: #070b10;
+      box-shadow: 0 0 16px var(--sentinel-color-accent);
     }
     .clear {
-      padding: 0 8px;
+      padding: 0 10px;
       color: var(--sentinel-color-text-secondary);
+      border-color: var(--sentinel-surface-panel-border);
+    }
+    .clear:hover {
+      background: rgba(244, 91, 105, 0.2);
+      border-color: var(--sentinel-color-critical);
+      color: var(--sentinel-color-critical);
+      box-shadow: none;
     }
     button:disabled {
       opacity: 0.5;
@@ -75,12 +93,16 @@ const REASON: Readonly<Record<string, string>> = {
     }
     p {
       margin: 0;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border: 1px solid var(--sentinel-surface-panel-border);
-      border-radius: 8px;
-      background: color-mix(in srgb, var(--sentinel-color-surface) 94%, transparent);
+      border-radius: 9px;
+      background: color-mix(in srgb, var(--sentinel-color-surface) 96%, transparent);
+      color: var(--sentinel-color-text);
       font-size: 0.75rem;
-      text-align: right;
+      line-height: 1.4;
+      text-align: left;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
     }
   `,
 })
