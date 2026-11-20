@@ -4,6 +4,9 @@
 
 # The application has one public address. A page opened under any other hostname (the generated run.app URLs)
 # is sent there, so the address bar never shows infrastructure. Local runs keep working on localhost.
+map_hash_bucket_size 128;
+map_hash_max_size 2048;
+
 map $host $sentinel_other_host {
   default 1;
   ${PUBLIC_UI_HOST} 0;
