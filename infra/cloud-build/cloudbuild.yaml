@@ -7,7 +7,7 @@
 # Service URLs are derived, not configured: Cloud Run names a service https://<service>-<project-number>.<region>.run.app,
 # and $PROJECT_NUMBER is a built-in substitution, so the first deploy already knows every URL.
 substitutions:
-  SHORT_SHA: 'latest'
+  _TAG: 'latest'
   _REGION: asia-southeast1
   _REPOSITORY: sentinel
   # 0 keeps idle cost at zero; raise to 1 for demo windows (cold starts are how demos die).
@@ -65,22 +65,22 @@ steps:
 
   - id: image-core
     name: gcr.io/cloud-builders/docker
-    args: ['build', '-f', 'infra/cloud-run/sentinel-core/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-core:$SHORT_SHA', '.']
+    args: ['build', '-f', 'infra/cloud-run/sentinel-core/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-core:${_TAG}', '.']
     waitFor: ['demo-takeover-01']
 
   - id: image-stream
     name: gcr.io/cloud-builders/docker
-    args: ['build', '-f', 'infra/cloud-run/sentinel-stream/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-stream:$SHORT_SHA', '.']
+    args: ['build', '-f', 'infra/cloud-run/sentinel-stream/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-stream:${_TAG}', '.']
     waitFor: ['demo-takeover-01']
 
   - id: image-ui
     name: gcr.io/cloud-builders/docker
-    args: ['build', '-f', 'infra/cloud-run/sentinel-ui/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-ui:$SHORT_SHA', '.']
+    args: ['build', '-f', 'infra/cloud-run/sentinel-ui/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-ui:${_TAG}', '.']
     waitFor: ['demo-takeover-01']
 
   - id: image-simulator
     name: gcr.io/cloud-builders/docker
-    args: ['build', '-f', 'infra/cloud-run/sentinel-simulator/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-simulator:$SHORT_SHA', '.']
+    args: ['build', '-f', 'infra/cloud-run/sentinel-simulator/Dockerfile', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sentinel-simulator:${_TAG}', '.']
     waitFor: ['demo-takeover-01']
 
   - id: push-images
@@ -90,7 +90,7 @@ steps:
       - -c
       - |
         for image in sentinel-core sentinel-stream sentinel-ui sentinel-simulator; do
-          docker push "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/$${image}:$SHORT_SHA"
+          docker push "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/$${image}:${_TAG}"
         done
 
   - id: deploy
@@ -101,7 +101,7 @@ steps:
       - PROJECT_NUMBER=$PROJECT_NUMBER
       - REGION=${_REGION}
       - REGISTRY=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}
-      - TAG=$SHORT_SHA
+      - TAG=${_TAG}
       - MIN_INSTANCES=${_MIN_INSTANCES}
       - DEMO_TIME_COMPRESSION=${_DEMO_TIME_COMPRESSION}
       - PUBLIC_UI_ORIGIN=${_PUBLIC_UI_ORIGIN}
