@@ -89,6 +89,11 @@
       <a class="primary" routerLink="/investigations">
         <sentinel-icon name="investigate" [size]="18" /> Open investigation <sentinel-icon name="arrowRight" [size]="18" />
       </a>
+      @if (facade.focusedAlertId(); as alertId) {
+        <a class="secondary" routerLink="/cases" [queryParams]="{ alert: alertId }" title="Open this alert as a case file and generate its report">
+          <sentinel-icon name="audit" [size]="18" /> Open case file
+        </a>
+      }
       <button type="button" class="secondary" (click)="trace.emit()">
         <sentinel-icon name="audit" [size]="18" /> View decision trace
       </button>

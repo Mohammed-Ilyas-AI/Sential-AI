@@ -17,20 +17,6 @@ import { CasesFacade } from '../../data-access/cases-facade';
       </button>
     </header>
 
-    @if (facade.openable().length) {
-      <label class="open">
-        <span>Investigate an open alert</span>
-        <select #alert aria-label="Open alert to investigate">
-          @for (option of facade.openable(); track option.id) {
-            <option [value]="option.id">{{ option.accountReference ?? option.accountId }} · score {{ option.score }} · raised {{ option.raisedAt | date: 'd MMM, HH:mm:ss' : 'UTC' }} UTC</option>
-          }
-        </select>
-        <button type="button" class="primary" [disabled]="facade.busy() !== null" (click)="facade.openCase(alert.value)">
-          {{ facade.busy() === 'OPEN' ? 'Opening…' : 'Open case' }}
-        </button>
-      </label>
-    }
-
     <div class="rows sentinel-scroll" role="listbox" aria-label="Cases">
       @switch (facade.listStatus()) {
         @case ('LOADING') {
@@ -52,7 +38,7 @@ import { CasesFacade } from '../../data-access/cases-facade';
               <span class="meta">Opened {{ item.openedAt | date: 'd MMM, HH:mm' : 'UTC' }} UTC by {{ item.openedBy }}</span>
             </button>
           } @empty {
-            <p class="empty">No case has been opened yet. Open one from an alert above.</p>
+            <p class="empty">No case yet. In Alerts &amp; Cases, select an alert and choose <b>Open case file</b>.</p>
           }
         }
       }

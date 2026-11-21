@@ -88,8 +88,12 @@ export class CasesFacade {
   readonly notice = signal<string | null>(null);
 
   constructor() {
-    const requested = inject(ActivatedRoute).snapshot.queryParamMap.get('case');
+    const query = inject(ActivatedRoute).snapshot.queryParamMap;
+    const requested = query.get('case');
     if (requested) this.selectedId.set(requested);
+    // Arriving from an alert's "Open case file": open it (or select its existing case; the server deduplicates).
+    const fromAlert = query.get('alert');
+    if (fromAlert) this.openCase(fromAlert);
     // The data lens changes what the server may return: reload everything when it changes.
     effect(() => {
       void this.lens();

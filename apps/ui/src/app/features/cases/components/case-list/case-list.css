@@ -14,26 +14,6 @@ h2 {
   margin: 0;
   font-size: 0.9375rem;
 }
-.open {
-  display: grid;
-  gap: 6px;
-  padding: 10px;
-  border: 1px dashed var(--sentinel-color-border);
-  border-radius: 10px;
-  font-size: 0.75rem;
-  color: var(--sentinel-color-text-secondary);
-}
-select {
-  width: 100%;
-  min-width: 0;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--sentinel-surface-panel-border);
-  border-radius: 8px;
-  background: var(--sentinel-color-surface);
-  color: var(--sentinel-color-text);
-  font: inherit;
-}
 .primary,
 .ghost {
   display: inline-flex;
@@ -177,11 +157,6 @@ button:disabled {
   color: var(--sentinel-color-accent);
   font-size: 0.6875rem;
   vertical-align: middle;
-}
-.open {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--sentinel-color-accent) 35%, transparent);
-  background: color-mix(in srgb, var(--sentinel-color-accent) 6%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   .row {

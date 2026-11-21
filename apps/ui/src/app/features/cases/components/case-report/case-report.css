@@ -43,9 +43,6 @@ h2 {
   display: grid;
   align-content: start;
   gap: 12px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
 }
 .version-bar {
   display: flex;
@@ -93,6 +90,13 @@ code {
   font-family: var(--sentinel-font-family-mono);
 }
 .actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0 -16px -16px;
+  padding: 10px 16px;
+  border-radius: 0 0 var(--sentinel-radius-large) var(--sentinel-radius-large);
+  background: var(--sentinel-color-surface);
   display: flex;
   flex-wrap: wrap;
   align-items: center;

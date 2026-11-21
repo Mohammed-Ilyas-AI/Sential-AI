@@ -45,6 +45,8 @@ export class FraudAlertsFacade {
   /** Sorted by risk, newest critical first. */
   readonly queue: Signal<readonly Alert[]> = this.store.selectSignal(alertsFeature.selectQueue);
   readonly focusedAccountId: Signal<string | null> = this.store.selectSignal(alertsFeature.selectFocusedAccountId);
+  /** The queued alert for the focused account: what "Open case file" opens. */
+  readonly focusedAlertId: Signal<string | null> = computed(() => this.queue().find((alert) => alert.accountId === this.focusedAccountId())?.id ?? null);
   readonly focusedDecision: Signal<DecisionRecord | null> = this.store.selectSignal(selectFocusedDecision);
   readonly timeline: Signal<readonly AccountEvent[]> = this.store.selectSignal(selectFocusedTimeline);
   readonly latestHoldNotice: Signal<HoldNotice | null> = this.store.selectSignal(selectLatestHoldNotice);
