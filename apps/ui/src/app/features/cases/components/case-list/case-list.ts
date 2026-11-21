@@ -11,7 +11,7 @@ import { CasesFacade } from '../../data-access/cases-facade';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header>
-      <h2>Case files</h2>
+      <h2>Case files <span class="count">{{ facade.cases().length }}</span></h2>
       <button type="button" class="ghost" [disabled]="facade.listStatus() === 'LOADING'" (click)="facade.refresh()">
         <sentinel-icon name="activity" [size]="14" /> Refresh
       </button>
@@ -41,9 +41,9 @@ import { CasesFacade } from '../../data-access/cases-facade';
         }
         @default {
           @for (item of facade.cases(); track item.id) {
-            <button type="button" role="option" class="row" [attr.aria-selected]="facade.selectedId() === item.id" (click)="facade.select(item.id)">
+            <button type="button" role="option" class="row" [attr.data-band]="item.evidence.assessment.band" [attr.aria-selected]="facade.selectedId() === item.id" (click)="facade.select(item.id)">
               <span class="top">
-                <b>{{ item.accountReference ?? item.accountId }}</b>
+                <span class="who"><span class="score">{{ item.evidence.assessment.score }}</span><b>{{ item.accountReference ?? item.accountId }}</b></span>
                 <span class="status" [attr.data-status]="item.status">{{ item.status.replace('_', ' ') }}</span>
               </span>
               <span class="meta">

@@ -50,6 +50,17 @@ export class CasesFacade {
   readonly listStatus = computed(() => this.casesState().status);
   readonly listError = computed(() => this.casesState().error);
 
+  /** Headline figures for the page: how many case files, by where they stand. */
+  readonly counts = computed(() => {
+    const all = this.cases();
+    return {
+      total: all.length,
+      open: all.filter((candidate) => candidate.status === 'OPEN').length,
+      escalated: all.filter((candidate) => candidate.status === 'ESCALATED').length,
+      closed: all.filter((candidate) => candidate.status === 'CLOSED_FRAUD' || candidate.status === 'CLOSED_LEGITIMATE').length,
+    };
+  });
+
   readonly selectedId = signal<string | null>(null);
   readonly selected = computed(() => this.cases().find((candidate) => candidate.id === this.selectedId()) ?? null);
 
