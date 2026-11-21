@@ -9,6 +9,7 @@ import type {
   TransactionLifecycleStatus,
   TransactionType,
 } from '@sentinel/domain';
+import { runAccountReference } from '@sentinel/domain';
 import { runScopedToken, type ScenarioRunId } from '../identity/scenario-run.js';
 import { SYNTHETIC_AMOUNT_P95, homeDeviceOf, type SyntheticAccount, ESTABLISHED_PAYEES } from './synthetic-roster.js';
 
@@ -63,7 +64,7 @@ export class ScenarioEventFactory {
       tenantId: account.institutionId,
       accountToken: this.token('acct', account.displayId),
       institutionId: account.institutionId,
-      displayReference: account.displayId,
+      displayReference: runAccountReference(account.displayId, this.runId),
       openedAt: account.openedAt,
       balance,
       balanceAsOf: this.hoursBefore(24),

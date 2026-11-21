@@ -1,4 +1,4 @@
-import type { MultiScamBurstCase, MultiScamBurstReport } from '@sentinel/domain';
+import { runAccountReference, type MultiScamBurstCase, type MultiScamBurstReport } from '@sentinel/domain';
 import { describe, expect, it } from 'vitest';
 import type { TapeRow } from '../../../workers/transaction-worker-protocol';
 import { buildBurstBoard } from './burst-board';
@@ -83,6 +83,8 @@ describe('burst case board', () => {
   });
 
   it("takes the report's outcome once it lands: held, agents' kill switch approved, flagged, monitored", () => {
+    // The report's run plays on its own accounts, with their own references.
+    const inRun = (catalogue: string) => runAccountReference(catalogue, 'run');
     const { swarm: _none, ...base } = reported('x', {});
     const report: MultiScamBurstReport = {
       runId: 'run',
@@ -91,18 +93,32 @@ describe('burst case board', () => {
       finishedAt: '2026-11-21T05:00:40.000Z',
       transfers: 60,
       cases: [
-        reported('ACC-10291', { decision: 'HOLD', peakScore: 95, peakBand: 'CRITICAL', drainPct: 65.4 }),
-        reported('ACC-55902', { scenario: 'mule', peakScore: 66, peakBand: 'HIGH', swarm: {} as never }),
-        reported('ACC-61284', { scenario: 'replay', peakScore: 65, peakBand: 'HIGH', swarm: {} as never }),
-        { ...base, accountDisplayId: 'ACC-82015', scenario: 'smurf' },
+        reported(inRun('ACC-10291'), { decision: 'HOLD', peakScore: 95, peakBand: 'CRITICAL', drainPct: 65.4 }),
+        reported(inRun('ACC-55902'), { scenario: 'mule', peakScore: 66, peakBand: 'HIGH', swarm: {} as never }),
+        reported(inRun('ACC-61284'), { scenario: 'replay', peakScore: 65, peakBand: 'HIGH', swarm: {} as never }),
+        { ...base, accountDisplayId: inRun('ACC-82015'), scenario: 'smurf' },
       ],
     };
-    const board = buildBurstBoard({ rows: [], since: SINCE, report, contained: new Set(['ACC-55902']), notified: new Set(['ACC-10291']) });
+    const board = buildBurstBoard({ rows: [], since: SINCE, report, contained: new Set([inRun('ACC-55902')]), notified: new Set([inRun('ACC-10291')]) });
     const state = (id: string) => board.tiles.find((tile) => tile.accountDisplayId === id);
-    expect(state('ACC-10291')).toMatchObject({ state: 'HELD', drainPct: 65.4, notified: true });
-    expect(state('ACC-55902')?.state).toBe('CONTAINED');
-    expect(state('ACC-61284')?.state).toBe('FLAGGED');
-    expect(state('ACC-82015')?.state).toBe('MONITORED');
+    expect(state(inRun('ACC-10291'))).toMatchObject({ state: 'HELD', drainPct: 65.4, notified: true });
+    expect(state(inRun('ACC-55902'))?.state).toBe('CONTAINED');
+    expect(state(inRun('ACC-61284'))?.state).toBe('FLAGGED');
+    expect(state(inRun('ACC-82015'))?.state).toBe('MONITORED');
     expect(board.transfers).toBe(60);
+  });
+
+  it("follows a run's own account references, read from the run ID in its transaction IDs", () => {
+    const reference = runAccountReference('ACC-10291', 'MWQ937HB');
+    expect(reference).not.toBe('ACC-10291');
+    const board = buildBurstBoard({
+      rows: [row(reference, { transactionId: 'TX-MSB1-MWQ937HB-0007', decision: 'HOLD', score: 95, band: 'CRITICAL' })],
+      since: SINCE,
+      report: null,
+      contained: none,
+      notified: none,
+    });
+    const phishingA = board.tiles.find((tile) => tile.institutionId === 'BANK_A' && tile.scenario === 'phishing');
+    expect(phishingA).toMatchObject({ accountDisplayId: reference, state: 'HELD', score: 95 });
   });
 });

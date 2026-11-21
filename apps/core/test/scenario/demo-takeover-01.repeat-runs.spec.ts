@@ -1,4 +1,4 @@
-import { DEMO_TAKEOVER_01 } from '@sentinel/domain';
+import { DEMO_TAKEOVER_01, runAccountReference } from '@sentinel/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startCoreHarness, type CoreHarness } from '../support/harness/core-test-harness.js';
 import { createInMemoryPersistence } from '../support/in-memory-repositories/in-memory-persistence.js';
@@ -50,7 +50,8 @@ describe('DEMO_TAKEOVER_01 run twice into the same store', () => {
       const interventions = await persistence.interventions.findByAccountId(victimOf(runId));
       expect(interventions.map((intervention) => `${intervention.state}:${intervention.actor}`)).toEqual(['HELD:SYSTEM']);
     }
-    const alerts = persistence.alertStore.all().filter((alert) => alert.accountReference === DEMO_TAKEOVER_01.accountDisplayId);
+    const victims = new Set(['RUNA', 'RUNB'].map((runId) => runAccountReference(DEMO_TAKEOVER_01.accountDisplayId, runId)));
+    const alerts = persistence.alertStore.all().filter((alert) => victims.has(alert.accountReference ?? ''));
     expect(alerts.map((alert) => [alert.band, alert.score, alert.onHold])).toEqual([
       ['CRITICAL', 95, true],
       ['CRITICAL', 95, true],

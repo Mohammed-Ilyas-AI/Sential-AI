@@ -23,7 +23,7 @@ export const SCENARIO_CATALOG: readonly AttackScenarioMeta[] = [
     id: 'DEMO_TAKEOVER_01',
     name: 'Account takeover & rapid drain',
     badge: 'TAKEOVER',
-    targetAccount: 'ACC-10291 · Bank A · S$52,000 opening balance',
+    targetAccount: 'A fresh synthetic account at Bank A each run · S$52,000 opening balance',
     vector: 'Login from unseen device DEV-7f3a · three new payees · four transfers in about five seconds.',
     expectedGate: 'SG-RD-50: the fourth transfer takes the 24-hour drain to 65.4%, past 50%, and is held.',
     description: 'The guided live demo: the hold, the 7-agent swarm, an automated call, an analyst-approved kill switch, Gemini-drafted voicemail and email, and the attacker blocked.',

@@ -1,9 +1,10 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import type { CaseReportSection } from '@sentinel/domain';
+import { RAPID_DRAIN_GATE_PERCENT, type CaseReportSection, type CaseReportSectionId } from '@sentinel/domain';
 import { InstitutionLabelPipe } from '../../../../shared/pipes/institution-label/institution-label-pipe';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { CasesFacade } from '../../data-access/cases-facade';
+import { readReport, SECTION_LOOK, type ReportBlock } from './report-reading';
 
 /**
  * The selected case and its report: generated from the persisted evidence in one action, edited as a draft,
@@ -11,7 +12,7 @@ import { CasesFacade } from '../../data-access/cases-facade';
  */
 @Component({
   selector: 'sentinel-case-report',
-  imports: [DatePipe, Icon, InstitutionLabelPipe],
+  imports: [DatePipe, DecimalPipe, Icon, InstitutionLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './case-report.html',
   styleUrl: './case-report.css',
@@ -20,6 +21,31 @@ export class CaseReportPanel {
   protected readonly facade = inject(CasesFacade);
   protected readonly confirmingSignOff = signal(false);
   protected readonly isDraft = computed(() => this.facade.latest()?.status === 'DRAFT');
+  protected readonly gatePercent = RAPID_DRAIN_GATE_PERCENT;
+  protected readonly look = SECTION_LOOK;
+  /** Sections the analyst has opened for editing; a section with unsaved edits stays open. */
+  protected readonly editing = signal<ReadonlySet<CaseReportSectionId>>(new Set());
+  /** The three rules that weighed most in the recorded score, strongest first. */
+  protected readonly topRules = computed(() =>
+    [...(this.facade.selected()?.evidence.assessment.contributions ?? [])].sort((left, right) => right.points - left.points).slice(0, 3),
+  );
+
+  protected isEditing(section: CaseReportSection): boolean {
+    return this.isDraft() && (this.editing().has(section.id) || this.facade.edits()[section.id] !== undefined);
+  }
+
+  protected toggleEdit(section: CaseReportSection): void {
+    this.editing.update((open) => {
+      const next = new Set(open);
+      if (next.has(section.id)) next.delete(section.id);
+      else next.add(section.id);
+      return next;
+    });
+  }
+
+  protected blocks(section: CaseReportSection): readonly ReportBlock[] {
+    return readReport(this.bodyOf(section));
+  }
 
   protected bodyOf(section: CaseReportSection): string {
     return this.facade.edits()[section.id] ?? section.body;

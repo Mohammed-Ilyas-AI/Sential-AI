@@ -12,6 +12,8 @@ import {
   type MultiScamBurstCase,
   type MultiScamBurstReport,
   type SentinelSwarmReport,
+  runAccountReference,
+  scenarioRunOf,
 } from '@sentinel/domain';
 import { firstValueFrom } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
@@ -317,6 +319,18 @@ export class LiveDemoAutopilot {
     return this.drafts.get(assessmentId) ?? null;
   }
 
+  /**
+   * The takeover's account in this run. Every run plays on its own synthetic accounts with their own references;
+   * the run ID is read from this run's first DEMO_TAKEOVER_01 transaction on the tape.
+   */
+  private takeoverAccount(since: number): string {
+    const run = this.tape()
+      .filter((row) => Date.parse(row.decidedAt) >= since - 5_000)
+      .map((row) => scenarioRunOf(row.transactionId))
+      .find((candidate) => candidate?.code === 'DT01');
+    return run ? runAccountReference(DEMO_TAKEOVER_01.accountDisplayId, run.runId) : 'The account';
+  }
+
   /** While the scenario plays (about 45 s), the tour shows the product reacting to it, timed to its steps. */
   private async streamTour(started: number, run: Promise<LiveDemoReport>): Promise<null> {
     let done = false;
@@ -338,9 +352,9 @@ export class LiveDemoAutopilot {
     await this.router.navigateByUrl('/live-transactions');
     this.say('RULES', 'Each row is a decision: seven deterministic rules score it and the rapid-drain gate decides ALLOW or HOLD.');
     if (!(await until(login.atMs))) return null;
-    this.say('BANK', `${DEMO_TAKEOVER_01.accountDisplayId}: login from a device never seen before (${DEMO_TAKEOVER_01.newDeviceId}).`);
+    this.say('BANK', `${this.takeoverAccount(started)}: login from a device never seen before (${DEMO_TAKEOVER_01.newDeviceId}).`);
     if (!(await until(payee.atMs))) return null;
-    this.say('BANK', `${DEMO_TAKEOVER_01.accountDisplayId}: a new payee is added from that device. The account enters cooling-off.`);
+    this.say('BANK', `${this.takeoverAccount(started)}: a new payee is added from that device. The account enters cooling-off.`);
     if (first.action === 'TRANSFER' && (await until(first.atMs))) this.say('RULES', `Transfer ${sgd(first.amount)} to the new payee: risk ${first.expectedScore}, ALLOW.`);
     if (second.action === 'TRANSFER' && (await until(second.atMs))) {
       this.say('RULES', `Transfer ${sgd(second.amount)}: risk ${second.expectedScore}, drain ${second.expectedDrainPercent}% of the opening balance. Still under the 50% line.`);
@@ -388,10 +402,10 @@ export class LiveDemoAutopilot {
     // The kill switch: the agent proposes, the analyst approves.
     this.at('KILL_SWITCH');
     this.say('RECALL_AGENT', 'Stage 3, containment: proposes the kill switch, so every further outflow is held until the customer verifies. The analyst decides.');
-    await this.requestApproval(`Activate the kill switch on ${DEMO_TAKEOVER_01.accountDisplayId}? The customer cannot be reached and a takeover is suspected.`);
+    await this.requestApproval(`Activate the kill switch on ${runAccountReference(DEMO_TAKEOVER_01.accountDisplayId, runId)}? The customer cannot be reached and a takeover is suspected.`);
     this.say('ANALYST', `${identity} approved the kill switch.`);
     await this.issue('KILL_SWITCH', held.accountId);
-    this.flash(`Kill switch active on ${DEMO_TAKEOVER_01.accountDisplayId}`);
+    this.flash(`Kill switch active on ${runAccountReference(DEMO_TAKEOVER_01.accountDisplayId, runId)}`);
     this.say('RULES', 'Kill switch active: the held transfer and every further outflow stay held until the customer verifies with the bank.');
     this.push('PUSH', 'Your bank', 'For your security, outgoing transfers from your account are paused until you verify with us.');
     this.phoneScreen.set('LOCK');
