@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import type { ElementRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, viewChild } from '@angular/core';
 import type { ReferenceScenarioKey } from '@sentinel/domain';
 import type { BurstTile, BurstTileState } from '../../data-access/burst-board';
 import { LiveDemoAutopilot } from '../../data-access/live-demo-autopilot';
@@ -11,12 +13,15 @@ const PATTERN_HINT: Readonly<Record<ReferenceScenarioKey, string>> = {
   replay: 'Reset password, one large transfer',
 };
 
+/** Read by the agent console (live-demo-narrator) to stay clear of the board. */
+const BOARD_BOTTOM = '--sentinel-burst-board-bottom';
+
 const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
   QUEUED: 'Waiting',
   LIVE: 'Scoring',
-  HELD: 'Held by rules',
+  HELD: 'Held',
   FLAGGED: 'Agents on it',
-  CONTAINED: 'Kill switch on',
+  CONTAINED: 'Kill switch',
   MONITORED: 'Monitored',
 };
 
@@ -31,10 +36,10 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (demo.board(); as board) {
-      <section class="board" [class.compact]="compact()" aria-label="Multi-scam burst case board">
+      <section #board class="board" [class.compact]="compact()" aria-label="Multi-scam burst case board">
         <header>
-          <span class="title"><span class="live" [class.on]="demo.running()" aria-hidden="true"></span> Multi-scam burst · 12 accounts · 3 banks · at once</span>
-          <span class="decided" role="status">{{ board.transfers }} transfers decided</span>
+          <span class="title"><span class="live" [class.on]="demo.running()" aria-hidden="true"></span> Multi-scam burst · 12 accounts · 3 banks</span>
+          <span class="decided" role="status">{{ board.transfers }} decided</span>
           <button type="button" class="toggle" (click)="toggle()" [attr.aria-expanded]="!compact()">{{ compact() ? 'Show board' : 'Minimise' }}</button>
         </header>
 
@@ -50,7 +55,7 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
             @for (bank of board.banks; track bank; let row = $index) {
               <div class="bank" role="rowheader">{{ bank }}</div>
               @for (tile of board.tiles.slice(row * 4, row * 4 + 4); track tile.accountDisplayId) {
-                <div class="tile" role="cell" [attr.data-state]="tile.state">
+                <div class="tile" role="cell" [attr.data-state]="tile.state" [attr.title]="tile.band ? tile.accountDisplayId + ' · ' + tile.band + ' ' + tile.score + ' · ' + facts(tile) : null">
                   <span class="top">
                     <span class="acct">{{ tile.accountDisplayId }}</span>
                     @if (tile.notified) {
@@ -75,38 +80,46 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
         <div class="summary">
           <div data-kind="held">
             <b>{{ board.counts.held }}</b>
-            <span><em>Rules held</em> Balance S$50,000 or more and over 50% drained in 24 h: SG-RD-50 stops the transfer before it leaves.</span>
+            <span><em>Rules held</em> S$50k+ balance, over 50% drained in 24 h (SG-RD-50).</span>
           </div>
           <div data-kind="agents">
             <b>{{ board.counts.flagged + board.counts.contained }}</b>
-            <span><em>Agents caught, analyst approved</em> The gate let these through, but the 7 agents see a compromised account and propose a kill switch.</span>
+            <span><em>Agents caught · analyst approved</em> Gate let it through; agents propose a kill switch.</span>
           </div>
           <div data-kind="monitored">
             <b>{{ board.counts.monitored }}</b>
-            <span><em>Monitored</em> Low risk: scored and kept in the queue. Nothing is blocked.</span>
+            <span><em>Monitored</em> Low risk, kept in the queue.</span>
           </div>
         </div>
       </section>
     }
   `,
   styles: `
+    /* Between the console's column (20 px + 460 px + a gap) and the phone's (about 250 px): centred when there is room. */
     .board {
       position: fixed;
       z-index: 58;
-      top: 74px;
-      left: 50%;
+      top: 70px;
+      left: max(calc(50vw - 360px), 496px);
       display: grid;
-      gap: 10px;
-      width: min(860px, calc(100vw - 40px));
-      padding: 12px 14px;
+      gap: 7px;
+      width: min(720px, calc(100vw - 766px));
+      padding: 9px 12px;
       border: 1px solid var(--sentinel-color-accent);
-      border-radius: 16px;
+      border-radius: 14px;
       background: color-mix(in srgb, var(--sentinel-color-surface) 97%, transparent);
       color: var(--sentinel-color-text);
-      box-shadow: 0 18px 48px rgb(0 0 0 / 28%);
+      box-shadow: 0 14px 36px rgb(0 0 0 / 26%);
       backdrop-filter: blur(10px);
-      transform: translateX(-50%);
       animation: enter 0.35s ease-out;
+    }
+    /* Too narrow to sit beside the console: centre it; the console then stops above the board's bottom edge. */
+    @media (max-width: 1240px) {
+      .board {
+        left: 50%;
+        width: min(720px, calc(100vw - 24px));
+        transform: translateX(-50%);
+      }
     }
     header {
       display: flex;
@@ -117,9 +130,18 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      min-width: 0;
       margin-right: auto;
-      font-size: 0.9375rem;
+      overflow: hidden;
+      font-size: 0.8125rem;
       font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .decided,
+    .toggle {
+      flex: none;
+      white-space: nowrap;
     }
     .live {
       width: 9px;
@@ -133,13 +155,13 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
     }
     .decided {
       color: var(--sentinel-color-text-secondary);
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
       font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
     .toggle {
-      min-height: 28px;
-      padding: 0 12px;
+      min-height: 24px;
+      padding: 0 10px;
       border: 1px solid var(--sentinel-color-border);
       border-radius: 999px;
       background: var(--sentinel-color-surface);
@@ -151,35 +173,41 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
     }
     .grid {
       display: grid;
-      grid-template-columns: 64px repeat(4, minmax(0, 1fr));
-      gap: 6px;
+      grid-template-columns: 46px repeat(4, minmax(0, 1fr));
+      gap: 4px;
     }
     .col {
       display: grid;
-      gap: 1px;
-      padding: 0 2px 2px;
+      min-width: 0;
+      padding: 0 2px 1px;
     }
     .col b {
-      font-size: 0.8125rem;
+      overflow: hidden;
+      font-size: 0.75rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .col span {
+    .col span,
+    .facts {
+      overflow: hidden;
       color: var(--sentinel-color-text-secondary);
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .bank {
       align-self: center;
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
       font-weight: 800;
     }
     .tile {
       --tone: var(--sentinel-color-text-muted, #8a97ab);
       display: grid;
-      gap: 2px;
-      min-height: 64px;
-      padding: 7px 9px;
+      min-width: 0;
+      padding: 4px 7px;
       border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
-      border-radius: 10px;
+      border-radius: 8px;
       background: color-mix(in srgb, var(--tone) 10%, var(--sentinel-color-surface));
       transition:
         background 0.4s ease,
@@ -216,34 +244,37 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
     }
     .acct {
       font-family: var(--sentinel-font-mono, ui-monospace, monospace);
-      font-size: 0.6875rem;
+      font-size: 0.625rem;
       color: var(--sentinel-color-text-secondary);
     }
     .ping {
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
+      line-height: 1;
       animation: enter 0.35s ease-out;
     }
     .state {
+      overflow: hidden;
       color: var(--tone);
-      font-size: 0.875rem;
+      font-size: 0.75rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .facts {
-      color: var(--sentinel-color-text-secondary);
-      font-size: 0.6875rem;
       font-variant-numeric: tabular-nums;
     }
     .summary {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      gap: 6px;
     }
     .summary div {
       --tone: var(--sentinel-color-success, #16a34a);
       display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 7px 10px;
-      border-radius: 10px;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      padding: 4px 8px;
+      border-radius: 8px;
       background: color-mix(in srgb, var(--tone) 10%, transparent);
     }
     .summary [data-kind='held'] {
@@ -254,19 +285,20 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
     }
     .summary b {
       color: var(--tone);
-      font-size: 1.5rem;
+      font-size: 1.125rem;
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
     .summary span {
+      min-width: 0;
       color: var(--sentinel-color-text-secondary);
-      font-size: 0.6875rem;
-      line-height: 1.3;
+      font-size: 0.625rem;
+      line-height: 1.25;
     }
     .summary em {
       display: block;
       color: var(--sentinel-color-text);
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       font-style: normal;
       font-weight: 800;
     }
@@ -274,12 +306,17 @@ const STATE_LABEL: Readonly<Record<BurstTileState, string>> = {
       font-size: 0;
     }
     .compact .summary em {
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
+    }
+    /* Short screens: the column hints go, the tiles stay. */
+    @media (max-height: 820px) {
+      .col span {
+        display: none;
+      }
     }
     @keyframes enter {
       from {
         opacity: 0;
-        transform: translate(-50%, -8px);
       }
     }
     @keyframes scoring {
@@ -318,6 +355,27 @@ export class BurstCaseBoard {
   /** The analyst's own choice wins; otherwise the board steps aside while the tour opens individual cases. */
   private readonly chosen = signal<boolean | null>(null);
   protected readonly compact = computed(() => this.chosen() ?? this.demo.step() === 'BURST_CASES');
+  private readonly boardRef = viewChild<ElementRef<HTMLElement>>('board');
+
+  constructor() {
+    // The board's bottom edge, for the agent console: on a narrow screen it stops above the board, never over it.
+    const root = inject(DOCUMENT).documentElement;
+    effect((onCleanup) => {
+      const board = this.boardRef()?.nativeElement;
+      if (!board || typeof ResizeObserver !== 'function') {
+        root.style.removeProperty(BOARD_BOTTOM);
+        return;
+      }
+      const publish = () => root.style.setProperty(BOARD_BOTTOM, `${Math.ceil(board.getBoundingClientRect().bottom)}px`);
+      const observer = new ResizeObserver(publish);
+      observer.observe(board);
+      publish();
+      onCleanup(() => {
+        observer.disconnect();
+        root.style.removeProperty(BOARD_BOTTOM);
+      });
+    });
+  }
 
   protected toggle(): void {
     this.chosen.set(!this.compact());
@@ -325,9 +383,10 @@ export class BurstCaseBoard {
 
   protected facts(tile: BurstTile): string {
     if (tile.state === 'QUEUED') return 'Not started';
-    const parts = [`${tile.transfers} ${tile.transfers === 1 ? 'transfer' : 'transfers'}`];
-    if (tile.score !== null) parts.push(`${tile.band ?? ''} ${tile.score}`.trim());
-    if (tile.drainPct !== null && tile.drainPct > 0) parts.push(`${Math.round(tile.drainPct * 10) / 10}% drained`);
+    // The band is the tile's colour and label already; the line keeps to what fits a laptop screen.
+    const parts = [`${tile.transfers} tx`];
+    if (tile.score !== null) parts.push(`risk ${tile.score}`);
+    if (tile.drainPct !== null && tile.drainPct > 0) parts.push(`${Math.round(tile.drainPct * 10) / 10}%`);
     return parts.join(' · ');
   }
 }

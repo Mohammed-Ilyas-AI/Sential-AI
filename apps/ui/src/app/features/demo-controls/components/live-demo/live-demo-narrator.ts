@@ -96,6 +96,14 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
       gap: 8px;
       width: min(460px, calc(100vw - 40px));
       max-height: min(420px, calc(100dvh - 120px));
+    }
+    /* Where the burst board would share the console's column (narrow screens), stop below the board. */
+    @media (max-width: 1240px) {
+      .console {
+        max-height: min(420px, calc(100dvh - 120px), max(180px, calc(100dvh - var(--sentinel-burst-board-bottom, 0px) - 32px)));
+      }
+    }
+    .console {
       padding: 12px 14px;
       border: 1px solid var(--sentinel-color-accent);
       border-radius: 16px;
