@@ -9,6 +9,7 @@ export * from './account/account-behaviour.js';
 export * from './account/account-state.js';
 export * from './account/account-profile.js';
 export * from './account/bank-account-report.js';
+export * from './account/run-account-reference.js';
 
 export * from './transaction/transaction.js';
 export * from './transaction/transaction-event.js';

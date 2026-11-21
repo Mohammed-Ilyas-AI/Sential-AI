@@ -3,6 +3,7 @@ import {
   MULTI_SCAM_BURST_01,
   PROTECTED_BALANCE_MINOR,
   RAPID_DRAIN_GATE_PERCENT,
+  runAccountReference,
   type DecisionResponse,
   type LiveDemoReport,
   type MultiScamBurstCase,
@@ -71,7 +72,7 @@ describe('/v1/demo/live-demo/burst — MULTI_SCAM_BURST_01, twelve concurrent ca
     expect(new Set(cases.map((entry) => entry.scenario))).toEqual(new Set(['phishing', 'mule', 'smurf', 'replay']));
     expect(new Set(cases.map((entry) => entry.institutionId))).toEqual(new Set(['BANK_A', 'BANK_B', 'BANK_C']));
 
-    const balanceOf = (entry: MultiScamBurstCase) => MULTI_SCAM_BURST_01.cases.find((spec) => spec.accountDisplayId === entry.accountDisplayId)?.balance ?? 0;
+    const balanceOf = (entry: MultiScamBurstCase) => MULTI_SCAM_BURST_01.cases.find((spec) => runAccountReference(spec.accountDisplayId, response.body.runId) === entry.accountDisplayId)?.balance ?? 0;
     for (const entry of cases) {
       const protectedAccount = balanceOf(entry) >= PROTECTED_BALANCE_MINOR;
       // The gate holds a transfer only on a protected account whose 24h outflow passes 50% of the opening balance.

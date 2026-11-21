@@ -1,4 +1,4 @@
-import { MULTI_SCAM_BURST_01, REFERENCE_SCENARIOS, type MultiScamBurstReport, type ReferenceScenarioKey, type RiskBand } from '@sentinel/domain';
+import { MULTI_SCAM_BURST_01, REFERENCE_SCENARIOS, runAccountReference, scenarioRunOf, type MultiScamBurstReport, type ReferenceScenarioKey, type RiskBand } from '@sentinel/domain';
 import type { TapeRow } from '../../../workers/transaction-worker-protocol';
 
 /**
@@ -46,6 +46,8 @@ export interface BurstBoardInput {
 /** Clocks of browser and server can differ by a little; anything this much before the start is an earlier run. */
 const CLOCK_SLACK_MS = 5_000;
 const BANKS = ['BANK_A', 'BANK_B', 'BANK_C'] as const;
+/** The burst's scenario code in its transaction IDs (`TX-MSB1-<runId>-<n>`). */
+const BURST_CODE = 'MSB1';
 const SCENARIOS: readonly ReferenceScenarioKey[] = ['phishing', 'mule', 'smurf', 'replay'];
 
 /**
@@ -54,10 +56,14 @@ const SCENARIOS: readonly ReferenceScenarioKey[] = ['phishing', 'mule', 'smurf',
  */
 export function buildBurstBoard(input: BurstBoardInput): BurstBoard {
   const byAccount = new Map<string, TapeRow[]>();
-  const ids = new Set(MULTI_SCAM_BURST_01.cases.map((spec) => spec.accountDisplayId));
-  for (const row of input.rows) {
+  const fresh = input.rows.filter((row) => Date.parse(row.decidedAt) >= input.since - CLOCK_SLACK_MS);
+  // Each run plays on its own accounts: the run ID (from the report, or from a burst transaction ID) gives their references.
+  const runId = input.report?.runId ?? fresh.map((row) => scenarioRunOf(row.transactionId)).find((run) => run?.code === BURST_CODE)?.runId;
+  const referenceOf = (catalogue: string) => runAccountReference(catalogue, runId);
+  const ids = new Set(MULTI_SCAM_BURST_01.cases.map((spec) => referenceOf(spec.accountDisplayId)));
+  for (const row of fresh) {
     const reference = row.accountReference;
-    if (!reference || !ids.has(reference) || Date.parse(row.decidedAt) < input.since - CLOCK_SLACK_MS) continue;
+    if (!reference || !ids.has(reference)) continue;
     byAccount.set(reference, [...(byAccount.get(reference) ?? []), row]);
   }
   const reported = new Map((input.report?.cases ?? []).map((entry) => [entry.accountDisplayId, entry]));
@@ -65,7 +71,7 @@ export function buildBurstBoard(input: BurstBoardInput): BurstBoard {
   const tiles = BANKS.flatMap((bank) =>
     SCENARIOS.map((scenario): BurstTile => {
       const spec = MULTI_SCAM_BURST_01.cases.find((candidate) => candidate.institutionId === bank && candidate.scenario === scenario);
-      const displayId = spec?.accountDisplayId ?? '';
+      const displayId = spec ? referenceOf(spec.accountDisplayId) : '';
       const rows = byAccount.get(displayId) ?? [];
       const peak = rows.reduce<TapeRow | null>((best, row) => (!best || row.score > best.score ? row : best), null);
       const live = {

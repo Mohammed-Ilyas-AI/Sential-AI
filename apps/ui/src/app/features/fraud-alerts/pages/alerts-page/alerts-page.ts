@@ -1,5 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { RAPID_DRAIN_GATE_PERCENT } from '@sentinel/domain';
 import { DecisionTrace } from '../../../../shared/ui/decision-trace/decision-trace';
 import { Icon } from '../../../../shared/ui/icon/icon';
@@ -15,11 +16,18 @@ import { FraudAlertsFacade } from '../../data-access/fraud-alerts-facade';
  */
 @Component({
   selector: 'sentinel-alerts-page',
-  imports: [DecimalPipe, PageHeader, AlertQueue, CaseDetail, DecisionTrace, Icon, RiskBandBadge],
+  imports: [DecimalPipe, RouterLink, PageHeader, AlertQueue, CaseDetail, DecisionTrace, Icon, RiskBandBadge],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:keydown.escape)': 'traceOpen.set(false)' },
   template: `
-    <sentinel-page-header heading="Alerts & Cases" summary="Prioritise alerts, inspect policy decisions and track intervention status." />
+    <div class="page-head">
+      <sentinel-page-header heading="Alerts & Cases" summary="Prioritise alerts, inspect policy decisions and track intervention status." />
+      <a class="cases-link" routerLink="/cases" title="Case files: open a case from an alert, generate the report, sign off and export">
+        <span class="cases-icon"><sentinel-icon name="audit" [size]="18" /></span>
+        <span class="cases-text"><b>Cases</b><small>Case files &amp; reports</small></span>
+        <sentinel-icon name="arrowRight" [size]="16" />
+      </a>
+    </div>
 
     <section class="metrics" aria-label="Alert figures">
       <div class="metric" data-tone="critical">

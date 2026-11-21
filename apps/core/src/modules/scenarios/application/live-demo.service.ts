@@ -1,6 +1,7 @@
 import {
   DEMO_TAKEOVER_01,
   REFERENCE_SCENARIOS,
+  runAccountReference,
   type DecisionResponse,
   type LiveDemoHold,
   type LiveDemoReport,
@@ -97,7 +98,7 @@ export class LiveDemoService {
     const played = await Promise.all(
       burst.cases.map(async (entry) => ({ entry, report: await playScenario({ ...burst.scenario, timeline: entry.timeline }, this.bank, timeline) })),
     );
-    const cases = await Promise.all(played.map(({ entry, report }) => this.describeCase(entry, report.transfers, context)));
+    const cases = await Promise.all(played.map(({ entry, report }) => this.describeCase(entry, report.transfers, context, runId)));
     return {
       runId,
       scenarioId: 'MULTI_SCAM_BURST_01',
@@ -108,7 +109,7 @@ export class LiveDemoService {
     };
   }
 
-  private async describeCase(entry: MultiScamBurstCaseScenario, transfers: readonly PlayedTransfer[], context: ActingContext): Promise<MultiScamBurstCase> {
+  private async describeCase(entry: MultiScamBurstCaseScenario, transfers: readonly PlayedTransfer[], context: ActingContext, runId: string): Promise<MultiScamBurstCase> {
     const held = transfers.filter(({ response }) => response.decision === 'HOLD').map(holdOf);
     const peak = transfers.reduce<PlayedTransfer | null>((best, transfer) => (!best || transfer.response.riskScore >= best.response.riskScore ? transfer : best), null);
     if (!peak) throw new Error(`Burst case ${entry.spec.accountDisplayId} played no transfer`);
@@ -121,7 +122,7 @@ export class LiveDemoService {
       scenario: entry.spec.scenario,
       scenarioName: REFERENCE_SCENARIOS[entry.spec.scenario].name,
       institutionId: entry.spec.institutionId,
-      accountDisplayId: entry.spec.accountDisplayId,
+      accountDisplayId: runAccountReference(entry.spec.accountDisplayId, runId),
       accountId: peak.step.request.sourceAccountToken,
       transfers: transfers.length,
       decision: held.length > 0 ? 'HOLD' : 'ALLOW',

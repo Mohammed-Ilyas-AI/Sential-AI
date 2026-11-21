@@ -71,13 +71,16 @@ button:disabled {
   overflow-y: auto;
 }
 .row {
+  --band: var(--sentinel-color-accent);
   display: grid;
   gap: 3px;
   padding: 10px 12px;
   border: 1px solid var(--sentinel-color-border-soft);
+  border-left: 3px solid var(--band);
   border-radius: 10px;
-  background: transparent;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--band) 8%, transparent), transparent 65%);
   color: var(--sentinel-color-text);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -125,4 +128,66 @@ button:disabled {
 }
 .error {
   color: var(--sentinel-color-critical);
+}
+
+.row[data-band='CRITICAL'] {
+  --band: var(--sentinel-color-critical);
+}
+.row[data-band='HIGH'] {
+  --band: var(--sentinel-color-warning);
+}
+.row[data-band='LOW'] {
+  --band: var(--sentinel-color-success);
+}
+.row:hover {
+  transform: translateX(2px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--band) 16%, transparent);
+}
+.row[aria-selected='true'] {
+  box-shadow: 0 0 0 1px var(--sentinel-color-accent), 0 8px 22px color-mix(in srgb, var(--sentinel-color-accent) 20%, transparent);
+}
+.who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.score {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--band) 16%, transparent);
+  color: var(--band);
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sentinel-color-accent) 15%, transparent);
+  color: var(--sentinel-color-accent);
+  font-size: 0.6875rem;
+  vertical-align: middle;
+}
+.open {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--sentinel-color-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--sentinel-color-accent) 6%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+  .row:hover {
+    transform: none;
+  }
 }
