@@ -1,9 +1,10 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RAPID_DRAIN_GATE_PERCENT, type CaseReportSection, type CaseReportSectionId } from '@sentinel/domain';
+import type { CaseReportSection, CaseReportSectionId } from '@sentinel/domain';
 import { InstitutionLabelPipe } from '../../../../shared/pipes/institution-label/institution-label-pipe';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { CasesFacade } from '../../data-access/cases-facade';
+import { CaseGlance } from '../case-glance/case-glance';
 import { readReport, SECTION_LOOK, type ReportBlock } from './report-reading';
 
 /**
@@ -12,7 +13,7 @@ import { readReport, SECTION_LOOK, type ReportBlock } from './report-reading';
  */
 @Component({
   selector: 'sentinel-case-report',
-  imports: [DatePipe, DecimalPipe, Icon, InstitutionLabelPipe],
+  imports: [DatePipe, Icon, InstitutionLabelPipe, CaseGlance],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './case-report.html',
   styleUrl: './case-report.css',
@@ -21,14 +22,9 @@ export class CaseReportPanel {
   protected readonly facade = inject(CasesFacade);
   protected readonly confirmingSignOff = signal(false);
   protected readonly isDraft = computed(() => this.facade.latest()?.status === 'DRAFT');
-  protected readonly gatePercent = RAPID_DRAIN_GATE_PERCENT;
   protected readonly look = SECTION_LOOK;
   /** Sections the analyst has opened for editing; a section with unsaved edits stays open. */
   protected readonly editing = signal<ReadonlySet<CaseReportSectionId>>(new Set());
-  /** The three rules that weighed most in the recorded score, strongest first. */
-  protected readonly topRules = computed(() =>
-    [...(this.facade.selected()?.evidence.assessment.contributions ?? [])].sort((left, right) => right.points - left.points).slice(0, 3),
-  );
 
   protected isEditing(section: CaseReportSection): boolean {
     return this.isDraft() && (this.editing().has(section.id) || this.facade.edits()[section.id] !== undefined);
