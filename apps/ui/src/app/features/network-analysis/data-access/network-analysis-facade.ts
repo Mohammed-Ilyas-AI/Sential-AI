@@ -159,6 +159,15 @@ export class NetworkAnalysisFacade {
     return entry ? { nodes: entry.nodeIds, edges: entry.edgeIds } : null;
   });
 
+  /** The timeline moments that touched what is selected on the graph (the case account itself touches them all). */
+  readonly linkedEntries = computed<readonly string[]>(() => {
+    const selected = this.selection();
+    if (!selected || (selected.kind === 'node' && selected.id === this.scene()?.rootId)) return [];
+    return this.timeline()
+      .filter((entry) => (selected.kind === 'edge' ? entry.edgeIds : entry.nodeIds).includes(selected.id))
+      .map((entry) => entry.id);
+  });
+
   readonly query = signal('');
   readonly matches = computed(() => {
     const query = this.query().trim().toLowerCase();
@@ -203,8 +212,18 @@ export class NetworkAnalysisFacade {
     this.filters.set(DEFAULT_FILTERS);
   }
 
+  /**
+   * A choice on the graph moves the timeline: a relationship focuses the moment that recorded it; an entity clears
+   * the old focus, and the moments that touched it light up on the rail instead.
+   */
   select(target: GraphTarget | null): void {
     this.selection.set(target);
+    if (target?.kind === 'node') {
+      if (this.activeEntry() !== 'trace') this.activeEntry.set(null);
+      return;
+    }
+    const entry = target ? this.timeline().find((candidate) => candidate.edgeIds.includes(target.id)) : undefined;
+    if (entry) this.activeEntry.set(entry.id);
   }
 
   /** Focus a timeline moment: highlight what it touched and select its main relationship. Again to clear. */

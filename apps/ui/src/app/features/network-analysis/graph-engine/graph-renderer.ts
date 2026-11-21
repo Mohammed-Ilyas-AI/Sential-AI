@@ -51,6 +51,8 @@ export const MAX_SCALE = 2.6;
 const NODE_RADIUS = 22;
 const ROOT_RADIUS = 29;
 const EDGE_HIT_PX = 7;
+/** One pass of the focus comet: the same beat as a timeline playback step. */
+const FOCUS_BEAT_MS = 1_600;
 
 function withAlpha(hex: string, alpha: number): string {
   const value = Number.parseInt(hex.slice(1), 16);
@@ -212,7 +214,9 @@ export class CanvasGraphRenderer {
     const hovered = this.hover?.kind === 'edge' && this.hover.id === edge.id;
     const alpha = this.dimmed('edge', edge.id) ? 0.14 : candidate ? 0.45 : 0.9;
     const colour = this.edgeColour(edge, palette);
+    const focused = this.highlight?.edges.has(edge.id) ?? false;
     context.save();
+    if (focused) this.drawFocusGlow(points, colour, timeMs);
     context.strokeStyle = withAlpha(colour, alpha);
     context.lineWidth = (edge.kind === 'TRANSFERRED_TO' ? 2 : 1.5) + (selected ? 1.6 : hovered ? 0.8 : 0);
     context.setLineDash(candidate ? [8, 6] : [...EDGE_STYLES[edge.kind].dash]);
@@ -233,8 +237,8 @@ export class CanvasGraphRenderer {
       context.closePath();
       context.fill();
     }
-    // Money in motion: a soft pulse travels along each confirmed transfer.
-    if (edge.kind === 'TRANSFERRED_TO' && !candidate && !this.dimmed('edge', edge.id)) {
+    // Money in motion: a soft pulse travels along each confirmed transfer (the focused step draws its own).
+    if (edge.kind === 'TRANSFERRED_TO' && !candidate && !focused && !this.dimmed('edge', edge.id)) {
       const phase = ((timeMs / 2600 + (edge.id.length % 7) / 7) % 1) * (points.length - 1);
       const point = points[Math.floor(phase)];
       if (point) {
@@ -246,6 +250,38 @@ export class CanvasGraphRenderer {
       }
     }
     context.restore();
+  }
+
+  /**
+   * The timeline's step in focus: a breathing glow under the link and a bright comet that runs from source to
+   * target once per playback beat, so the eye follows the step from the rail to the graph.
+   */
+  private drawFocusGlow(points: readonly { x: number; y: number }[], colour: string, timeMs: number): void {
+    const context = this.context;
+    const breathe = 0.5 + 0.5 * Math.sin((timeMs / FOCUS_BEAT_MS) * Math.PI * 2);
+    context.save();
+    context.strokeStyle = withAlpha(colour, 0.22 + 0.18 * breathe);
+    context.lineWidth = 7 + 3 * breathe;
+    context.lineCap = 'round';
+    context.shadowColor = withAlpha(colour, 0.9);
+    context.shadowBlur = 14 + 8 * breathe;
+    context.beginPath();
+    points.forEach((point, index) => (index === 0 ? context.moveTo(point.x, point.y) : context.lineTo(point.x, point.y)));
+    context.stroke();
+    context.restore();
+    // The comet: a head and a fading tail of a few trailing samples.
+    const head = ((timeMs % FOCUS_BEAT_MS) / FOCUS_BEAT_MS) * (points.length - 1);
+    for (let trail = 0; trail < 6; trail += 1) {
+      const point = points[Math.floor(head) - trail];
+      if (!point) continue;
+      const radius = 9 - trail * 1.2;
+      const glow = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
+      glow.addColorStop(0, withAlpha(trail === 0 ? '#ffffff' : colour, (1 - trail / 6) * 0.95));
+      glow.addColorStop(0.45, withAlpha(colour, (1 - trail / 6) * 0.8));
+      glow.addColorStop(1, withAlpha(colour, 0));
+      context.fillStyle = glow;
+      context.fillRect(point.x - radius, point.y - radius, radius * 2, radius * 2);
+    }
   }
 
   private drawEdgeLabel(edge: GraphSceneEdge, palette: GraphPalette): void {
@@ -342,6 +378,19 @@ export class CanvasGraphRenderer {
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText('!', bx, by + 0.5);
+    }
+    // In the timeline step in focus: a ripple ring, in step with the comet on its links.
+    if (this.highlight?.nodes.has(node.id)) {
+      const phase = (timeMs % FOCUS_BEAT_MS) / FOCUS_BEAT_MS;
+      context.save();
+      context.beginPath();
+      context.arc(at.x, at.y, radius + 6 + phase * 14, 0, Math.PI * 2);
+      context.lineWidth = 3 * (1 - phase) + 0.5;
+      context.strokeStyle = withAlpha(colour, 0.75 * (1 - phase));
+      context.shadowColor = withAlpha(colour, 0.8);
+      context.shadowBlur = 12;
+      context.stroke();
+      context.restore();
     }
     if (selected || hovered) {
       context.beginPath();

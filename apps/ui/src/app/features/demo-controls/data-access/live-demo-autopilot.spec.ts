@@ -1,6 +1,6 @@
 import type { MultiScamBurstCase, SentinelSwarmReport } from '@sentinel/domain';
 import { describe, expect, it } from 'vitest';
-import { burstCaseLine, swarmTriageLines } from './live-demo-autopilot';
+import { BURST_PROTECTED_MESSAGE, burstCaseLine, burstHoldMessage, burstPushTitle, swarmTriageLines } from './live-demo-autopilot';
 
 const swarm: SentinelSwarmReport = {
   assessmentId: 'asmt-1',
@@ -50,6 +50,20 @@ describe('live demo console lines', () => {
     expect(burstCaseLine({ ...muleCase, decision: 'HOLD', drainPct: 65.4 })).toContain('HOLD (65.4% drain)');
     const { swarm: _omitted, ...scored } = muleCase;
     expect(burstCaseLine({ ...scored, scenario: 'smurf', scenarioName: 'Smurfing', peakBand: 'LOW', peakScore: 34 })).toContain('Scored and left in the queue');
+  });
+
+  it("addresses each burst push to its own customer's bank and account, with the amount the gate held", () => {
+    const heldCase: MultiScamBurstCase = {
+      ...muleCase,
+      institutionId: 'BANK_B',
+      accountDisplayId: 'ACC-31760',
+      decision: 'HOLD',
+      held: [{ transactionId: 'txn-1', assessmentId: 'asmt-2', accountId: 'acct_tok_31760', amount: 3_400_000, riskScore: 95 }],
+    };
+    expect(burstPushTitle(heldCase)).toBe('Bank B · ACC-31760');
+    expect(burstHoldMessage(heldCase)).toBe("We have paused a transfer of S$34,000.00 from your account. If this wasn't you, call the number on the back of your card.");
+    expect(burstHoldMessage(muleCase)).toContain('We have paused a transfer from your account');
+    expect(BURST_PROTECTED_MESSAGE).not.toMatch(/http|link|password|OTP|PIN/i);
   });
 
   it('never claims a model, a regulator filing or an action nobody took', () => {

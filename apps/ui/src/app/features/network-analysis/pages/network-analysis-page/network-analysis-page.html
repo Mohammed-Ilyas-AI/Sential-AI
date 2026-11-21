@@ -149,4 +149,4 @@
   (openInvestigation)="facade.openInvestigation()"
 />
 
-<sentinel-flow-timeline class="timeline surface" [entries]="facade.timeline()" [active]="facade.activeEntry()" (chosen)="facade.focusEntry($event)" />
+<sentinel-flow-timeline class="timeline surface" [entries]="facade.timeline()" [active]="facade.activeEntry()" [linked]="facade.linkedEntries()" (chosen)="facade.focusEntry($event)" />

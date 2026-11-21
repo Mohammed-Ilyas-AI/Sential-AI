@@ -14,9 +14,15 @@ const TYPE_MS = 18;
   imports: [DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <figure class="phone" aria-label="The synthetic customer's phone (simulated)">
+    <figure class="phone" [attr.aria-label]="label()">
       <div class="notch" aria-hidden="true"></div>
-      <figcaption>Customer's phone · simulated</figcaption>
+      <figcaption>{{ burst() ? "Customers' phones" : "Customer's phone" }} · simulated</figcaption>
+      @if (burst()) {
+        <p class="reach" role="status">
+          <b>{{ demo.customersNotified() }}</b> {{ demo.customersNotified() === 1 ? 'customer' : 'customers' }} notified
+          <span>each message names its bank and account</span>
+        </p>
+      }
 
       @switch (demo.phoneScreen()) {
         @case ('RINGING') {
@@ -98,6 +104,23 @@ const TYPE_MS = 18;
       font-size: 0.625rem;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+    .reach {
+      display: grid;
+      justify-items: center;
+      margin: 0;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: rgb(56 189 248 / 14%);
+      text-align: center;
+    }
+    .reach b {
+      font-size: 1.25rem;
+      color: #38bdf8;
+    }
+    .reach span {
+      color: #94a3b8;
+      font-size: 0.625rem;
     }
     .call {
       display: grid;
@@ -245,6 +268,8 @@ const TYPE_MS = 18;
 })
 export class CustomerPhone {
   protected readonly demo = inject(LiveDemoAutopilot);
+  protected readonly burst = computed(() => this.demo.mode() === 'BURST');
+  protected readonly label = computed(() => (this.burst() ? "The synthetic customers' phones (simulated)" : "The synthetic customer's phone (simulated)"));
   private readonly shown = signal(0);
   protected readonly typed = computed(() => (this.demo.phoneOpen()?.body ?? '').slice(0, this.shown()));
 
