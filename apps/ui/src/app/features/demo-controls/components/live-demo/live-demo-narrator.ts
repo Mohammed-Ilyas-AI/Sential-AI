@@ -2,6 +2,7 @@ import type { ElementRef } from '@angular/core';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, viewChild } from '@angular/core';
 import { Icon } from '../../../../shared/ui/icon/icon';
 import { BURST_DEMO_STEPS, LIVE_DEMO_STEPS, LiveDemoAutopilot, type ConsoleSpeaker } from '../../data-access/live-demo-autopilot';
+import { BurstCaseBoard } from './burst-case-board';
 import { CustomerPhone } from './customer-phone';
 
 const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
@@ -27,7 +28,7 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
  */
 @Component({
   selector: 'sentinel-live-demo-narrator',
-  imports: [Icon, CustomerPhone],
+  imports: [Icon, CustomerPhone, BurstCaseBoard],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (demo.visible()) {
@@ -76,6 +77,8 @@ const SPEAKERS: Readonly<Record<ConsoleSpeaker, string>> = {
           <button type="button" class="again" (click)="again()">{{ demo.mode() === 'BURST' ? 'Run the burst again' : 'Run the live demo again' }}</button>
         }
       </aside>
+
+      <sentinel-burst-case-board />
 
       <div class="phone-slot">
         <sentinel-customer-phone />

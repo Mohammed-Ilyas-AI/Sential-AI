@@ -61,6 +61,32 @@ h2 span {
   height: 2px;
   background: linear-gradient(90deg, var(--sentinel-color-border), color-mix(in srgb, var(--sentinel-color-accent) 40%, var(--sentinel-color-border)));
 }
+/* The axis lit up to the moment in focus: it grows as playback moves along the graph. */
+.rail::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 0;
+  width: var(--progress, 0);
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sentinel-color-accent) 35%, transparent), var(--sentinel-color-accent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sentinel-color-accent) 70%, transparent);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.step {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sentinel-color-accent) 14%, transparent);
+  color: var(--sentinel-color-accent-text, var(--sentinel-color-accent));
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.step.linked {
+  background: color-mix(in srgb, var(--sentinel-color-warning) 16%, transparent);
+  color: var(--sentinel-color-text);
+}
 li {
   position: relative;
   display: grid;
@@ -107,9 +133,82 @@ button[data-tone='held'] {
   border-color: color-mix(in srgb, var(--tone) 55%, transparent);
   background: color-mix(in srgb, var(--tone) 7%, var(--sentinel-color-surface));
 }
+button[data-tone] {
+  position: relative;
+  overflow: hidden;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    border-color 0.3s ease;
+}
 button[aria-pressed='true'] {
   border-color: var(--tone);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--tone) 30%, transparent);
+}
+/* The moment in focus glows and lifts; earlier ones read as done; later ones wait. */
+li[data-state='now'] button {
+  transform: translateY(-2px);
+  animation: glow 1.6s ease-in-out infinite;
+}
+li[data-state='now'] .tick {
+  transform: scale(1.6);
+  animation: tick-glow 1.6s ease-in-out infinite;
+}
+li[data-state='past'] .tick {
+  background: var(--sentinel-color-accent);
+}
+li[data-state='next'] button {
+  opacity: 0.55;
+}
+/* Chosen on the graph: the moments that touched it. */
+li[data-linked] button {
+  border-color: var(--tone);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--tone) 45%, transparent);
+}
+.tick {
+  transition: transform 0.3s ease;
+}
+/* While playing, a bar fills across the card in time with the step. */
+.beat {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--tone);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+:host([data-playing]) .beat {
+  animation: beat var(--step-ms, 1600ms) linear forwards;
+}
+@keyframes glow {
+  50% {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--tone) 45%, transparent),
+      0 0 22px 2px color-mix(in srgb, var(--tone) 55%, transparent);
+  }
+}
+@keyframes tick-glow {
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--tone) 30%, transparent), 0 0 14px var(--tone);
+  }
+}
+@keyframes beat {
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  li[data-state='now'] button,
+  li[data-state='now'] .tick,
+  :host([data-playing]) .beat {
+    animation: none;
+  }
+  .rail::after,
+  button[data-tone] {
+    transition: none;
+  }
 }
 .icon {
   display: grid;

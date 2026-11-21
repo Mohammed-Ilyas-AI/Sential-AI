@@ -17,6 +17,8 @@ import { firstValueFrom } from 'rxjs';
 import { CoreApiClient } from '../../../core/http/api-client/core-api-client';
 import { AlertsActions } from '../../../state/alerts/alerts.actions';
 import { sessionFeature } from '../../../state/session/session.feature';
+import { transactionsFeature } from '../../../state/transactions/transactions.feature';
+import { buildBurstBoard, type BurstBoard } from './burst-board';
 
 export type LiveDemoStep =
   | 'STREAM'
@@ -102,7 +104,7 @@ export const BURST_DEMO_STEPS: readonly { readonly step: LiveDemoStep; readonly 
 ];
 
 /** How long the burst tour stays on each page while the twelve cases play (about 25 s in all). */
-const BURST_PAGE_MS = { TOWER: 5_000, TAPE: 9_000, LINE: 450, CASE: 6_000 } as const;
+const BURST_PAGE_MS = { TOWER: 5_000, TAPE: 9_000, LINE: 450, CASE: 6_000, PUSH: 500 } as const;
 
 /**
  * At demo time a hold auto-releases 24 s after it is placed, so everything between the hold and the kill switch is
@@ -143,7 +145,23 @@ export function burstCaseLine(entry: MultiScamBurstCase): string {
   return `${entry.accountDisplayId} · ${bank} · ${PATTERN[scamIntent.scamTypology]}: ${outcome}. ${recovery.killSwitchRecommended ? 'Kill switch recommended.' : 'Monitoring.'}`;
 }
 
-const sgd = (minorUnits: number): string => `S$${(minorUnits / 100).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** Whose phone a burst push lands on: the customer's bank and account. */
+export function burstPushTitle(entry: MultiScamBurstCase): string {
+  return `${entry.institutionId.replace('BANK_', 'Bank ')} · ${entry.accountDisplayId}`;
+}
+
+/** The push a burst customer gets when the gate holds their transfer, with the amount the gate held. */
+export function burstHoldMessage(entry: MultiScamBurstCase): string {
+  const amount = entry.held[0]?.amount;
+  const what = amount !== undefined ? `a transfer of ${sgd(amount)}` : 'a transfer';
+  return `We have paused ${what} from your account. If this wasn't you, call the number on the back of your card.`;
+}
+
+export const BURST_PROTECTED_MESSAGE = 'For your security, outgoing transfers from your account are paused until you verify with us.';
+
+function sgd(minorUnits: number): string {
+  return `S$${(minorUnits / 100).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class Stopped extends Error {}
@@ -178,6 +196,19 @@ export class LiveDemoAutopilot {
   readonly phoneScreen = signal<PhoneScreen>('LOCK');
   readonly phoneFeed = signal<readonly PhoneEvent[]>([]);
   readonly phoneOpen = signal<PhoneEvent | null>(null);
+  /** In the burst the phone stands for every affected customer: the display ids of those reached. */
+  private readonly notifiedIds = signal<ReadonlySet<string>>(new Set());
+  readonly customersNotified = computed(() => this.notifiedIds().size);
+  /** Burst accounts whose analyst-approved kill switch sentinel-core accepted. */
+  private readonly containedIds = signal<ReadonlySet<string>>(new Set());
+  private readonly burstSince = signal(0);
+  private readonly tape = this.store.selectSignal(transactionsFeature.selectTape);
+  /** The twelve-case board: live from the tape while the burst plays, then the report's outcomes. */
+  readonly board = computed<BurstBoard | null>(() =>
+    this.mode() === 'BURST' && this.visible()
+      ? buildBurstBoard({ rows: this.tape(), since: this.burstSince(), report: this.burst(), contained: this.containedIds(), notified: this.notifiedIds() })
+      : null,
+  );
   readonly banner = signal<string | null>(null);
   readonly voice = signal(true);
 
@@ -200,6 +231,7 @@ export class LiveDemoAutopilot {
     if (this.running()) return;
     this.reset();
     this.mode.set('BURST');
+    this.burstSince.set(Date.now());
     this.status.set('RUNNING');
     try {
       const identity = this.analyst() ?? 'demo-analyst';
@@ -448,6 +480,7 @@ export class LiveDemoAutopilot {
     await this.router.navigateByUrl('/control-tower');
     this.say('AGENT', 'Multi-scam burst: four scam patterns on twelve accounts across three banks, all at once. Synthetic data.');
     this.say('BANK', 'Phishing takeover, mule account, smurfing and credential replay start on Bank A, Bank B and Bank C, 1.5 seconds apart.');
+    this.say('AGENT', 'The case board above follows all twelve live: each tile turns as the rules and the agents decide its case.');
     await hold(BURST_PAGE_MS.TOWER);
     await this.router.navigateByUrl('/live-transactions');
     this.say('RULES', 'Each account is decided on its own lane, in parallel: seven rules score every transfer and the rapid-drain gate decides before it commits.');
@@ -464,6 +497,12 @@ export class LiveDemoAutopilot {
 
     this.at('BURST_DECIDED');
     this.say('RULES', `${report.transfers} transfers decided across twelve accounts. ${held.length} held by SG-RD-50: their drain passed 50% of the opening balance.`);
+    // Each held customer hears at once, as in the single takeover: a push that the transfer is paused.
+    for (const entry of held) {
+      this.notify(entry, burstHoldMessage(entry));
+      await this.pause(BURST_PAGE_MS.PUSH);
+    }
+    if (held.length > 0) this.say('BANK', `Push notification sent to ${held.length} customers whose transfers are on hold.`);
     await this.pause(PAUSE_MS.AFTER);
 
     this.at('BURST_SWARM');
@@ -484,6 +523,13 @@ export class LiveDemoAutopilot {
       const active = results.filter(Boolean).length;
       this.flash(`Kill switch active on ${active} accounts`);
       this.say('RULES', `Kill switch active on ${active} accounts: every further outflow is held until each customer verifies with the bank.`);
+      const protectedCases = proposals.filter((_, index) => results[index]);
+      this.containedIds.set(new Set(protectedCases.map((entry) => entry.accountDisplayId)));
+      for (const entry of protectedCases) {
+        this.notify(entry, BURST_PROTECTED_MESSAGE);
+        await this.pause(BURST_PAGE_MS.PUSH);
+      }
+      if (protectedCases.length > 0) this.say('BANK', `Push notification sent to ${protectedCases.length} more customers: their accounts are protected until they verify.`);
     } else {
       this.say('RECALL_AGENT', 'No account outside the gate needs a kill switch.');
     }
@@ -553,6 +599,8 @@ export class LiveDemoAutopilot {
     this.phoneFeed.set([]);
     this.phoneOpen.set(null);
     this.phoneScreen.set('LOCK');
+    this.notifiedIds.set(new Set());
+    this.containedIds.set(new Set());
     this.banner.set(null);
     this.drafts.clear();
   }
@@ -569,6 +617,12 @@ export class LiveDemoAutopilot {
     const event: PhoneEvent = { id: ++this.sequence, kind, title, body, at: Date.now(), ...(source ? { source } : {}) };
     this.phoneFeed.update((feed) => [event, ...feed].slice(0, 6));
     return event;
+  }
+
+  /** A push to one burst customer, titled with their bank and account so each message reads as its own phone. */
+  private notify(entry: MultiScamBurstCase, body: string): void {
+    this.push('PUSH', burstPushTitle(entry), body);
+    this.notifiedIds.update((ids) => new Set([...ids, entry.accountDisplayId]));
   }
 
   private open(kind: 'VOICEMAIL' | 'EMAIL', title: string, body: string, source: PhoneEvent['source']): void {
